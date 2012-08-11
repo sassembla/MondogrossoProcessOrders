@@ -1,0 +1,82 @@
+apply plugin:"scala"
+
+/**
+this module contains no-tests. this is module for 
+
+*/
+task wrapper(type: Wrapper) {
+    gradleVersion = '1.1'
+}
+
+repositories {
+	mavenCentral();
+}
+
+sourceSets {
+	main {
+		scala {
+			srcDir 'src/com/kissaki'
+    	}
+	}
+}
+
+
+dependencies {
+	scalaTools  (
+		[group: "org.scala-lang", name: "scala-compiler",version: "2.9.2"],
+		[group: "org.scala-lang", name: "scala-library",version: "2.9.2"],
+	)
+	
+	compile (
+		[group: "org.scala-lang", name: "scala-library",version: "2.9.2"],
+	)
+}
+
+
+jar {
+	manifest {
+		attributes 'Main-class': "com.kissaki.mondogrosso.mondogrossoProcessOrders.MondogrossoCaseClasses"
+	}
+	
+	from {
+		configurations.runtime.collect {
+			if (it.isDirectory()){
+			} else {
+				it
+				zipTree(it)
+			}
+		}
+	}
+	
+	from {
+		fileTree(dir: 'resources', includes: ['*.*'])
+	}
+}
+
+//MavenRepository identity setting
+group = 'com.kissaki.mondogrosso'
+archivesBaseName = 'MondogrossoFileObserver' 
+version = '0.5.0'
+
+uploadArchives {
+	repositories {
+		mavenDeployer {
+			repository(url: "file:${projectDir}")
+		}
+	}
+}
+
+[install.repositories.mavenInstaller, uploadArchives.repositories.mavenDeployer]*.pom*.whenConfigured { pom ->
+	pom.project {
+		inceptionYear '2012'
+		packaging 'jar'
+		licenses {
+			license {
+				name 'The Apache Software License, Version 2.0'
+				url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+				distribution 'repo'
+			}
+		}
+	}
+}
+
