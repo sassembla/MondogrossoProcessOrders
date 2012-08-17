@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata>
+  <groupId>com.kissaki.mondogrosso</groupId>
+  <artifactId>MondogrossoProcessOrders</artifactId>
+  <version>0.1.0-SNAPSHOT</version>
+  <versioning>
+    <snapshot>
+      <timestamp>20120817.085822</timestamp>
+      <buildNumber>1</buildNumber>
+    </snapshot>
+    <lastUpdated>20120817085822</lastUpdated>
+  </versioning>
+</metadata>
