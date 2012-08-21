@@ -46,12 +46,16 @@ jar {
 				it
 				zipTree(it)
 			}
+			
+			
 		}
 	}
 	
 	from {
 		fileTree(dir: 'resources', includes: ['*.*'])
 	}
+	
+	exclude('scala/**') 
 }
 
 //MavenRepository identity setting
