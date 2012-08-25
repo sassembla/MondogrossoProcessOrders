@@ -178,19 +178,27 @@ class MondogrossoProcessOrdersTests extends Specification {
 			process.size == 5 must beTrue
 		}
 		
-		"get waits of specific process's specific order" in {
-			val process = p.getProcess("process1")
-			val order = process.getOrder(2)
-			order.getWaits == List("J","K") must beTrue
+		"get waits of specific process's specific orders" in {
+			val process = p.getProcess("process1").get
+			val orders = process.getOrdersAt(2)
+			orders.getWaits == List("J","K") must beTrue
 		}
 		
-		"get array-size of specific process's specific order" in {
-			val process = p.getProcess("process1")
-			val order = process.getOrder(1)
-			order.getArraySize == 3 must beTrue
+		"get array-size of specific process's specific orders" in {
+			val process = p.getProcess("process1").get
+			val orders = process.getOrdersAt(1)
+			orders.getArraySize == 3 must beTrue
 		}
 		
 		//in order
+		
+		"get order that identified in specific process's specific orders " in {
+			val process = p.getProcess("process1").get
+			val orders = process.getOrdersAt(1)
+			val order = orders.getOrder("A").get
+			order.identity == "A" must beTrue
+		}
+		
 		
 	}
 		

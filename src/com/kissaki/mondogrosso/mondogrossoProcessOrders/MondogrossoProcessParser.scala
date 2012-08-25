@@ -15,24 +15,22 @@ class MondogrossoProcessParser(input : String) {
 
 	val processes : ListMap[String, Process] = ListMap()
 
-	
-	
 	/**
 	 * finally処理のidentityを取得する
 	 */
 	def getFinally : String = {
 		finallySeq
 	}
-	
+
 	/**
-	 * プロセス数を取得する 
+	 * プロセス数を取得する
 	 */
 	def getProcessNum : Int = {
 		processNum
 	}
-	
+
 	/**
-	 * 各プロセスの長さを取得する 
+	 * 各プロセスの長さを取得する
 	 */
 	def getEachProcessLength : Seq[Int] = {
 		eachSequenceNum
@@ -55,21 +53,48 @@ class MondogrossoProcessParser(input : String) {
 	/**
 	 * プロセス
 	 */
-	class Process(processName:String) {
-		val orders:Seq[Order] = Seq()
+	class Process(processName : String) {
+		val orders : Seq[Orders] = Seq()
 		val eachOrdersLength = Seq(1);
 
-		def getEachOrdersLength :Seq[Int] = {
+		def getEachOrdersLength : Seq[Int] = {
 			eachOrdersLength
 		}
-		
-		/**
-		 * オーダー
-		 */
-		class Order(orderIdentity:String) {
-			
-		
+
+		def getOrdersAt(index : Int) : Orders = {
+			orders(index)
 		}
+
+		/**
+		 * オーダーの集合体
+		 */
+		class Orders(odersName : String) {
+			val wait:Seq[String] = Seq()
+			val array:ListMap[String, Order] = ListMap()
+			
+			def getWaits :Seq[String] = {
+				wait
+			}
+			
+			def getArraySize :Int = {
+				array.size
+			}
+			
+			def getOrder(identifier : String) :Option[Order] = {
+				array.get(identifier)
+			}
+			
+			
+			/**
+			 * オーダー
+			 */
+			class Order(orderIdentity : String) {
+				def identity:String = {
+					orderIdentity
+				}
+			}
+		}
+
 	}
 
 }
