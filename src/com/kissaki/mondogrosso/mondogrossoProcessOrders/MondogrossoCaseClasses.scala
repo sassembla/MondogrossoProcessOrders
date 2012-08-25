@@ -4,12 +4,8 @@ package com.kissaki.mondogrosso.mondogrossoProcessOrders
 
 trait MondogrossoCaseClasses {}
 
-//サンプル
-case class MondogrossoProcessOrderSample(a :String) extends MondogrossoCaseClasses
-
 //GWTのテストの開始信号を受ける
 case class EXEC_INPUT_GWTTEST(nbr1: Int, nbr2: Int) extends MondogrossoCaseClasses
-
 
 //特定ファイルの監視開始
 case class EXEC_START_OBSERVE(nbr1: Int, nbr2: Int) extends MondogrossoCaseClasses
