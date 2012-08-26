@@ -3,6 +3,7 @@ package com.kissaki.mondogrosso.mondogrossoProcessOrders
 import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
 import org.junit.runner.RunWith
+import scala.collection.immutable.ListMap
 
 
 
@@ -10,7 +11,22 @@ import org.junit.runner.RunWith
 class MondogrossoProcessOrdersTests extends Specification {
 	
 	"parseOrder parse" should {
-		val input = "A>B,C,D(A:a:c)>E(D:d:e),F(A:a2:f, B:b:f2)<J,K>I(J:j:i)+D>G>H+G>J!Z"
+		val input = "A>B,C,D(A:a:c)>E(D:d:e),F(A:a2:f, B:b:f2)<J,K>I(J:j:i)+D>G>H+G>J!Z {\"A\": {\"type\":\"jar\",\"class\": \"A.jar\",\"exec\": \"exec\",\"kv\": {\"key1\": \"value1\",\"key2\": \"value2\"}}}"
+			/*ORDER A
+			 * {
+			 * 	"A": {
+			 * 		"type": "jar",
+			 * 		"class": "A.jar",
+			 * 		"exec": "exec",
+			 * 		"kv": {
+			 * 			"key1": "value1",
+			 * 			"key2": "value2"
+			 * 		}
+			 * 	}
+			 * }
+			 */
+			
+			
 			/*processes =
 			 * A>B,C,D(A:a:c)>E(D:d:e),F(A:a2:f, B:b:f2)<J,K>I(J:j:i)
 			 *  +D>G>H
@@ -175,6 +191,12 @@ class MondogrossoProcessOrdersTests extends Specification {
 		
 		"get size of specific process" in {
 			val process = p.getProcess("process1")
+			/*
+			 * A
+			 * B,C,D(A:a:c)
+			 * E(D:d:e),F(A:a2:f, B:b:f2)<J,K
+			 * I(J:j:i)
+			 */
 			process.size == 5 must beTrue
 		}
 		
@@ -190,13 +212,35 @@ class MondogrossoProcessOrdersTests extends Specification {
 			orders.getArraySize == 3 must beTrue
 		}
 		
-		//in order
+		"get orders that identified by name of specific process" in {
+			val process = p.getProcess("process1").get
+			val orders = process.getOrders("order2").get
+			orders.getArraySize == 3 must beTrue
+		}
 		
-		"get order that identified in specific process's specific orders " in {
+		"get order from index of specific process's specific orders" in {
+			val process = p.getProcess("process1").get
+			val orders = process.getOrdersAt(1)
+			val order = orders.getOrderAt(1).get
+			order.identity == "A" must beTrue
+		}
+		
+		"get order that identified by name of specific process's specific orders " in {
 			val process = p.getProcess("process1").get
 			val orders = process.getOrdersAt(1)
 			val order = orders.getOrder("A").get
 			order.identity == "A" must beTrue
+		}
+		
+		//inside order
+		
+		"get order's keys and values of param-information" in {
+			val process = p.getProcess("process1").get
+			val orders = process.getOrdersAt(1)
+			val order = orders.getOrder("A").get
+			
+			order.identity == "A" must beTrue
+			order.getAllParamKeysAndValues == ListMap("key1"->"value1","key2"->"value2") must beTrue
 		}
 		
 		

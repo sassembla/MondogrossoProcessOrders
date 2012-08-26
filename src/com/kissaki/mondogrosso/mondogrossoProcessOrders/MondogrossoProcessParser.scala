@@ -7,7 +7,7 @@ import scala.collection.mutable._
  * 文字列入力を受けて、内容をパースする。
  */
 class MondogrossoProcessParser(input : String) {
-
+	println("input is "+input)
 	val finallySeq = ""
 	val processNum = 1
 	val totalSequenceNum = 1
@@ -54,7 +54,8 @@ class MondogrossoProcessParser(input : String) {
 	 * プロセス
 	 */
 	class Process(processName : String) {
-		val orders : Seq[Orders] = Seq()
+		val orders : IndexedSeq[Orders] = IndexedSeq()
+		val namedOrders : ListMap[String, Orders] = ListMap()
 		val eachOrdersLength = Seq(1);
 
 		def getEachOrdersLength : Seq[Int] = {
@@ -64,34 +65,58 @@ class MondogrossoProcessParser(input : String) {
 		def getOrdersAt(index : Int) : Orders = {
 			orders(index)
 		}
+		
+		def getOrders(targetOrdersName:String) : Option[Orders] = {
+			namedOrders.get(targetOrdersName)
+		}
 
 		/**
 		 * オーダーの集合体
 		 */
 		class Orders(odersName : String) {
-			val wait:Seq[String] = Seq()
-			val array:ListMap[String, Order] = ListMap()
+			val waits:Seq[String] = Seq()
+			val indexArray:ListMap[Int, Order] = ListMap()
+			val nameArray:ListMap[String, Order] = ListMap()
 			
 			def getWaits :Seq[String] = {
-				wait
+				waits
 			}
 			
 			def getArraySize :Int = {
-				array.size
+				indexArray.size
+			}
+			
+			def getOrderAt(index : Int) :Option[Order] = {
+				indexArray.get(index)
 			}
 			
 			def getOrder(identifier : String) :Option[Order] = {
-				array.get(identifier)
+				nameArray.get(identifier)
 			}
 			
 			
 			/**
 			 * オーダー
 			 */
-			class Order(orderIdentity : String) {
+			class Order(orderIdentity : String, paramInformationJSON : String) {
+				
+				/*
+				 * JSONのパースを行い、値のセッティングを行う。
+				 */
+				val keysAndValues:ListMap[String, String] = ListMap("dummyKey" -> "dummyValue")
+				
+				
+				
 				def identity:String = {
 					orderIdentity
 				}
+				
+				def getAllParamKeysAndValues :ListMap[String, String] = {
+					keysAndValues
+				}
+				
+				
+				
 			}
 		}
 
