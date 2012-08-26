@@ -11,7 +11,11 @@ import scala.collection.immutable.ListMap
 class MondogrossoProcessOrdersTests extends Specification {
 	
 	"parseOrder parse" should {
-		val input = "A>B,C,D(A:a:c)>E(D:d:e),F(A:a2:f, B:b:f2)<J,K>I(J:j:i)+D>G>H+G>J!Z {\"A\": {\"type\":\"jar\",\"class\": \"A.jar\",\"exec\": \"exec\",\"kv\": {\"key1\": \"value1\",\"key2\": \"value2\"}}}"
+		val input = "A>B,C,D(A:a:c)>E(D:d:e),F(A:a2:f, B:b:f2)<J,K>I(J:j:i)+D>G>H+G>J!Z"
+		val json = "{\"A\":{\"type\":\"jar\",\"class\":\"A.jar\",\"exec\":\"exec\",\"kv\":{\"key1\":\"value1\",\"key2\":\"value2\"}}}"
+			
+		val p = new MondogrossoProcessParser(input, json)
+	
 			/*ORDER A
 			 * {
 			 * 	"A": {
@@ -158,8 +162,10 @@ class MondogrossoProcessOrdersTests extends Specification {
 			 * Processes / process / orders / waits,array / order / parameter
 			 */
 			
-		val p = new MondogrossoProcessParser(input)
-			
+		"have context" in {
+			val context = p.getContextId
+			context != None must beTrue
+		}	
 		
 		"get finally-id in context" in {
 			p.getFinally == "Z" must beTrue
@@ -242,9 +248,17 @@ class MondogrossoProcessOrdersTests extends Specification {
 			order.identity == "A" must beTrue
 			order.getAllParamKeysAndValues == ListMap("key1"->"value1","key2"->"value2") must beTrue
 		}
+	}
+	
+	"processOrder parsed has information for drive" should {
+		val input = "A>B,C,D(A:a:c)>E(D:d:e),F(A:a2:f, B:b:f2)<J,K>I(J:j:i)+D>G>H+G>J!Z"
+		val json = "{\"A\":{\"type\":\"jar\",\"class\":\"A.jar\",\"exec\":\"exec\",\"kv\":{\"key1\":\"value1\",\"key2\":\"value2\"}}}"
+			
+		val p = new MondogrossoProcessParser(input, json)
 		
 		
 	}
+	
 		
 	
 }

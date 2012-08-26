@@ -2,19 +2,34 @@ package com.kissaki.mondogrosso.mondogrossoProcessOrders
 
 import scala.collection.mutable._
 
+
 /**
  * プロセスのパーサ
  * 文字列入力を受けて、内容をパースする。
  */
-class MondogrossoProcessParser(input : String) {
-	println("input is "+input)
-	val finallySeq = ""
+class MondogrossoProcessParser(processesSource : String, json : String) {
+	println("processesSource is "+processesSource + "	/json	"+ json)
+	
+	val PREFIX_FINALLY = "!"
+	
+		
+		
+	
+	//parse "!"
+	val finallySeq = processesSource.split(PREFIX_FINALLY)(1)
+	
 	val processNum = 1
 	val totalSequenceNum = 1
 	val eachSequenceNum = Seq(1, 1, 1, 1, 1)
 
 	val processes : ListMap[String, Process] = ListMap()
 
+	
+	//params for run
+	lazy val contextId:String = ""
+	println("contextId is "+contextId)
+	
+	
 	/**
 	 * finally処理のidentityを取得する
 	 */
@@ -50,6 +65,12 @@ class MondogrossoProcessParser(input : String) {
 		new Process(processName)
 	}
 
+	
+	def getContextId :String = {
+		contextId
+	}
+	
+	
 	/**
 	 * プロセス
 	 */
