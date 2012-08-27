@@ -26,8 +26,17 @@ class MondogrossoProcessParser(processesSource : String, json : String) {
 
 	
 	//params for run
-	lazy val contextId:String = ""
-	println("contextId is "+contextId)
+	lazy val context = new Context
+	
+	class Context {
+		val contextId = ""
+		val classDescription = ""
+			
+		println("contextId is "+contextId)
+		
+	
+	}
+	
 	
 	
 	/**
@@ -67,7 +76,14 @@ class MondogrossoProcessParser(processesSource : String, json : String) {
 
 	
 	def getContextId :String = {
-		contextId
+		context.contextId
+	}
+	
+	/**
+	 * 吐き出すクラス記述の文字列。ここからコンパイル開始
+	 */
+	def getContextClassDesctiption :String = {
+		context.classDescription
 	}
 	
 	

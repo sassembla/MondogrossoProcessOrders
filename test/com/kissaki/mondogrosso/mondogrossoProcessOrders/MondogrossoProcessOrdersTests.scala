@@ -12,15 +12,29 @@ class MondogrossoProcessOrdersTests extends Specification {
 	
 	"parseOrder parse" should {
 		val input = "A>B,C,D(A:a:c)>E(D:d:e),F(A:a2:f, B:b:f2)<J,K>I(J:j:i)+D>G>H+G>J!Z"
-		val json = "{\"A\":{\"type\":\"jar\",\"class\":\"A.jar\",\"exec\":\"exec\",\"kv\":{\"key1\":\"value1\",\"key2\":\"value2\"}}}"
+		val json = "{\"A\":{\"type\":\"process\",\"class\":\"A\",\"exec\":\"exec\",\"kv\":{\"key1\":\"value1\",\"key2\":\"value2\"}},\"Z\": {\"type\": \"process\",\"class\": \"Z\",\"exec\": \"exec\",\"kv\": {\"key1\": \"value1\",\"key2\": \"value2\"}}}}}"
 			
 		val p = new MondogrossoProcessParser(input, json)
 	
 			/*ORDER A
 			 * {
 			 * 	"A": {
-			 * 		"type": "jar",
-			 * 		"class": "A.jar",
+			 * 		"type": "process",
+			 * 		"class": "A",
+			 * 		"exec": "exec",
+			 * 		"kv": {
+			 * 			"key1": "value1",
+			 * 			"key2": "value2"
+			 * 		}
+			 * 	}
+			 * }
+			 */
+		
+			/*ORDER Z
+			 * {
+			 * 	"Z": {
+			 * 		"type": "process",
+			 * 		"class": "Z",
 			 * 		"exec": "exec",
 			 * 		"kv": {
 			 * 			"key1": "value1",
@@ -163,9 +177,14 @@ class MondogrossoProcessOrdersTests extends Specification {
 			 */
 			
 		"have context" in {
-			val context = p.getContextId
-			context != None must beTrue
-		}	
+			val contextId = p.getContextId
+			contextId != None must beTrue
+		}
+		
+		"context will be create class:MondogrossoCurrentOrder & MondogrossoCurrentOrderRunner-instance" in {
+			val contextClassDesc = p.getContextClassDesctiption
+			contextClassDesc != None
+		}
 		
 		"get finally-id in context" in {
 			p.getFinally == "Z" must beTrue

@@ -1,10 +1,6 @@
 apply plugin:"scala"
 apply plugin:"maven"
 
-/**
-this module contains no-tests. this is module for 
-
-*/
 task wrapper(type: Wrapper) {
     gradleVersion = '1.1'
 }
