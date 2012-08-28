@@ -9,6 +9,15 @@ import scala.collection.immutable.ListMap
 
 @RunWith(classOf[JUnitRunner])
 class MondogrossoProcessOrdersTests extends Specification {
+	trait cont extends BeforeAfter {
+		def before = {
+			println("before")
+		}
+		
+		def after = {
+			println("after")
+		}
+	}
 	
 	"parseOrder parse" should {
 		val input = "A>B,C,D(A:a:c)>E(D:d:e),F(A:a2:f, B:b:f2)<J,K>I(J:j:i)+D>G>H+G>J!Z"
@@ -51,6 +60,11 @@ class MondogrossoProcessOrdersTests extends Specification {
 			 *  +G>J
 			 */
 			
+			/*
+			 * 階層構造的には、
+			 * Processes / process / orders - waits,array / order - parameter
+			 */
+		
 			/*finally = !
 			 * !Z
 			 */
@@ -171,12 +185,9 @@ class MondogrossoProcessOrdersTests extends Specification {
 			 *	 	I(J:j:i)
 			 */
 			
-			/*
-			 * 階層構造的には、
-			 * Processes / process / orders / waits,array / order / parameter
-			 */
 			
-		"have context" in {
+			
+		"have context" in new cont {
 			val contextId = p.getContextId
 			contextId != None must beTrue
 		}
