@@ -20,3 +20,9 @@ bin/*
 target/*
 
 argot_2.9.2-0.4.jar
+
+commons-io-1.3.2.jar
+
+sample.scala
+
+test.scala

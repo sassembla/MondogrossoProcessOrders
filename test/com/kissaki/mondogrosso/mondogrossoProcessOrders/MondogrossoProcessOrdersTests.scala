@@ -5,7 +5,7 @@ import org.specs2.runner.JUnitRunner
 import org.junit.runner.RunWith
 import scala.collection.immutable.ListMap
 
-
+import scala.sys.process._
 
 @RunWith(classOf[JUnitRunner])
 class MondogrossoProcessOrdersTests extends Specification {
@@ -214,7 +214,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 		//in process
 		
 		"get process of specific process" in {
-			val dummyP = p.createProcess("dummy")
+			val dummyP = p.createProcess("dummy", "dummy2")
 			val process = p.getProcess("process1").get
 			/*
 			 * A
@@ -233,7 +233,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 			 * E(D:d:e),F(A:a2:f, B:b:f2)<J,K
 			 * I(J:j:i)
 			 */
-			process.size == 5 must beTrue
+			process.size == 4 must beTrue
 		}
 		
 		"get waits of specific process's specific orders" in {
@@ -280,13 +280,55 @@ class MondogrossoProcessOrdersTests extends Specification {
 		}
 	}
 	
-	"processOrder parsed has information for drive" should {
-		val input = "A>B,C,D(A:a:c)>E(D:d:e),F(A:a2:f, B:b:f2)<J,K>I(J:j:i)+D>G>H+G>J!Z"
-		val json = "{\"A\":{\"type\":\"jar\",\"class\":\"A.jar\",\"exec\":\"exec\",\"kv\":{\"key1\":\"value1\",\"key2\":\"value2\"}}}"
-			
+	
+	
+	"processOrder-parsed has information for drive" should {
+		val input = "A>B!Z"
+		val json = 
+			"{"+
+			"\"A\":{\"type\":\"process\",\"class\":\"A\",\"exec\":\"exec\",\"kv\":{\"key1\":\"value1\",\"key2\":\"value2\"}},"+
+			"\"B\":{\"type\":\"process\",\"class\":\"B\",\"exec\":\"exec\",\"kv\":{\"key1\":\"value1\",\"key2\":\"value2\"}},"+
+			"\"Z\":{\"type\":\"process\",\"class\":\"Z\",\"exec\":\"exec\",\"kv\":{\"key1\":\"value1\",\"key2\":\"value2\"}}"+
+			"}"
+		
+		/*
+		 * パラメータを絞って試す
+		 */
 		val p = new MondogrossoProcessParser(input, json)
 		
+		val contexifiedFileName = p.contextId+".scala"
+		val geneatedClassDesc = p.generateClassDescription
+			
+		"generated class have imports" in {
+			
+			//importが3つあるはず
+			failure("not yet implemented, but will have 3-import")
+			
+			//それぞれの内容がA,B,Zなハズ			
+			failure("not yet implemented, but is A,B,Z")
+			
+			val a = ""
+			a != "" must beTrue
+		}
 		
+		"force generate Class-description then compile scala-class from current context" in {
+			import org.apache.commons.io.FileUtils
+			
+			//書き出し
+			Process("echo "+geneatedClassDesc) #> new java.io.File(contexifiedFileName) run
+
+			//全文を表示してみる
+			scala.io.Source.fromFile("test.scala", "UTF-8").getLines.foreach{ println _ }
+
+			//コンパイルしてみる
+			Process("scala "+contexifiedFileName) run
+			
+			//コンパイルに成功してればclassが出来てるはず
+			scala.io.Source.fromFile("test.class", "UTF-8").getLines.foreach{ println _ }
+			
+			val a = ""
+			a != "" must beTrue
+		}
 	}
 	
 		
