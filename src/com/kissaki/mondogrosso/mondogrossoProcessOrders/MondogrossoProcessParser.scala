@@ -6,21 +6,26 @@ import scala.collection.mutable._
  * プロセスのパーサ
  * 文字列入力を受けて、内容をパースする。
  */
-class MondogrossoProcessParser(processesSource : String, json : String) {
-	println("processesSource is " + processesSource + "	/json	" + json)
+class MondogrossoProcessParser(originalProcessesSource : String, json : String) {
+	println("processesSource is " + originalProcessesSource + "	/json	" + json)
 
 	val PREFIX_FINALLY = "!"
 	val PREFIX_LARGETHAN = ">"
 
 	//parse "!"
-	val finallySeq = processesSource.split(PREFIX_FINALLY)(1)
+	val finallySeq = originalProcessesSource.split(PREFIX_FINALLY)(1)
 
+	
 	val processNum = 1
 	val totalSequenceNum = 1
 	val eachSequenceNum = Seq(1, 1, 1, 1, 1)
 	
+	val processSrc = originalProcessesSource(0).toString()
+	
 	//Processを作り出す
-	val processSourceArray:List[String] = processesSource.split(PREFIX_LARGETHAN).toList
+	val processSourceArray:List[String] = processSrc.split(PREFIX_LARGETHAN).toList
+	
+//	processSourceArray.foreach(a:String=>b:String) println(b)
 	
 	val processes : ListMap[String, Process] = ListMap()
 	
