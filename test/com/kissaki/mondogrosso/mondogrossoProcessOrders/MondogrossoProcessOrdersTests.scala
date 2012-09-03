@@ -321,9 +321,16 @@ class MondogrossoProcessOrdersTests extends Specification {
 			scala.io.Source.fromFile("test.scala", "UTF-8").getLines.foreach{ println _ }
 
 			//コンパイルしてみる
-			Process("scala "+contexifiedFileName) run
+			val s = Process("scala "+contexifiedFileName) run
+			
+			println("s	"+s)
 			
 			//コンパイルに成功してればclassが出来てるはず
+			val klass = scala.io.Source.fromFile("test.class", "UTF-8")
+			
+			println("klass	"+klass)
+			
+			//全行表示
 			scala.io.Source.fromFile("test.class", "UTF-8").getLines.foreach{ println _ }
 			
 			val a = ""
