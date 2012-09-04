@@ -212,7 +212,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 		
 		
 		
-		//in process
+		//inside process
 		
 		"get process of specific process" in {
 			val dummyP = p.createProcess("dummy", "dummy2")
@@ -271,7 +271,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 		
 		//inside order
 		
-		"get order's keys and values of param-information" in {
+		"get order's keys and values of params-information" in {
 			val process = p.getProcess("process1").get
 			val orders = process.getOrdersAt(1)
 			val order = orders.getOrder("A").get

@@ -2,6 +2,17 @@ package com.kissaki.mondogrosso.mondogrossoProcessOrders
 
 import scala.collection.mutable._
 
+/*
+ * AST
+ */
+case class Process(orders:Array[Orders], finallyOrder:Order)
+case class Orders(ordersId:String, orders:Array[Order])
+case class Order(orderIdentity:String,keyValues:OrderKeyValues,waitForOrder:Order)
+case class OrderKeyValues(keyValues:Array[OrderKeyValue])
+case class OrderKeyValue(promisses:OrderInputPromisses)
+case class OrderInputPromisses(promissesArray:Array[OrderInputPromiss])
+case class OrderInputPromiss(sourceIdentity:String,sourceKey:String,destinationKey:String)
+
 /**
  * プロセスのパーサ
  * 文字列入力を受けて、内容をパースする。
