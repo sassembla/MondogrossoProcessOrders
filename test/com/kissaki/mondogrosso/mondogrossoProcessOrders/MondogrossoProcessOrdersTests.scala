@@ -20,7 +20,8 @@ class MondogrossoProcessOrdersTests extends Specification {
 	}
 	
 	"parseOrder parse" should {
-		val input = "A>B,C,D(A:a:c)>E(D:d:e),F(A:a2:f, B:b:f2)<J,K>I(J:j:i)+D>G>H+G>J!Z"
+		//+,.が使えない、、、マジか、、、　文字列に対するimplicitがあるな。
+		val input = "A>B,C,D(A:a:c)>E(D:d:e),F(A:a2:f, B:b:f2)<J,K>I(J:j:i)/D>G>H/G>J!Z"
 		val json = "{\"A\":{\"type\":\"process\",\"class\":\"A\",\"exec\":\"exec\",\"kv\":{\"key1\":\"value1\",\"key2\":\"value2\"}},\"Z\": {\"type\": \"process\",\"class\": \"Z\",\"exec\": \"exec\",\"kv\": {\"key1\": \"value1\",\"key2\": \"value2\"}}}}}"
 			
 		val p = new MondogrossoProcessParser(input, json)
@@ -56,8 +57,8 @@ class MondogrossoProcessOrdersTests extends Specification {
 			
 			/*processes =
 			 * A>B,C,D(A:a:c)>E(D:d:e),F(A:a2:f, B:b:f2)<J,K>I(J:j:i)
-			 *  +D>G>H
-			 *  +G>J
+			 *  .D>G>H
+			 *  .G>J
 			 */
 			
 			/*
