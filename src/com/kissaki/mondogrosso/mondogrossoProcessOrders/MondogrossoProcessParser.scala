@@ -9,54 +9,141 @@ import scala.util.parsing.combinator.RegexParsers
  * 	process
  * 		orders
  * 			order
- * 				keyValues
- * 					keyValue
- * 				promisses
- * 					promiss
+ * 				identity
+ * 				inputs
+ * 					input
+ *	 					sourceIdentity、sourceKey、destinationKey
+ * 				defaultKeyValues
+ * 					defaultKeyValue
+ * 				waitIdentities
+ * 					waitIdentity
  */
-trait MondogrossoProcessOrdersAST
+//trait MondogrossoProcessOrdersAST
 
-case class ProcessOrdersContext(identity:String,process:Process) extends MondogrossoProcessOrdersAST
-case class Process(orders: List[Orders], finallyOrder: Order) extends MondogrossoProcessOrdersAST
-case class Orders(ordersId: String, orders: List[Order]) extends MondogrossoProcessOrdersAST
-case class Order(orderIdentity: String, keyValues: OrderKeyValues, waitForOrder: Order, inputPromisses: OrderInputPromissKeyValues) extends MondogrossoProcessOrdersAST
-case class OrderKeyValues(keyValues: List[OrderKeyValue]) extends MondogrossoProcessOrdersAST
-case class OrderKeyValue(key:String, value:String) extends MondogrossoProcessOrdersAST
-case class OrderInputPromissKeyValues(promissesArray: List[OrderInputPromissKeyValue]) extends MondogrossoProcessOrdersAST
-case class OrderInputPromissKeyValue(sourceIdentity: String, sourceKey: String, destinationKey: String) extends MondogrossoProcessOrdersAST
+//case class ProcessOrdersContext(identity : String, process : Process) extends MondogrossoProcessOrdersAST
+//case class Process(orders : List[Orders], finallyOrder : Order) extends MondogrossoProcessOrdersAST
+//case class Orders(ordersId : String, orders : List[Order]) extends MondogrossoProcessOrdersAST
+//
+//case class Order(
+//	orderIdentity : OrderIdentity,
+//	keyValues : OrderDefaultKeyValues,
+//	waitForOrders : OrderWaitForOrders,
+//	inputs : OrderInputs) extends MondogrossoProcessOrdersAST
+//
+//case class OrderIdentity(identity : String) extends MondogrossoProcessOrdersAST
+//
+//case class OrderInputs(inputs : List[OrderInput]) extends MondogrossoProcessOrdersAST
+//case class OrderInput(sourceIdentity : OrderString, sourceKey : OrderString, destinationKey : OrderString) extends MondogrossoProcessOrdersAST
+//
+//case class OrderWaitForOrders(waitForOrderIdentities : List[OrderIdentity]) extends MondogrossoProcessOrdersAST
+//
+//case class OrderDefaultKeyValues(keyValues : List[OrderDefaultKeyValue]) extends MondogrossoProcessOrdersAST
+//case class OrderDefaultKeyValue(key : OrderString, value : OrderString) extends MondogrossoProcessOrdersAST
+//
+//case class OrderString(string : String) extends MondogrossoProcessOrdersAST
 
 /**
  * プロセスのパーサ
  * 文字列入力を受けて、内容をパースする。
  */
-class MondogrossoProcessParser(originalProcessesSource: String, json: String) extends RegexParsers {
-  println("processesSource is " + originalProcessesSource + "	/json	" + json)
+class MondogrossoProcessParser(originalProcessesSource : String, json : String) {
+	println("processesSource is " + originalProcessesSource + "	/json	" + json)
 
-  val PREFIX_FINALLY = "!"
-  val PREFIX_PROCESS_DELIM = "/"
-  val PREFIX_ORDERS_DELIM = ">"
+	val parser = new CopiedParser
+	val result = parser.parseAll(parser.orders, """
+[db1
+			
+[db2(else:over:vie else:over:vie)
+(some:thing:di)
+""")
 
-  //
-  val contextId = "sample"
-  var classDescription = "testasas"
+	println("result	" + result.get)
 
-  def getContextId: String = {
-    contextId
-  }
+	//	val parser2 = new Parser
+	//	val result2 = parser2.parseAll(parser2.property, originalProcessesSource);
+	//
+	//	println("result2	" + result2.get)
 
-  /**
-   * 吐き出すクラス記述の文字列。ここからコンパイル開始
-   */
-  def getContextClassDesctiption: String = {
-    classDescription
-  }
+	//
+	val contextId = "sample"
+	var classDescription = "testasas"
 
-  def generateClassDescription(): String = {
-    /*
+	def getContextId : String = {
+		contextId
+	}
+
+	/**
+	 * 吐き出すクラス記述の文字列。ここからコンパイル開始
+	 */
+	def getContextClassDesctiption : String = {
+		classDescription
+	}
+
+	def generateClassDescription() : String = {
+		/*
 		 * ジェネレート処理を行う。
 		 * 上記までの情報から、importやstateをくみ上げる。
 		 */
 
-    classDescription
-  }
+		classDescription
+	}
+}
+
+trait MondogrossoProcessOrdersAST
+case class OrderString(str : String) extends MondogrossoProcessOrdersAST
+case class OrderIdentity(str : String) extends MondogrossoProcessOrdersAST
+
+case class Order(identity : OrderIdentity, orderinputs : List[OrderInputs]) extends MondogrossoProcessOrdersAST
+
+case class OrderInputTriple(identity : OrderString, fromKey : OrderString, toKey : OrderString)  extends MondogrossoProcessOrdersAST
+case class OrderInputs(orderInputTriples:List[OrderInputTriple]) extends MondogrossoProcessOrdersAST
+
+case class ASTProperty(key : OrderString, value : OrderString) extends MondogrossoProcessOrdersAST
+
+case class ASTSection(section : Order, inputs : List[OrderInputs]) extends MondogrossoProcessOrdersAST
+
+case class ASTSections(sections : List[Order]) extends MondogrossoProcessOrdersAST
+
+class CopiedParser extends RegexParsers {
+	/**
+	 * key-valueの文字列
+	 */
+	def str : Parser[OrderString] = """[^()\[\]=:\s]*""".r ^^ {
+		case value => OrderString(value)
+	}
+
+	/**
+	 * identity
+	 */
+	def identity : Parser[OrderIdentity] = """[^()\[\]=:\s]*""".r ^^ {
+		case value => OrderIdentity(value)
+	}
+
+	/**
+	 * InputTriple
+	 * A:a:c 
+	 */
+	def orderInputTriple : Parser[OrderInputTriple] = str ~ ":" ~ str ~ ":" ~ str ^^ {
+		case (key ~ _ ~ from ~ _ ~ to) => OrderInputTriple(key, from, to)
+	}
+	
+	/**
+	 * OrderInputs
+	 * (A:a:c D:d:e F:f:g) 
+	 */
+	def orderInputs : Parser[OrderInputs] = "("~ rep(orderInputTriple) ~")" ^^ {
+		case (_~orderInputTriples~_) => OrderInputs(orderInputTriples)
+	}
+
+	/**
+	 * Order
+	 * A(A:a:b)
+	 */
+	def order : Parser[Order] = "[" ~> identity ~ rep(orderInputs) ^^ {
+		case (id ~ inputs) => Order(id, inputs)
+	}
+
+	def orders : Parser[ASTSections] = rep(order) ^^ {
+		case sections => ASTSections(sections)
+	}
 }
