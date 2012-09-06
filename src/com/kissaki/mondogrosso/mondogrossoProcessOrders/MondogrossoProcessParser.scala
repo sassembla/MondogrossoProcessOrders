@@ -18,29 +18,6 @@ import scala.util.parsing.combinator.RegexParsers
  * 				waitIdentities
  * 					waitIdentity
  */
-//trait MondogrossoProcessOrdersAST
-
-//case class ProcessOrdersContext(identity : String, process : Process) extends MondogrossoProcessOrdersAST
-//case class Process(orders : List[Orders], finallyOrder : Order) extends MondogrossoProcessOrdersAST
-//case class Orders(ordersId : String, orders : List[Order]) extends MondogrossoProcessOrdersAST
-//
-//case class Order(
-//	orderIdentity : OrderIdentity,
-//	keyValues : OrderDefaultKeyValues,
-//	waitForOrders : OrderWaitForOrders,
-//	inputs : OrderInputs) extends MondogrossoProcessOrdersAST
-//
-//case class OrderIdentity(identity : String) extends MondogrossoProcessOrdersAST
-//
-//case class OrderInputs(inputs : List[OrderInput]) extends MondogrossoProcessOrdersAST
-//case class OrderInput(sourceIdentity : OrderString, sourceKey : OrderString, destinationKey : OrderString) extends MondogrossoProcessOrdersAST
-//
-//case class OrderWaitForOrders(waitForOrderIdentities : List[OrderIdentity]) extends MondogrossoProcessOrdersAST
-//
-//case class OrderDefaultKeyValues(keyValues : List[OrderDefaultKeyValue]) extends MondogrossoProcessOrdersAST
-//case class OrderDefaultKeyValue(key : OrderString, value : OrderString) extends MondogrossoProcessOrdersAST
-//
-//case class OrderString(string : String) extends MondogrossoProcessOrdersAST
 
 /**
  * プロセスのパーサ
@@ -54,7 +31,7 @@ class MondogrossoProcessParser(originalProcessesSource : String, json : String) 
 [db1
 			
 [db2(else:over:vie else:over:vie)
-(some:thing:di)
+
 """)
 
 	println("result	" + result.get)
@@ -132,18 +109,37 @@ class CopiedParser extends RegexParsers {
 	 * (A:a:c D:d:e F:f:g) 
 	 */
 	def orderInputs : Parser[OrderInputs] = "("~ rep(orderInputTriple) ~")" ^^ {
-		case (_~orderInputTriples~_) => OrderInputs(orderInputTriples)
+		case (_~orderInputTriples~_) => {
+			println("orderInputTriples	"+orderInputTriples)
+			OrderInputs(orderInputTriples)
+		}
 	}
 
 	/**
 	 * Order
 	 * A(A:a:b)
+	 * 
+	 * いまは、
+	 * A(A:a:b)(D:d:e) 
+	 * も赦している。repはずすのが難しい。
 	 */
 	def order : Parser[Order] = "[" ~> identity ~ rep(orderInputs) ^^ {
-		case (id ~ inputs) => Order(id, inputs)
+		case (id ~ inputs) => {
+			println("id	"+id)
+			
+			val s = Order(id, inputs)
+			println("s	"+s)
+			s
+		}
 	}
 
 	def orders : Parser[ASTSections] = rep(order) ^^ {
-		case sections => ASTSections(sections)
+		case sections => {
+			println("start")
+			val result = ASTSections(sections)
+			println("end")
+			
+			result
+		}
 	}
 }
