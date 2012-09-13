@@ -55,8 +55,6 @@ jar {
 				it
 				zipTree(it)
 			}
-			
-			
 		}
 	}
 	
