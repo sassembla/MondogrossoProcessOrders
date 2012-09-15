@@ -12,7 +12,7 @@ case class Order(identity : OrderIdentity, orderInputs : OrderInputs, waitIdenti
 case class OrderInputTriple(identity : OrderString, fromKey : OrderString, toKey : OrderString) extends MondogrossoProcessOrdersAST
 case class OrderInputs(orderInputTriples : List[OrderInputTriple]) extends MondogrossoProcessOrdersAST
 
-case class WaitOrders(waitOrdes : List[OrderIdentity]) extends MondogrossoProcessOrdersAST
+case class WaitOrders(waitOrders : List[OrderIdentity]) extends MondogrossoProcessOrdersAST
 
 case class Orders(orders : List[Order]) extends MondogrossoProcessOrdersAST
 case class Processes(orders : Orders) extends MondogrossoProcessOrdersAST
@@ -114,23 +114,21 @@ class MondogrossoProcessParser(input : String) extends RegexParsers {
 			OrderInputs(orderInputTriples)
 		}
 	}
-
+	
 	/**
-	 * 一つだけのwaitに対応
+	 * wait(一つのみ)
 	 */
-	def waitOrders : Parser[WaitOrders] = ("<" ~ identity | "") ^^ {
-		case a : String => {
-			WaitOrders(List())
-		}
-		case _ ~ waitId => {
-			waitId match {
-				case currentWait : OrderIdentity => {
-					WaitOrders(List(currentWait))
-				}
+	def waitOrdersOrNot : Parser[WaitOrders] = (("<" ~ identity) | "") ^^ {org =>
+		println("org	"+org)
+		org match {
+			case ("<"~(s:OrderIdentity)) => {
+				println("wait on	"+s)
+				WaitOrders(List(s))
 			}
-		}
-		case _ => {
-			WaitOrders(List())
+			case _ => {
+				println("wait void	"+org)
+				WaitOrders(List())
+			}
 		}
 	}
 
@@ -138,36 +136,37 @@ class MondogrossoProcessParser(input : String) extends RegexParsers {
 	 * Order
 	 * >A(A:a:b)<C,
 	 * >A<C,
-	 * 
+	 * 最初を空白にしたいんだけどなー。
 	 */
-	def order : Parser[Order] = ">" ~ identity ~ (orderInputs | "") ~ (waitOrders | "") ^^ { orderOrigin =>
+	def order : Parser[Order] = ((">" ~ identity) ~ (orderInputs | "") ~ (waitOrdersOrNot | "")) ^^ { orderOrigin =>
 		println("orderOrigin	" + orderOrigin)
 		
 		orderOrigin match {
-			//idしか無い
-			case id:OrderIdentity => {
-				println("orderのみ	"+id)
-				Order(id, null, null)
-			}
-			
-			//idとinputs
-			case ((id:OrderIdentity) ~ (inputs:OrderInputs)) => {//idとinputがある場合
-				println("idIs	" + id + "	/inputs	" + inputs)
-				Order(id, inputs, null)
-			}
-			
-			//idとwait
-			case (id:OrderIdentity) ~ (waitOrders:WaitOrders) => {
-				println("idIs	" + id + "	/waitOrders	" + waitOrders )
-				Order(id, null, waitOrders)
-			}
-			//
-			case (id:OrderIdentity) ~ (inputs:OrderInputs) ~ (waitOrders:WaitOrders) => {
-				print("full case "+orderOrigin)
+			//フルセット
+			case ((">"~(id:OrderIdentity))~(inputs:OrderInputs)~(waitOrders:WaitOrders)) => {
+				print("full case2 "+orderOrigin)
 				Order(id, inputs, waitOrders)
 			}
+			//idとwait
+			case ((">"~(id:OrderIdentity))~_~(waitOrders:WaitOrders)) => {
+				print("full case3 "+orderOrigin)
+				Order(id, null, waitOrders)
+			}
+			
+			//始まり
+			
+			//フルセット
+			case (((id:OrderIdentity))~(inputs:OrderInputs)~(waitOrders:WaitOrders)) => {
+				print("full case2 "+orderOrigin)
+				Order(id, inputs, waitOrders)
+			}
+			//idとwait
+			case (((id:OrderIdentity))~_~(waitOrders:WaitOrders)) => {
+				print("full case3 "+orderOrigin)
+				Order(id, null, waitOrders)
+			}
 			case _ => {
-				println("それ以外	"+orderOrigin)
+				println("それ以外	　パースエラーにしたい"+orderOrigin)
 				Order(null, null, null)
 			}
 		}
@@ -186,7 +185,7 @@ class MondogrossoProcessParser(input : String) extends RegexParsers {
 	/**
 	 * オーダーの集合の集合
 	 */
-	def processes : Parser[Processes] = orders ~ ("" | rep("+" ~ orders)) ^^ { something =>
+	def processes : Parser[Processes] = orders ~ (rep("+" ~ orders) | "") ^^ { something =>
 
 		println("processes something	" + something)
 
