@@ -92,7 +92,7 @@ class MondogrossoProcessParser(input : String) extends RegexParsers {
 	/**
 	 * identity
 	 */
-	def identity : Parser[OrderIdentity] = """[^()\>\<=:\s\!]*""".r ^^ {
+	def identity : Parser[OrderIdentity] = """[^()\>\<=:\s\!\+]*""".r ^^ {
 		case value => OrderIdentity(value)
 	}
 
@@ -161,9 +161,13 @@ class MondogrossoProcessParser(input : String) extends RegexParsers {
 				println("idIs	" + id + "	/waitOrders	" + waitOrders )
 				Order(id, null, waitOrders)
 			}
-			
-			case _ => {
+			//
+			case (id:OrderIdentity) ~ (inputs:OrderInputs) ~ (waitOrders:WaitOrders) => {
 				print("full case "+orderOrigin)
+				Order(id, inputs, waitOrders)
+			}
+			case _ => {
+				println("それ以外	"+orderOrigin)
 				Order(null, null, null)
 			}
 		}
