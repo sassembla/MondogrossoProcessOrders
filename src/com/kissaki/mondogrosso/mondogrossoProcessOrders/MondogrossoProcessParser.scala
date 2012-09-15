@@ -3,6 +3,28 @@ package com.kissaki.mondogrosso.mondogrossoProcessOrders
 import scala.collection.mutable._
 import scala.util.parsing.combinator.RegexParsers
 
+trait MondogrossoProcessOrdersAST
+case class OrderString(str : String) extends MondogrossoProcessOrdersAST
+case class OrderIdentity(str : String) extends MondogrossoProcessOrdersAST
+
+case class Order(identity : OrderIdentity, orderInputs : OrderInputs, waitIdentities : WaitOrders) extends MondogrossoProcessOrdersAST
+
+case class OrderInputTriple(identity : OrderString, fromKey : OrderString, toKey : OrderString) extends MondogrossoProcessOrdersAST
+case class OrderInputs(orderInputTriples : List[OrderInputTriple]) extends MondogrossoProcessOrdersAST
+
+case class WaitOrders(waitOrdes : List[OrderIdentity]) extends MondogrossoProcessOrdersAST
+
+case class Orders(orders : List[Order]) extends MondogrossoProcessOrdersAST
+case class Processes(orders : Orders) extends MondogrossoProcessOrdersAST
+
+case class All(processes : Processes, finallyOrder : OrderIdentity) extends MondogrossoProcessOrdersAST
+
+case class ASTProperty(key : OrderString, value : OrderString) extends MondogrossoProcessOrdersAST
+
+case class ASTSection(section : Order, inputs : List[OrderInputs]) extends MondogrossoProcessOrdersAST
+
+case class ASTSections(sections : List[Order]) extends MondogrossoProcessOrdersAST
+
 /*
  * AST
  * context
@@ -23,15 +45,18 @@ import scala.util.parsing.combinator.RegexParsers
  * プロセスのパーサ
  * 文字列入力を受けて、内容をパースする。
  */
-class MondogrossoProcessParser(originalProcessesSource : String, json : String) {
-	println("processesSource is " + originalProcessesSource + "	/json	" + json)
+class MondogrossoProcessParser(input : String) extends RegexParsers {
 
-	val parser = new CopiedParser
-	//頭の+>は無ければつける、とかかなあ、、
+	//プレ処理、改行削除
+	val preprocessedInput = input.replaceAll("\\n", "")
+	println("\n preprocessedInput	" + preprocessedInput)
 
-	val result = parser.parseAll(parser.process, originalProcessesSource)
-
-	println("result	" + result.get)
+	/**
+	 * パース関数
+	 */
+	def parse = {
+		parseAll(all, preprocessedInput)
+	}
 
 	//ここでパースが終わっている
 	val contextId = "sample"
@@ -56,31 +81,7 @@ class MondogrossoProcessParser(originalProcessesSource : String, json : String) 
 
 		classDescription
 	}
-}
 
-trait MondogrossoProcessOrdersAST
-case class OrderString(str : String) extends MondogrossoProcessOrdersAST
-case class OrderIdentity(str : String) extends MondogrossoProcessOrdersAST
-
-case class Order(identity : OrderIdentity, orderInputs : OrderInputs, waitIdentities : WaitOrders) extends MondogrossoProcessOrdersAST
-
-case class OrderInputTriple(identity : OrderString, fromKey : OrderString, toKey : OrderString) extends MondogrossoProcessOrdersAST
-case class OrderInputs(orderInputTriples : List[OrderInputTriple]) extends MondogrossoProcessOrdersAST
-
-case class WaitOrders(waitOrdes:List[OrderIdentity]) extends MondogrossoProcessOrdersAST
-
-case class Orders(orders : List[Order]) extends MondogrossoProcessOrdersAST
-case class Processes(orders : Orders) extends MondogrossoProcessOrdersAST
-
-case class All(processes : Processes, finallyOrder : OrderIdentity) extends MondogrossoProcessOrdersAST
-
-case class ASTProperty(key : OrderString, value : OrderString) extends MondogrossoProcessOrdersAST
-
-case class ASTSection(section : Order, inputs : List[OrderInputs]) extends MondogrossoProcessOrdersAST
-
-case class ASTSections(sections : List[Order]) extends MondogrossoProcessOrdersAST
-
-class CopiedParser extends RegexParsers {
 	/**
 	 * key-valueの文字列
 	 */
@@ -113,35 +114,58 @@ class CopiedParser extends RegexParsers {
 			OrderInputs(orderInputTriples)
 		}
 	}
-	
-	
+
 	/**
 	 * 一つだけのwaitに対応
 	 */
-	def waitOrders : Parser[WaitOrders] = ("<"~identity | "") ^^ {
-		case a:String => {
+	def waitOrders : Parser[WaitOrders] = ("<" ~ identity | "") ^^ {
+		case a : String => {
 			WaitOrders(List())
 		}
-			case _~waitId => {
-				waitId match {
-					case currentWait:OrderIdentity => {
-						WaitOrders(List(currentWait))
-					}
+		case _ ~ waitId => {
+			waitId match {
+				case currentWait : OrderIdentity => {
+					WaitOrders(List(currentWait))
 				}
 			}
-			case _ => {
-				WaitOrders(List())
-			}
+		}
+		case _ => {
+			WaitOrders(List())
+		}
 	}
 
 	/**
 	 * Order
-	 * >A(A:a:b)<C
+	 * >A(A:a:b)<C,
+	 * >A<C,
+	 * 
 	 */
-	def order : Parser[Order] = ">" ~> identity ~ orderInputs ~ waitOrders ^^ {
-		case (id ~ inputs ~ c) => {
-			println("idIs	" + id + "	/inputs	" + inputs + "	/" + c)
-			Order(id, inputs, c)
+	def order : Parser[Order] = ">" ~ identity ~ (orderInputs | "") ~ (waitOrders | "") ^^ { orderOrigin =>
+		println("orderOrigin	" + orderOrigin)
+		
+		orderOrigin match {
+			//idしか無い
+			case id:OrderIdentity => {
+				println("orderのみ	"+id)
+				Order(id, null, null)
+			}
+			
+			//idとinputs
+			case ((id:OrderIdentity) ~ (inputs:OrderInputs)) => {//idとinputがある場合
+				println("idIs	" + id + "	/inputs	" + inputs)
+				Order(id, inputs, null)
+			}
+			
+			//idとwait
+			case (id:OrderIdentity) ~ (waitOrders:WaitOrders) => {
+				println("idIs	" + id + "	/waitOrders	" + waitOrders )
+				Order(id, null, waitOrders)
+			}
+			
+			case _ => {
+				print("full case "+orderOrigin)
+				Order(null, null, null)
+			}
 		}
 	}
 
@@ -158,29 +182,42 @@ class CopiedParser extends RegexParsers {
 	/**
 	 * オーダーの集合の集合
 	 */
-	def process : Parser[Processes] = orders ~ ("" | rep("+" ~ orders)) ^^ {
-		case (theOrders ~ other) => {
-			
-			println("theOrders	"+theOrders)
-			println("other	"+other)
-			
-			val result = Processes(theOrders)
-			println("processend	"+result)
+	def processes : Parser[Processes] = orders ~ ("" | rep("+" ~ orders)) ^^ { something =>
 
-			result
+		println("processes something	" + something)
+
+		something match {
+			case (first ~ "") => {
+
+				println("first	" + first)
+
+				val result = Processes(first)
+				println("processend	" + result)
+
+				result
+			}
+			case _ => {
+				//空のリストを返す
+				Processes(Orders(List()))
+			}
+
+			//		case (first ~ _ ~ rest) => {
+			//			
+			//			println("rest	"+rest)
+			//			Processes(first)
+			//		}
 		}
 	}
-	
+
 	/**
 	 * finallyも含めた全体
 	 */
-	def all : Parser[All] = process ~ "!" ~ identity ^^ {
+	def all : Parser[All] = processes ~ "!" ~ identity ^^ {
 		case (all ~ _ ~ finallyOrderId) => {
 			println("all = " + all)
 			println("final = " + finallyOrderId)
 			val result = All(all, finallyOrderId)
 			result
 		}
-
 	}
 }
