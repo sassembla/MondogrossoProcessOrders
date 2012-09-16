@@ -20,7 +20,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 	}
 	"samples" should {
 		"all	finally付きのフルセット	" in {
-			val input = ">A(else:over:vie else:over:vie)>B>C(a:v:s)<S+>AB(elseB:overB:vieB elseB:overB:vieB)<SB!Z"
+			val input = "A(else:over:vie else:over:vie)>B>C(a:v:s)<S+AB(elseB:overB:vieB elseB:overB:vieB)<SB!Z"
 			
 			val json = "{\"A\":{\"type\":\"process\",\"class\":\"A\",\"exec\":\"exec\",\"kv\":{\"key1\":\"value1\",\"key2\":\"value2\"}},\"Z\": {\"type\": \"process\",\"class\": \"Z\",\"exec\": \"exec\",\"kv\": {\"key1\": \"value1\",\"key2\": \"value2\"}}}}}"
 			val parser = new MondogrossoProcessParser(input)
@@ -30,7 +30,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 		}
 
 		"processes	複数のProcessフルセット	、finallyなし" in {	
-			val input = ">A(else:over:vie else:over:vie)<S+>AB(elseB:overB:vieB elseB:overB:vieB)<SB"
+			val input = "A(else:over:vie else:over:vie)<S+AB(elseB:overB:vieB elseB:overB:vieB)<SB"
 			val json = "{\"A\":{\"type\":\"process\",\"class\":\"A\",\"exec\":\"exec\",\"kv\":{\"key1\":\"value1\",\"key2\":\"value2\"}},\"Z\": {\"type\": \"process\",\"class\": \"Z\",\"exec\": \"exec\",\"kv\": {\"key1\": \"value1\",\"key2\": \"value2\"}}}}}"
 			
 			val parser = new MondogrossoProcessParser(input)
@@ -40,7 +40,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 		}
 		
 		"all	複数のProcessフルセット	" in {	
-			val input = ">A(else:over:vie else:over:vie)<S+>AB(elseB:overB:vieB elseB:overB:vieB)<SB!F"
+			val input = "A(else:over:vie else:over:vie)<S+AB(elseB:overB:vieB elseB:overB:vieB)<SB!F"
 			val json = "{\"A\":{\"type\":\"process\",\"class\":\"A\",\"exec\":\"exec\",\"kv\":{\"key1\":\"value1\",\"key2\":\"value2\"}},\"Z\": {\"type\": \"process\",\"class\": \"Z\",\"exec\": \"exec\",\"kv\": {\"key1\": \"value1\",\"key2\": \"value2\"}}}}}"
 			
 			val parser = new MondogrossoProcessParser(input)
@@ -50,7 +50,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 		}
 		
 		"all	複数のWaitあり、なしのProcessフルセット	" in {	
-			val input = ">A(else:over:vie else:over:vie)<S+>AB(elseB:overB:vieB elseB:overB:vieB)!F"
+			val input = "A(else:over:vie else:over:vie)<S+AB(elseB:overB:vieB elseB:overB:vieB)!F"
 			val json = "{\"A\":{\"type\":\"process\",\"class\":\"A\",\"exec\":\"exec\",\"kv\":{\"key1\":\"value1\",\"key2\":\"value2\"}},\"Z\": {\"type\": \"process\",\"class\": \"Z\",\"exec\": \"exec\",\"kv\": {\"key1\": \"value1\",\"key2\": \"value2\"}}}}}"
 			
 			val parser = new MondogrossoProcessParser(input)
@@ -60,7 +60,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 		}
 
 		"all	複数のWaitなしのProcessフルセット	" in {	
-			val input = ">A(else:over:vie else:over:vie)+>AB(elseB:overB:vieB elseB:overB:vieB)!F"
+			val input = "A(else:over:vie else:over:vie)+AB(elseB:overB:vieB elseB:overB:vieB)!F"
 			val json = "{\"A\":{\"type\":\"process\",\"class\":\"A\",\"exec\":\"exec\",\"kv\":{\"key1\":\"value1\",\"key2\":\"value2\"}},\"Z\": {\"type\": \"process\",\"class\": \"Z\",\"exec\": \"exec\",\"kv\": {\"key1\": \"value1\",\"key2\": \"value2\"}}}}}"
 			
 			val parser = new MondogrossoProcessParser(input)
@@ -70,7 +70,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 		}
 		
 		"all	複数のWait、パラメータなしのProcessフルセット	" in {	
-			val input = ">A>B+>AB(elseB:overB:vieB elseB:overB:vieB)!F"
+			val input = "A>B+AB(elseB:overB:vieB elseB:overB:vieB)!F"
 			val json = "{\"A\":{\"type\":\"process\",\"class\":\"A\",\"exec\":\"exec\",\"kv\":{\"key1\":\"value1\",\"key2\":\"value2\"}},\"Z\": {\"type\": \"process\",\"class\": \"Z\",\"exec\": \"exec\",\"kv\": {\"key1\": \"value1\",\"key2\": \"value2\"}}}}}"
 			
 			val parser = new MondogrossoProcessParser(input)
@@ -81,7 +81,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 
 		"orders	<のあとにIdentityが一つあるケース" in {
 			
-			val input = ">A(else:over:vie else:over:vie)<S"
+			val input = "A(else:over:vie else:over:vie)<S"
 			val json = "{\"A\":{\"type\":\"process\",\"class\":\"A\",\"exec\":\"exec\",\"kv\":{\"key1\":\"value1\",\"key2\":\"value2\"}},\"Z\": {\"type\": \"process\",\"class\": \"Z\",\"exec\": \"exec\",\"kv\": {\"key1\": \"value1\",\"key2\": \"value2\"}}}}}"
 			val parser = new MondogrossoProcessParser(input)
 			val result = parser.parseAll(parser.orders, input)
@@ -90,7 +90,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 		
 		"orders	<のあとにIdentityが一つあるケース2 パラメータなし" in {
 			
-			val input = ">A<S"
+			val input = "A<S"
 			val json = "{\"A\":{\"type\":\"process\",\"class\":\"A\",\"exec\":\"exec\",\"kv\":{\"key1\":\"value1\",\"key2\":\"value2\"}},\"Z\": {\"type\": \"process\",\"class\": \"Z\",\"exec\": \"exec\",\"kv\": {\"key1\": \"value1\",\"key2\": \"value2\"}}}}}"
 			val parser = new MondogrossoProcessParser(input)
 			val result = parser.parseAll(parser.orders, input)
@@ -99,7 +99,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 		
 		"orders	<のあとにIdentityが一つあるケース3 パラメータなし、複数のOrder" in {
 			
-			val input = ">A>B<S"
+			val input = "A>B<S"
 			val json = "{\"A\":{\"type\":\"process\",\"class\":\"A\",\"exec\":\"exec\",\"kv\":{\"key1\":\"value1\",\"key2\":\"value2\"}},\"Z\": {\"type\": \"process\",\"class\": \"Z\",\"exec\": \"exec\",\"kv\": {\"key1\": \"value1\",\"key2\": \"value2\"}}}}}"
 			val parser = new MondogrossoProcessParser(input)
 			val result = parser.parseAll(parser.orders, input)
@@ -108,7 +108,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 	
 		"order	<が無いケース" in {
 			
-			val input = ">A(else:over:vie else:over:vie)"
+			val input = "A(else:over:vie else:over:vie)"
 			val json = "{\"A\":{\"type\":\"process\",\"class\":\"A\",\"exec\":\"exec\",\"kv\":{\"key1\":\"value1\",\"key2\":\"value2\"}},\"Z\": {\"type\": \"process\",\"class\": \"Z\",\"exec\": \"exec\",\"kv\": {\"key1\": \"value1\",\"key2\": \"value2\"}}}}}"
 			val parser = new MondogrossoProcessParser(input)
 			val result = parser.parseAll(parser.order, input)
@@ -117,16 +117,15 @@ class MondogrossoProcessOrdersTests extends Specification {
 		
 		"all	<が無いケース" in {
 			
-			val input = ">A(else:over:vie else:over:vie)"
+			val input = "A(else:over:vie else:over:vie)!F"
 			val json = "{\"A\":{\"type\":\"process\",\"class\":\"A\",\"exec\":\"exec\",\"kv\":{\"key1\":\"value1\",\"key2\":\"value2\"}},\"Z\": {\"type\": \"process\",\"class\": \"Z\",\"exec\": \"exec\",\"kv\": {\"key1\": \"value1\",\"key2\": \"value2\"}}}}}"
 			val parser = new MondogrossoProcessParser(input)
 			val result = parser.parse
 			println("result	" + result.get)
 		}
 		
-		
 		"all	改行入りのケース1 改行コード" in {
-			val input = ">A(else:over:vie else:over:vie)<S\n+>AB(elseB:overB:vieB elseB:overB:vieB)<SB\n+>AB2(elseB2:overB2:vieB2 elseB2:overB2:vieB2)<SB2!Z"
+			val input = "A(else:over:vie else:over:vie)<S\n+AB(elseB:overB:vieB elseB:overB:vieB)<SB\n+AB2(elseB2:overB2:vieB2 elseB2:overB2:vieB2)<SB2!Z"
 			val json = "{\"A\":{\"type\":\"process\",\"class\":\"A\",\"exec\":\"exec\",\"kv\":{\"key1\":\"value1\",\"key2\":\"value2\"}},\"Z\": {\"type\": \"process\",\"class\": \"Z\",\"exec\": \"exec\",\"kv\": {\"key1\": \"value1\",\"key2\": \"value2\"}}}}}"
 			val parser = new MondogrossoProcessParser(input)
 			val result = parser.parse
@@ -135,24 +134,18 @@ class MondogrossoProcessOrdersTests extends Specification {
 		
 		"all	改行入りのケース2 改行される文章" in {
 			val input = 
-				""">A(else:over:vie else:over:vie)<S
-+>AB(elseB:overB:vieB elseB:overB:vieB)<SB
-+>AB2(elseB2:overB2:vieB2 elseB2:overB2:vieB2)<SB2!Z"""
+				"""A(else:over:vie else:over:vie)<S
++AB(elseB:overB:vieB elseB:overB:vieB)<SB
++AB2(elseB2:overB2:vieB2 elseB2:overB2:vieB2)<SB2!Z"""
 				
 			val json = "{\"A\":{\"type\":\"process\",\"class\":\"A\",\"exec\":\"exec\",\"kv\":{\"key1\":\"value1\",\"key2\":\"value2\"}},\"Z\": {\"type\": \"process\",\"class\": \"Z\",\"exec\": \"exec\",\"kv\": {\"key1\": \"value1\",\"key2\": \"value2\"}}}}}"
 			val parser = new MondogrossoProcessParser(input)
 			val result = parser.parse
 			println("result	" + result.get)
 		}
-		
-
-		/*
-		 * +
-+>A2>B2(else:over:vie else:over:vie2)
-
-		 */
-
 	}
+	
+	
 	//	"parseOrder parse" should {
 	//		//+,.が使えない、、、マジか、、、　文字列に対するimplicitがあるな。
 	//		val input = "A>B,C,D(A:a:c)>E(D:d:e),F(A:a2:f, B:b:f2)<J,K>I(J:j:i)/D>G>H/G>J!Z"

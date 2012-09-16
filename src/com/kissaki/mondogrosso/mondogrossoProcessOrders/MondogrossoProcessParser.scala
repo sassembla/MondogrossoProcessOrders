@@ -15,7 +15,10 @@ case class OrderInputs(orderInputTriples : List[OrderInputTriple]) extends Mondo
 case class WaitOrders(waitOrders : List[OrderIdentity]) extends MondogrossoProcessOrdersAST
 
 case class Orders(orders : List[Order]) extends MondogrossoProcessOrdersAST
-case class Processes(orders : Orders) extends MondogrossoProcessOrdersAST
+case class FirstOrders(first:Orders) extends MondogrossoProcessOrdersAST
+case class SecondaryOrders(seconds:Orders) extends MondogrossoProcessOrdersAST
+
+case class Processes(orders : List[Orders]) extends MondogrossoProcessOrdersAST
 
 case class All(processes : Processes, finallyOrder : OrderIdentity) extends MondogrossoProcessOrdersAST
 
@@ -118,15 +121,15 @@ class MondogrossoProcessParser(input : String) extends RegexParsers {
 	/**
 	 * wait(一つのみ)
 	 */
-	def waitOrdersOrNot : Parser[WaitOrders] = (("<" ~ identity) | "") ^^ {org =>
-		println("org	"+org)
-		org match {
+	def waitOrdersOrNot : Parser[WaitOrders] = (("<" ~ identity) | "") ^^ {default =>
+		println("waitOrdersOrNot	"+default)
+		default match {
 			case ("<"~(s:OrderIdentity)) => {
 				println("wait on	"+s)
 				WaitOrders(List(s))
 			}
 			case _ => {
-				println("wait void	"+org)
+				println("wait void	"+default)
 				WaitOrders(List())
 			}
 		}
@@ -134,39 +137,25 @@ class MondogrossoProcessParser(input : String) extends RegexParsers {
 
 	/**
 	 * Order
-	 * >A(A:a:b)<C,
-	 * >A<C,
-	 * 最初を空白にしたいんだけどなー。
+	 * A(A:a:b)<C,
+	 * A<C,
 	 */
-	def order : Parser[Order] = ((">" ~ identity) ~ (orderInputs | "") ~ (waitOrdersOrNot | "")) ^^ { orderOrigin =>
-		println("orderOrigin	" + orderOrigin)
+	def order : Parser[Order] = (identity ~ (orderInputs | "") ~ (waitOrdersOrNot | "")) ^^ { default =>
+		println("order	" + default)
 		
-		orderOrigin match {
-			//フルセット
-			case ((">"~(id:OrderIdentity))~(inputs:OrderInputs)~(waitOrders:WaitOrders)) => {
-				print("full case2 "+orderOrigin)
-				Order(id, inputs, waitOrders)
-			}
-			//idとwait
-			case ((">"~(id:OrderIdentity))~_~(waitOrders:WaitOrders)) => {
-				print("full case3 "+orderOrigin)
-				Order(id, null, waitOrders)
-			}
-			
-			//始まり
-			
+		default match {
 			//フルセット
 			case (((id:OrderIdentity))~(inputs:OrderInputs)~(waitOrders:WaitOrders)) => {
-				print("full case2 "+orderOrigin)
+				print("full case2 "+default)
 				Order(id, inputs, waitOrders)
 			}
 			//idとwait
 			case (((id:OrderIdentity))~_~(waitOrders:WaitOrders)) => {
-				print("full case3 "+orderOrigin)
+				print("full case3 "+default)
 				Order(id, null, waitOrders)
 			}
 			case _ => {
-				println("それ以外	　パースエラーにしたい"+orderOrigin)
+				println("それ以外	　パースエラーにしたい"+default)
 				Order(null, null, null)
 			}
 		}
@@ -175,40 +164,49 @@ class MondogrossoProcessParser(input : String) extends RegexParsers {
 	/**
 	 * オーダーの集合
 	 */
-	def orders : Parser[Orders] = rep(order) ^^ {
-		case (orders) => {
-			println("orders	" + orders)
-			Orders(orders)
+	def orders : Parser[Orders] = order ~ (rep(">" ~ order) | "") ^^ {default => 
+		println("orders	"+default)
+		
+		default match {
+			case ((firstOrder:Order)~_) => {
+				println("firstOrder	"+firstOrder)
+				Orders(List(firstOrder))
+			}
 		}
 	}
 
+	def secondaryOrders :Parser[SecondaryOrders] = ("+"~(orders)) ^^ {default =>
+		println("secondaryOrders	"+	default)
+		default match {
+			case "+"~(secondalyOrd:Orders) => {
+				SecondaryOrders(secondalyOrd)
+			}
+		}
+	}
 	/**
 	 * オーダーの集合の集合
 	 */
-	def processes : Parser[Processes] = orders ~ (rep("+" ~ orders) | "") ^^ { something =>
+	def processes : Parser[Processes] = orders ~ (rep(secondaryOrders) | "") ^^ { default =>
 
-		println("processes something	" + something)
+		println("processes	" + default)
 
-		something match {
-			case (first ~ "") => {
+		default match {
+			
+			case ((firstOrders:Orders) ~ (secondaryOrdersList:List[SecondaryOrders])) => {
+				println("firstOrders	"+firstOrders+"	/secondaryOrdersList	"+secondaryOrdersList)
+				
+				//やりたいのは、secondaryOrdersList中のordersの中のsecondsを取り出してリストにすること
+				val s = for(a <- secondaryOrdersList) yield a.seconds
 
-				println("first	" + first)
-
-				val result = Processes(first)
-				println("processend	" + result)
-
-				result
+				//リストにして結合
+				val appended = List(firstOrders) ++ s
+				Processes(appended)
 			}
 			case _ => {
+				println("一個のOrdersも解釈できないエラー	"+default)
 				//空のリストを返す
-				Processes(Orders(List()))
+				Processes(List())
 			}
-
-			//		case (first ~ _ ~ rest) => {
-			//			
-			//			println("rest	"+rest)
-			//			Processes(first)
-			//		}
 		}
 	}
 
