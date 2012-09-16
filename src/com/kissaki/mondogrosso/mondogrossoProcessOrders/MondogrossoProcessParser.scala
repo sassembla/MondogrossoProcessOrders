@@ -88,14 +88,14 @@ class MondogrossoProcessParser(input : String) extends RegexParsers {
 	/**
 	 * key-valueの文字列
 	 */
-	def str : Parser[OrderString] = """[^()\>\<=:\s\!]*""".r ^^ {
+	def str : Parser[OrderString] = """[^()\>\<=:\s\!\,]*""".r ^^ {
 		case value => OrderString(value)
 	}
 
 	/**
 	 * identity
 	 */
-	def identity : Parser[OrderIdentity] = """[^()\>\<=:\s\!\+]*""".r ^^ {
+	def identity : Parser[OrderIdentity] = """[^()\>\<=:\s\!\+\,]*""".r ^^ {
 		case value => OrderIdentity(value)
 	}
 
@@ -103,18 +103,37 @@ class MondogrossoProcessParser(input : String) extends RegexParsers {
 	 * InputTriple
 	 * A:a:c
 	 */
-	def orderInputTriple : Parser[OrderInputTriple] = str ~ ":" ~ str ~ ":" ~ str ^^ {
-		case (key ~ _ ~ from ~ _ ~ to) => OrderInputTriple(key, from, to)
+	def orderInputTriple : Parser[OrderInputTriple] = str ~ ":" ~ str ~ ":" ~ str ~ ("," | "") ^^ {default =>
+		println("orderInputTriple	"+default)
+		
+		default match {
+			//continue
+			case ((((((key:OrderString)~":")~(from:OrderString))~":")~(to:OrderString))~",") => {
+				println("continue	"+default)
+				OrderInputTriple(key,from,to)
+			}
+			
+			//last or single
+			case ((((((key:OrderString)~":")~(from:OrderString))~":")~(to:OrderString))~"") => {
+				println("last or single	"+default)
+				OrderInputTriple(key,from,to)
+			}
+		}
 	}
 
 	/**
 	 * OrderInputs
-	 * (A:a:c D:d:e F:f:g)
+	 * (A:a:c)
+	 * (A:a:c,D:d:e,F:f:g)
 	 */
-	def orderInputs : Parser[OrderInputs] = "(" ~> rep(orderInputTriple) <~ ")" ^^ {
-		case (orderInputTriples) => {
-			println("orderInputTriples	" + orderInputTriples)
-			OrderInputs(orderInputTriples)
+	def orderInputs : Parser[OrderInputs] = "(" ~> rep(orderInputTriple) <~ ")" ^^ {default =>
+		println("orderInputs	"+default)
+		
+		default match {
+			case (orderInputTriples:List[OrderInputTriple]) => {
+				println("orderInputTriples	" + orderInputTriples)
+				OrderInputs(orderInputTriples)
+			}
 		}
 	}
 	
@@ -137,8 +156,10 @@ class MondogrossoProcessParser(input : String) extends RegexParsers {
 
 	/**
 	 * Order
-	 * A(A:a:b)<C,
-	 * A<C,
+	 * A
+	 * A<B
+	 * A(A2:a2:a)<B
+	 * A(A2:a2:a, B:b:c)<D
 	 */
 	def order : Parser[Order] = (identity ~ (orderInputs | "") ~ (waitOrdersOrNot | "")) ^^ { default =>
 		println("order	" + default)
