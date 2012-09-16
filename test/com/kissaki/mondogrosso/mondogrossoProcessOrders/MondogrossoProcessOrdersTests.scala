@@ -186,10 +186,17 @@ class MondogrossoProcessOrdersTests extends Specification {
 	}
 	
 	"more samples" should {
-		"" in {
-			
+		"単純なOrderの連続" in {
+			val input = "A>B>C>D>E>F>G>H>I>J>K!Z"
+			val json = "{\"A\":{\"type\":\"process\",\"class\":\"A\",\"exec\":\"exec\",\"kv\":{\"key1\":\"value1\",\"key2\":\"value2\"}},\"Z\": {\"type\": \"process\",\"class\": \"Z\",\"exec\": \"exec\",\"kv\": {\"key1\": \"value1\",\"key2\": \"value2\"}}}}}"
+			val parser = new MondogrossoProcessParser(input)
+			val result = parser.parse
+			println("result	" + result.get)
 		}
+		
+		
 	}
+	
 	//	"parseOrder parse" should {
 	//		//+,.が使えない、、、マジか、、、　文字列に対するimplicitがあるな。
 	//		val input = "A>B,C,D(A:a:c)>E(D:d:e),F(A:a2:f, B:b:f2)<J,K>I(J:j:i)/D>G>H/G>J!Z"

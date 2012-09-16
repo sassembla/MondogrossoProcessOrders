@@ -173,7 +173,7 @@ class MondogrossoProcessParser(input : String) extends RegexParsers {
 			//idとwait
 			case (((id:OrderIdentity))~_~(waitOrders:WaitOrders)) => {
 				print("full case3 "+default)
-				Order(id, null, waitOrders)
+				Order(id, OrderInputs(List()), waitOrders)
 			}
 			case _ => {
 				println("それ以外	　パースエラーにしたい"+default)
