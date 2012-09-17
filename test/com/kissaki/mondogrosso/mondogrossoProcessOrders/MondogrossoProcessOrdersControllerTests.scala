@@ -11,11 +11,6 @@ import java.util.UUID
 class MondogrossoProcessOrdersControllerTests extends Specification {
 
 	val runner = new MondogrossoProcessOrdersController
-	val input = "A(else:over:vie else:over:vie)>B>C(a:v:s)<S+AB(elseB:overB:vieB,elseB:overB:vieB)<SB!Z"
-
-	val json = ""
-	val parser = new MondogrossoProcessParser(input, json)
-	val result = parser.parse
 	
 	/*
 	 * Orderの順と合致をクラスにし終わったので、そこから処理を実行するclassを書き上げる。まだ先が長い！　が、良い事ある。
@@ -61,6 +56,13 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 	
 
 	"パースからマップ取得までのテスト" should {
+		val id = UUID.randomUUID().toString
+		val input = "A(else:over:vie else:over:vie)>B>C(a:v:s)<S+AB(elseB:overB:vieB,elseB:overB:vieB)<SB!Z"
+		val json = ""
+			
+		val parser = new MondogrossoProcessParser(id, input, json)
+		val result = parser.parse
+		
 		"attachProcessしたらcontext件数が１増える" in {
 			/*
 			 * パース結果をrunnerにアタッチする
@@ -84,6 +86,13 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 	}
 
 	"runner.startするところまでのテスト" should {
+		val id = UUID.randomUUID().toString
+		val input = "A(else:over:vie else:over:vie)>B>C(a:v:s)<S+AB(elseB:overB:vieB,elseB:overB:vieB)<SB!Z"
+		val json = ""
+		
+		val parser = new MondogrossoProcessParser(id, input, json)
+		val result = parser.parse
+	
 		val identity = UUID.randomUUID().toString
 		val s = runner.attachProcess(identity, result)
 		
@@ -116,86 +125,8 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 			
 		}
 		
-		"" in {
+		"未定" in {
 			
-		}
-	}
-
-	"JSONを解析してscalaファイルを作成" should {
-		"A.scalaファイルを作成するための情報をJSONから作成" in {
-			val input = "A>B>C!Z"
-			val json = "{" +
-				"\"A\":{\"type\":\"process\",\"class\":\"A\",\"exec\":\"exec\",\"kv\":{\"key1\":\"value1\",\"key2\":\"value2\"}}" +
-				"}"
-
-			val parser = new MondogrossoProcessParser(input, json)
-			val result = parser.parseJSON(json)
-
-			/*
-			 * json化されたオブジェクト一式が手に入るはず
-			 * JSONのライブラリはここでは疑わなくても良いので、出来上がったもののキー一覧を調べる。 
-			 */
-
-			result.keySet.size == 1 must beTrue
-
-			result.keySet.first == "A" must beTrue
-		}
-
-		"A.scalaファイルを作成" in {
-			/*
-			 * パースが完了したら、
-			 */
-		}
-	}
-
-	"Context" should {
-		val input = "A>B!Z"
-		val json = ""
-
-//		/*
-//		 * パラメータを絞って試す
-//		 */
-//		val p = new MondogrossoProcessParser(input, json)
-//
-//		val contexifiedFileName = p.contextId + ".scala"
-//		val geneatedClassDesc = p.generateClassDescription
-
-		"importの記述を持っているはず" in {
-
-			//importが3つあるはず
-			failure("not yet implemented, but will have 3-import")
-
-			//それぞれの内容がA,B,Zなハズ			
-			failure("not yet implemented, but is A,B,Z")
-
-			val a = ""
-			a != "" must beTrue
-		}
-
-		"Contextから強制的にソースを作成してコンパイルしてみる" in {
-//			import org.apache.commons.io.FileUtils
-//
-//			//書き出し
-//			Process("echo " + geneatedClassDesc) #> new java.io.File(contexifiedFileName) run
-//
-//			//全文を表示してみる
-//			scala.io.Source.fromFile("test.scala", "UTF-8").getLines.foreach { println _ }
-//
-//			//コンパイルしてみる
-//			val s = Process("scala " + contexifiedFileName) run
-//
-//			println("s	" + s)
-//
-//			//コンパイルに成功してればclassが出来てるはず
-//			val klass = scala.io.Source.fromFile("test.class", "UTF-8")
-//
-//			println("klass	" + klass)
-//
-//			//全行表示
-//			scala.io.Source.fromFile("test.class", "UTF-8").getLines.foreach { println _ }
-//
-//			val a = ""
-//			a != "" must beTrue
 		}
 	}
 }

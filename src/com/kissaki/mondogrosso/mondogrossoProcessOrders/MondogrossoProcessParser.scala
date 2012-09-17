@@ -3,28 +3,27 @@ package com.kissaki.mondogrosso.mondogrossoProcessOrders
 import scala.collection.mutable._
 import scala.util.parsing.combinator.RegexParsers
 import scala.util.parsing.json.JSON
-
+import java.util.UUID
 
 trait MondogrossoProcessOrdersAST
 
-case class OrderString(str : String) extends MondogrossoProcessOrdersAST
-case class OrderIdentity(str : String) extends MondogrossoProcessOrdersAST
+case class OrderString(myStr : String) extends MondogrossoProcessOrdersAST
+case class OrderIdentity(myId : String) extends MondogrossoProcessOrdersAST
 
-case class Order(identity : OrderIdentity, orderInputs : OrderInputs, waitIdentities : WaitOrders) extends MondogrossoProcessOrdersAST
+case class Order(myOrderIdentity : OrderIdentity, orderInputs : OrderInputs, waitIdentities : WaitOrders) extends MondogrossoProcessOrdersAST
 
-case class OrderInputTriple(identity : OrderString, fromKey : OrderString, toKey : OrderString) extends MondogrossoProcessOrdersAST
-case class OrderInputs(orderInputTriples : List[OrderInputTriple]) extends MondogrossoProcessOrdersAST
+case class OrderInputTriple(myInputIdentity : OrderString, fromKey : OrderString, toKey : OrderString) extends MondogrossoProcessOrdersAST
+case class OrderInputs(myOrderInputTripleList : List[OrderInputTriple]) extends MondogrossoProcessOrdersAST
 
-case class WaitOrders(waitOrders : List[OrderIdentity]) extends MondogrossoProcessOrdersAST
+case class WaitOrders(myWaitOrdersList : List[OrderIdentity]) extends MondogrossoProcessOrdersAST
 
-case class Orders(orders : List[Order]) extends MondogrossoProcessOrdersAST
+case class Orders(myOrderList : List[Order]) extends MondogrossoProcessOrdersAST
 case class FirstOrders(first : Orders) extends MondogrossoProcessOrdersAST
 case class SecondaryOrders(seconds : Orders) extends MondogrossoProcessOrdersAST
 
-case class Processes(orders : List[Orders]) extends MondogrossoProcessOrdersAST
+case class Processes(myOrdersList : List[Orders]) extends MondogrossoProcessOrdersAST
 
 case class All(processes : Processes, finallyOrder : OrderIdentity) extends MondogrossoProcessOrdersAST
-
 
 /*
  * AST
@@ -40,10 +39,17 @@ case class All(processes : Processes, finallyOrder : OrderIdentity) extends Mond
  */
 
 /**
+ * パース結果を格納するcase class
+ */
+case class ParseResult(contextId:String, process:Any, finallyOrder:String, totalOrderCount:Int, totalProcessNum:Int, initialParam:Map[String, Any])
+case class Input(sourceOrderIdentity:String, from:String, to:String)
+case class WaitOrder(id:String)
+
+/**
  * プロセスのパーサ
  * 文字列入力を受けて、内容をパースする。
  */
-class MondogrossoProcessParser(input : String, jsonSource : String) extends RegexParsers {
+class MondogrossoProcessParser(id:String, input : String, jsonSource : String) extends RegexParsers {
 
 	//プレ処理、改行削除
 	val preprocessedInput = input.replaceAll("\\n", "")
@@ -53,18 +59,60 @@ class MondogrossoProcessParser(input : String, jsonSource : String) extends Rege
 	 * パース関数
 	 */
 	def parse = {
-		parseJSON(jsonSource)
 		val result = parseAll(all, preprocessedInput).get
-		println("result	"+result)
 		
-		result
+		val processSource = result.processes.myOrdersList.map { currentOrders =>
+				
+				val b = currentOrders.myOrderList.map { currentOrder =>
+					val identity = currentOrder.myOrderIdentity.myId
+
+					val inputsList = for (inputTriple <- currentOrder.orderInputs.myOrderInputTripleList)
+						yield Input(inputTriple.myInputIdentity.myStr,inputTriple.fromKey.myStr, inputTriple.toKey.myStr)
+
+					val waitOrdersList = for (waitOrderIdentity <- currentOrder.waitIdentities.myWaitOrdersList)
+						yield WaitOrder(waitOrderIdentity.myId)
+					
+					val ret = Map(
+							"identity" -> identity, 
+							"inputsList" -> inputsList, 
+							"waitOrdersList" -> waitOrdersList)
+					ret
+				}
+				val processIdentity = UUID.randomUUID.toString
+
+				Map(processIdentity -> b)
+		}
+		
+		
+		val orderCountList:ListBuffer[Int] = ListBuffer()
+		
+		val totalProcessNum = processSource.length
+		
+		//プロセス数を数える(無駄っぽい機構、、)
+		processSource.foreach {orders =>
+			orders.values.foreach {value =>
+				orderCountList+=value.length
+			}
+		}
+		
+		/**
+		 * order数を集計 
+		 */
+		val orderCount = orderCountList.reduceLeft {(a,b) =>
+			a+b
+		}
+		
+		//JSONのパース結果をマップにして整形したもの
+		val contextSource = parseJSON(jsonSource)
+		
+		ParseResult(id,processSource, result.finallyOrder.myId, orderCount, totalProcessNum, contextSource)
 	}
 
 	/**
 	 * JSONのパース
 	 */
-	def parseJSON(jsonInput : String) = {
-		println("jsonInput	"+jsonInput)
+	def parseJSON(jsonInput : String) :Map[String, Any] = {
+		println("jsonInput	" + jsonInput)
 		jsonInput match {
 			case "" => {
 				Map()
@@ -72,9 +120,9 @@ class MondogrossoProcessParser(input : String, jsonSource : String) extends Rege
 			case _ => {
 				JSON.parseFull(jsonInput).get match {
 					//期待する形状のマップ
-					case mapValue:Map[String,Any] => {
+					case mapValue : Map[String, Any] => {
 						mapValue
-					} 
+					}
 					//それ以外
 					case _ => {
 						Map()
@@ -180,18 +228,18 @@ class MondogrossoProcessParser(input : String, jsonSource : String) extends Rege
 			}
 		}
 	}
-	
+
 	/**
-	 * >で繋がれる2番目以降のOrder 
+	 * >で繋がれる2番目以降のOrder
 	 */
 	def secondaryOrder : Parser[Order] = (">" ~ order) ^^ { default =>
 		default match {
-			case (">" ~ (secondaryOrder:Order)) => {
+			case (">" ~ (secondaryOrder : Order)) => {
 				secondaryOrder
 			}
 		}
 	}
-	
+
 	/**
 	 * オーダーの集合
 	 */
@@ -200,17 +248,17 @@ class MondogrossoProcessParser(input : String, jsonSource : String) extends Rege
 
 		default match {
 			//複数
-			case ((firstOrder:Order) ~ (seconds:List[Order])) => {
-				Orders(List(firstOrder)++seconds)				
+			case ((firstOrder : Order) ~ (seconds : List[Order])) => {
+				Orders(List(firstOrder) ++ seconds)
 			}
-			
+
 			//一つ
 			case ((singleOrder : Order)) => {
 				Orders(List(singleOrder))
 			}
 		}
 	}
-	
+
 	/**
 	 * 二つ目以降のOrders
 	 * parallelに実行される
@@ -223,7 +271,7 @@ class MondogrossoProcessParser(input : String, jsonSource : String) extends Rege
 			}
 		}
 	}
-	
+
 	/**
 	 * オーダーの集合Ordersの集合
 	 */
@@ -254,9 +302,9 @@ class MondogrossoProcessParser(input : String, jsonSource : String) extends Rege
 	/**
 	 * finallyも含めた全体
 	 */
-	def all : Parser[All] = processes ~ "!" ~ identity ^^ {default =>
-		println("all	"+default)
-		
+	def all : Parser[All] = processes ~ "!" ~ identity ^^ { default =>
+		println("all	" + default)
+
 		default match {
 			case (all ~ _ ~ finallyOrderId) => {
 				println("all = " + all)
