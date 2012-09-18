@@ -48,14 +48,40 @@ class MondogrossoProcessOrdersTests extends Specification {
 			result.myOrderInputTripleList(1).myInputIdentity.myStr == "else2" must beTrue
 		}
 	}
+	
+	"waitOrders" should {
+		"waits 1つのwaitをもつ" in {
+			val input = "<A"
+			val json = ""
+			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
+			
+			val result = parser.parseAll(parser.waitOrdersOrNot, input).get
+			
+			result.myWaitOrdersList.length == 1 must beTrue
+			
+			result.myWaitOrdersList(0).myId == "A" must beTrue
+		}
+		
+		"waits 2つのwaitをもつ" in {
+			val input = "<A,B"
+			val json = ""
+			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
+			val result = parser.parseAll(parser.waitOrdersOrNot, input).get
+			
+			result.myWaitOrdersList.length == 2 must beTrue
+			result.myWaitOrdersList(0).myId == "A" must beTrue
+			result.myWaitOrdersList(1).myId == "B" must beTrue
+		}
+	}
 
 	"サンプル" should {
 		"all	finally付きのフルセット	" in {
 			val id = "finally付きのフルセット"
-			val input = "A(else:over:vie,else2:over2:vie2)>B>C(a:v:s)<S+AB(elseB:overB:vieB,elseB2:overB2:vieB2)<SB!Z"
+			val input = "A(else:over:vie,else2:over2:vie2)>B>C(a:v:s)<S,T+AB(elseB:overB:vieB,elseB2:overB2:vieB2)<SB!Z"
 
 			val json = ""
 			val parser = new MondogrossoProcessParser(id, input, json)
+
 			val context = parser.parse
 
 			//finallyがあるはず
@@ -72,7 +98,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 
 			//プロセスがあるはず
 			val result = context.current
-
+			
 			//Ordersが2つあるはず
 			result.processList.length == 2 must beTrue
 
@@ -101,9 +127,10 @@ class MondogrossoProcessOrdersTests extends Specification {
 			the1stOrders.orderAdditional("C").inputsList(0).from == "v" must beTrue
 			the1stOrders.orderAdditional("C").inputsList(0).to == "s" must beTrue
 
-			//Cには１つのwaitがある
+			//CにはS,T, 2つのwaitがある
 			the1stOrders.orderAdditional("C").waitIdentitiesList(0) == "S" must beTrue
-
+			the1stOrders.orderAdditional("C").waitIdentitiesList(1) == "T" must beTrue
+			
 			//2つめのOrders
 			//AB,のOrderが入っているはず
 			the2ndOrders.orderIdentityList.length == 1 must beTrue

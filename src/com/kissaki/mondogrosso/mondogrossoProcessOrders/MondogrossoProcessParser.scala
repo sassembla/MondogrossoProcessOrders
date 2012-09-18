@@ -184,18 +184,33 @@ class MondogrossoProcessParser(id : String, input : String, jsonSource : String)
 		}
 	}
 
+	
 	/**
-	 * wait(一つのみ)
+	 * waitIdentity
+	 * <A
 	 */
-	def waitOrdersOrNot : Parser[WaitOrders] = (("<" ~ identity) | "") ^^ { default =>
+	def waitIdentity2nd : Parser[OrderIdentity] = ("," ~ identity) ^^ {default =>
+		println("waitIdentity2nd	"+default)
+		default match {
+			case ("," ~ (id:OrderIdentity)) => {
+				id
+			}
+		}
+	}
+	
+	
+	/**
+	 * wait
+	 * <A
+	 * <A<B<C
+	 */
+	def waitOrdersOrNot : Parser[WaitOrders] = ("<" ~ identity ~ rep(waitIdentity2nd) | "") ^^ { default =>
 		println("waitOrdersOrNot	" + default)
 		default match {
-			case ("<" ~ (s : OrderIdentity)) => {
-				println("wait on	" + s)
-				WaitOrders(List(s))
+			case (("<"~(the1st:OrderIdentity))~(the2nd:List[OrderIdentity])) => {
+				WaitOrders(List(the1st)++the2nd)
 			}
 			case _ => {
-				println("wait void	" + default)
 				WaitOrders(List())
 			}
 		}
