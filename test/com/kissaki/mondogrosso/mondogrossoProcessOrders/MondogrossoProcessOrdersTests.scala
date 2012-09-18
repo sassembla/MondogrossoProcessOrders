@@ -73,79 +73,6 @@ class MondogrossoProcessOrdersTests extends Specification {
 			//プロセスがあるはず
 			val result = context.current
 
-			/*
-			 * どうなるのがうれしいのか
-			 * ・Contextの内容が一目でわかる
-			 * 		OrderごとにどんなId,パラメータを持っているか
-			 * 
-			 * 		printlnしたときに、
-			 * 		Order(id1,状態)
-			 * 		Order(id2,状態)
-			 * 		Order(id3,状態)
-			 * 		みたいに見れるといいな。
-			 * 		→contextにorderのidentity + パラメータ値一覧がある
-			 * 			contextのidentityはもっと上層がなんとかする。
-			 * 			//パラメータ側
-			 * 			parseResult:{//=context
-			 * 				initialParam : {//実行時の値の初期値。imputがある場合はcurrentから値を引っ張ってきて上書きされる。finallyの引数でもある。
-			 * 					A : {
-			 * 						key:value
-			 * 					} x n
-			 * 				}
-			 * 				
-			 * 				eventualParam : {//実行後の値が入る。finallyの引数でもある。 受け取り側で作れば良い。
-			 * 					//処理完了した際の値が入る。ここにidentityが無ければ終わってない。
-			 * 				}
-			 * 
-			 * 				//Current(process:List[Process])
-			 * 				//	Process(identity:String, currentIndex:Int, orderIdentityList:List[String], orderAdditional:Map[String, OrderAddition])
-			 * 				//		OrderAddition(inputsList:List[InputRule], waitIdentitiesList:ListBuffer[String])
-			 * 				//			InputRule(sourceOrderIdentity:String, from:String, to:String)
-			 * 
-			 * 				current : {
-			 * 					process : {
-			 * 						identity(UUID)
-			 * 						currentIndex		//finallyの引数
-			 * 						orderIdentityList : {
-			 * 							//実行順に並べたもの。Seq
-			 * 							A,B,C,D
-			 * 						}
-			 * 						orderAdditional : {
-			 * 							A:{
-			 * 								inputs
-			 * 								waits
-			 * 							} x n
-			 * 						}
-			 * 					} x n
-			 * 				}
-			 * 				
-			 * 				totalOrderCount
-			 * 				(restOrderCount)//実行時のみ
-			 * 
-			 * 				totalProcessNum
-			 * 				(restProcessNum)//実行時のみ
-			 * 
-			 * 				finallyOrder
-			 * 			}
-			 * 			
-			 * 					
-			 * 
-			 * ・Workerに放り込みやすい
-			 * 		Orderそのままを放り込めればベスト。ぶん投げ。
-			 * 		messenger.call(processId, START, Order)
-			 * 				
-			 * ・Worker側でやる処理は、
-			 * 	・種類ごとに異なる処理なので、typeは必須
-			 * 	・処理内容→jsonから取って来れてるはずなので、そのままそれがキーになってるはず。case class一発。
-			 * 
-			 * ・WorkerからDoneが来た時、次の処理にうつりやすい
-			 * 		index++
-			 * 		→これで読めるようにするには、
-			 * 			process.orderIdentityList(index)で、次実行するIdentity取れる
-			 * 			process.orderAdditional(Identity).inputsList(len)で、ルール一式が取れる
-			 * 			process.orderAdditional(Identity).waitIdentitiesListで、waitIdentity一式が取れる
-			 */
-
 			//Ordersが2つあるはず
 			result.processList.length == 2 must beTrue
 
@@ -246,9 +173,11 @@ class MondogrossoProcessOrdersTests extends Specification {
 
 			try {
 				val result = parser.parse
+				false == true must beTrue
 			} catch {
 				case e => {
 					println("excet?	"+e)
+					e == "java.lang.RuntimeException : Invalid Ideitifier" must beTrue
 				}
 
 			} finally {
@@ -272,8 +201,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 			try {
 				val result = parser.parse
 				println("ここに到達しちゃいけない	")
-				val a = "0"
-				a == 0 must beTrue
+				false == true must beTrue
 			} catch {
 				case e => {
 					println("excet?	"+e)
@@ -282,8 +210,29 @@ class MondogrossoProcessOrdersTests extends Specification {
 			} finally {
 				println("finally	done")
 			}
-			
 		}
+		
+		"finallyが無い" in {
+			val id = UUID.randomUUID().toString
+			val input = "A>B>C"
+			val json = ""
+
+			val parser = new MondogrossoProcessParser(id, input, json)
+
+			try {
+				val result = parser.parse
+				false == true must beTrue
+			} catch {
+				case e => {
+					println("excet?	"+e)
+					e == """java.lang.RuntimeException : Missing "Finally" OrderIdentity""" must beTrue
+				}
+
+			} finally {
+				println("finally	done")
+			}
+		}
+		
 	}
 
 	"samples" should {
