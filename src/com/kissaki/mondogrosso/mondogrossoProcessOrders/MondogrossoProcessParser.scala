@@ -41,77 +41,77 @@ case class All(processes : Processes, finallyOrder : OrderIdentity) extends Mond
 /**
  * パース結果を格納するcase class
  */
-case class ParseResult(contextId:String, process:Any, finallyOrder:String, totalOrderCount:Int, totalProcessNum:Int, initialParam:Map[String, Any])
-case class Input(sourceOrderIdentity:String, from:String, to:String)
-case class WaitOrder(id:String)
+case class ParseResult(initialParam : Map[String, Any], eventualParam : Map[String, Any], current : Current, finallyOrder : String, totalOrderCount : Int, totalProcessNum : Int)
+case class Current(processList : List[Process])
+case class Process(identity : String, currentIndex : Int, orderIdentityList : List[String], orderAdditional : Map[String, OrderAddition])
+case class OrderAddition(inputsList : List[InputRule], waitIdentitiesList : List[String])
+case class InputRule(sourceOrderIdentity : String, from : String, to : String)
 
 /**
  * プロセスのパーサ
  * 文字列入力を受けて、内容をパースする。
  */
-class MondogrossoProcessParser(id:String, input : String, jsonSource : String) extends RegexParsers {
+class MondogrossoProcessParser(id : String, input : String, jsonSource : String) extends RegexParsers {
 
 	//プレ処理、改行削除
 	val preprocessedInput = input.replaceAll("\\n", "")
-	println("\n preprocessedInput	" + preprocessedInput)
 
 	/**
 	 * パース関数
 	 */
 	def parse = {
+		//初期インデックス値
+		val defaultIndex = 0;
+
+		//パース
 		val result = parseAll(all, preprocessedInput).get
-		
+
+		//パースデータのマッピング
 		val processSource = result.processes.myOrdersList.map { currentOrders =>
-				
-				val b = currentOrders.myOrderList.map { currentOrder =>
-					val identity = currentOrder.myOrderIdentity.myId
+			//プロセスのidentity(自動生成)
+			val processIdentity = UUID.randomUUID.toString
 
-					val inputsList = for (inputTriple <- currentOrder.orderInputs.myOrderInputTripleList)
-						yield Input(inputTriple.myInputIdentity.myStr,inputTriple.fromKey.myStr, inputTriple.toKey.myStr)
+			//オーダー順
+			val orderIdentities = for (order <- currentOrders.myOrderList) yield order.myOrderIdentity.myId
 
-					val waitOrdersList = for (waitOrderIdentity <- currentOrder.waitIdentities.myWaitOrdersList)
-						yield WaitOrder(waitOrderIdentity.myId)
-					
-					val ret = Map(
-							"identity" -> identity, 
-							"inputsList" -> inputsList, 
-							"waitOrdersList" -> waitOrdersList)
-					ret
-				}
-				val processIdentity = UUID.randomUUID.toString
+			//オーダーの追加情報の準備
+			val orderAdditionalList = currentOrders.myOrderList.map { currentOrder =>
+				val identity = currentOrder.myOrderIdentity.myId
 
-				Map(processIdentity -> b)
-		}
-		
-		
-		val orderCountList:ListBuffer[Int] = ListBuffer()
-		
-		val totalProcessNum = processSource.length
-		
-		//プロセス数を数える(無駄っぽい機構、、)
-		processSource.foreach {orders =>
-			orders.values.foreach {value =>
-				orderCountList+=value.length
+				val inputsList = for (inputTriple <- currentOrder.orderInputs.myOrderInputTripleList)
+					yield InputRule(inputTriple.myInputIdentity.myStr, inputTriple.fromKey.myStr, inputTriple.toKey.myStr)
+
+				val waitOrdersList = for (waitOrderIdentity <- currentOrder.waitIdentities.myWaitOrdersList)
+					yield waitOrderIdentity.myId
+
+				//一度マップ化
+				Map(identity -> OrderAddition(inputsList, waitOrdersList))
 			}
+
+			//オーダーの追加情報を一つのMapに纏める
+			val orderAddition = orderAdditionalList.reduceLeft {
+				(a, b) => a ++ b
+			}
+
+			//プロセスの合成
+			Process(processIdentity, defaultIndex, orderIdentities, orderAddition)
 		}
-		
-		/**
-		 * order数を集計 
-		 */
-		val orderCount = orderCountList.reduceLeft {(a,b) =>
-			a+b
-		}
-		
+		val current = Current(processSource)
+
+		val totalOrderCountList = for (orders <- processSource) yield orders.orderIdentityList.length
+		val totalOrderCount = totalOrderCountList.reduceLeft { (a, b) => a + b }
+		val totalProcessNum = processSource.length
+
 		//JSONのパース結果をマップにして整形したもの
 		val contextSource = parseJSON(jsonSource)
-		
-		ParseResult(id,processSource, result.finallyOrder.myId, orderCount, totalProcessNum, contextSource)
+
+		ParseResult(contextSource, Map(), current, result.finallyOrder.myId, totalOrderCount, totalProcessNum)
 	}
 
 	/**
 	 * JSONのパース
 	 */
-	def parseJSON(jsonInput : String) :Map[String, Any] = {
+	def parseJSON(jsonInput : String) : Map[String, Any] = {
 		println("jsonInput	" + jsonInput)
 		jsonInput match {
 			case "" => {
