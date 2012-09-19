@@ -19,9 +19,9 @@ class MondogrossoProcessOrdersController {
 	/**
 	 * 新しいプロセスをアタッチする
 	 */
-	def attachProcess(identity : String, processSource : Any) = {
-		println("attach	" + processSource)
-		contexts += new ProcessContext(identity, processSource)
+	def attachProcess(identity : String, contextSrc : ContextSource) = {
+		println("attach	Context" + contextSrc)
+		contexts += new ProcessContext(identity, contextSrc)
 	}
 
 	/**
@@ -43,26 +43,33 @@ class MondogrossoProcessOrdersController {
 
 /**
  * コンテキスト
- * メッセージングのコアになる。
+ * 
+ * 各Orderを実行する、Workerメッセージングのコアになる。
  */
-class ProcessContext(processIdentity : String, processSource : Any) extends MessengerProtocol {
+class ProcessContext(processIdentity : String, contextSrc : ContextSource) extends MessengerProtocol {
 	val messenger = new Messenger(this, processIdentity)
-	
+
+	//MESSAGES
 	val MESSAGE_START = "MESSAGE_START"
+	val MESSAGE_STARTED = "MESSAGE_STARTED"
 	val MESSAGE_ERROR = "MESSAGE_ERROR"
 	val MESSAGE_DONE = "MESSAGE_DONE"
+
+	
+	val DEFAULT_INDEX = 0
+	
+	//コンテキスト
+	val currentContext = contextSrc
 	
 	//ワーカーの名簿
 	val workersNameList : ListBuffer[String] = ListBuffer()
 
-	
-	var orderIndex = -1
+	var currentOrderIndex = DEFAULT_INDEX
 	var condition = Condition.CONDITION_PREPARED
 
 	//このコンテキストが所持するプロセスのID一覧
-	val processList:ListBuffer[String] = ListBuffer()
-	
-	
+	val processList : ListBuffer[String] = ListBuffer()
+
 	/**
 	 * 現在のコンテキストのIdを返す
 	 */
@@ -75,7 +82,7 @@ class ProcessContext(processIdentity : String, processSource : Any) extends Mess
 	def currentCondition = {
 		condition match {
 			case Condition.CONDITION_PREPARED => {
-
+				
 			}
 		}
 	}
@@ -84,56 +91,62 @@ class ProcessContext(processIdentity : String, processSource : Any) extends Mess
 	 * このコンテキストの現在のindexからの実行開始
 	 */
 	def run = {
-		//for 必要な数のworkerを動かす
+		println("コンテキスト	" + processIdentity)
+		
+		println("currentOrderIndex	"+currentOrderIndex)
+		
+//		currentContext.finallyOrderをfinally節に予約
+		
+		//ここから先は、
+		val currentOrderIdentity = currentContext.current.processList(0).orderIdentityList(currentOrderIndex)
+		
+		//入力するkey-valueを用意する
+		val initial = currentContext.initialParam(currentOrderIdentity)
+		println("initial	"+initial)
+		
+		
+		//新しいWorkerを生成する
 		val newWorkerName = UUID.randomUUID().toString()
 		workersNameList += newWorkerName
+
 		new ProcessWorker(newWorkerName, processIdentity)
+		messenger.call(newWorkerName, MESSAGE_START,messenger.tagValues(
+				new TagValue("orderIdentity", currentOrderIdentity)
+				
+		))
 	}
-	
-	
-	/**
-	 * レシーバ
-	 */
-	def receiver(exec : String, tagValues : Array[TagValue]) = {
-//		exec match {
-//			case MESSAGE_START => {
-//				val mode = messenger.get("mode", tagValues).asInstanceOf[Int]
-//				start(mode)
-//			}
-//		}
-	}
-	
-}
 
-
-/**
- * ワーカー
- * Messagingで親(Context)との通信を行う
- */
-class ProcessWorker (identity:String, masterName:String) extends MessengerProtocol {
-	val messenger = new Messenger(this, identity)
-	messenger.inputParent(masterName)
-
-	val MESSAGE_START = "MESSAGE_START"
-	val MESSAGE_ERROR = "MESSAGE_ERROR"
-	val MESSAGE_DONE = "MESSAGE_DONE"
-	
 	/**
 	 * レシーバ
 	 */
 	def receiver(exec : String, tagValues : Array[TagValue]) = {
 		exec match {
-			case MESSAGE_START => {
-				val mode = messenger.get("mode", tagValues).asInstanceOf[Int]
-				start(mode)
+			case MESSAGE_STARTED => {
+				currentOrderIndex = currentOrderIndex+1
+				println("currentOrderIndex	"+currentOrderIndex)
+			}
+		}
+	}
+
+	/**
+	 * ワーカー
+	 * Messagingで親(Context)との通信を行う
+	 */
+	class ProcessWorker(identity : String, masterName : String) extends MessengerProtocol {
+		val messenger = new Messenger(this, identity)
+		messenger.inputParent(masterName)
+
+		/**
+		 * レシーバ
+		 */
+		def receiver(exec : String, tagValues : Array[TagValue]) = {
+			exec match {
+				case MESSAGE_START => {
+					//ここで、あらゆる情報を受け取る
+					messenger.callParent(MESSAGE_STARTED, Array())
+				}
 			}
 		}
 	}
 	
-	
-	def start(mode:Int) = {
-		
-	}
-	
 }
-

@@ -41,7 +41,7 @@ case class All(processes : Processes, finallyOrder : OrderIdentity) extends Mond
 /**
  * パース結果を格納するcase class
  */
-case class ParseResult(initialParam : Map[String, Any], eventualParam : Map[String, Any], current : Current, finallyOrder : String, totalOrderCount : Int, totalProcessNum : Int)
+case class ContextSource(initialParam : Map[String, String], eventualParam : Map[String, String], current : Current, finallyOrder : String, totalOrderCount : Int, totalProcessNum : Int)
 case class Current(processList : List[Process])
 case class Process(identity : String, currentIndex : Int, orderIdentityList : List[String], orderAdditional : Map[String, OrderAddition])
 case class OrderAddition(inputsList : List[InputRule], waitIdentitiesList : List[String])
@@ -103,15 +103,25 @@ class MondogrossoProcessParser(id : String, input : String, jsonSource : String)
 		val totalProcessNum = processSource.length
 
 		//JSONのパース結果をマップにして整形したもの
-		val contextSource = parseJSON(jsonSource)
+		val initialParam = parseJSON(jsonSource)
 
-		ParseResult(contextSource, Map(), current, result.finallyOrder.myId, totalOrderCount, totalProcessNum)
+		ContextSource(
+				initialParam,				//Orderの実行時に使用されるKV
+				Map(), 						//Orderの実行結果によってたまっていくKV(初期値は空)
+				current, 					//このContextに含まれるOrderのList
+				result.finallyOrder.myId,	//finallyのIdentity
+				totalOrderCount, 			//オーダー数の合計
+				totalProcessNum				//全プロセス数の合計
+				)
 	}
 
 	/**
 	 * JSONのパース
+	 * 
+	 * JSONの値は、ネスト不可なkey-value型に限る。
+	 * (initialにのみある制限で、eventualであれば突破できるかもしれない。おすすめはしないけど。)
 	 */
-	def parseJSON(jsonInput : String) : Map[String, Any] = {
+	def parseJSON(jsonInput : String) : Map[String, String] = {
 		println("jsonInput	" + jsonInput)
 		jsonInput match {
 			case "" => {
@@ -121,7 +131,8 @@ class MondogrossoProcessParser(id : String, input : String, jsonSource : String)
 				JSON.parseFull(jsonInput).get match {
 					//期待する形状のマップ
 					case mapValue : Map[String, Any] => {
-						mapValue
+						//すべて文字列に変換(ここの時点から、ネストは不可)
+						for ((k, v) <- mapValue) yield (k, v.toString)
 					}
 					//それ以外
 					case _ => {
