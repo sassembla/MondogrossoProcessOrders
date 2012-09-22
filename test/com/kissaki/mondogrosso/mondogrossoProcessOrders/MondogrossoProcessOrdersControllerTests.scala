@@ -20,7 +20,7 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 		val json = ""
 			
 		val parser = new MondogrossoProcessParser(id, input, json)
-		val context = parser.parse
+		val context = parser.parseProcess
 		
 		
 		"attachProcessしたらcontext件数が１増える" in {
@@ -30,7 +30,7 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 			val identity = UUID.randomUUID().toString
 			val s = orderCont.attachProcess(identity, context)
 			
-			orderCont.contexts.length == 1 must beTrue
+			orderCont.contexts.length must be_==(1)
 		}
 		
 		
@@ -38,7 +38,7 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 			val identity = UUID.randomUUID().toString
 			val s = orderCont.attachProcess(identity, context)
 			
-			orderCont.contexts(0).identity.equals(identity) must beTrue
+			orderCont.contexts(0).identity must be_==(identity)
 		}
 		
 		
@@ -46,21 +46,23 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 			orderCont.runAllContext
 			
 			//実行開始したことによって、Messagingが発生、最初のProcessがStartし、現在のindexが0になっているはず
-			orderCont.contexts(0).currentOrderIndex == 0 must beTrue
-		}
-		
-		"その他のコンディションについて" in {
-			false == true must beTrue
+			orderCont.contexts(0).currentOrderIndex must be_==(0)
 		}
 	}
 	
 	"Context" should {
 		val id = UUID.randomUUID().toString
-		val input = "A(else:over:vie else:over:vie)>B>C(a:v:s)<S+AB(elseB:overB:vieB,elseB:overB:vieB)<SB!Z"
-		val json = ""
+		val input = "A>B>C(A:a:c)<E+B>D(A:a2:d1,A:a3:d2)>E!Z"
+		val json = """{
+			"A":{"type":"sh","class":"AShell.sh","exec":"myExec"},
+			"B":{"type":"sh","class":"AShell.sh","exec":"myExec"},
+			"C":{"type":"sh","class":"AShell.sh","exec":"myExec"},
+			"D":{"type":"sh","class":"AShell.sh","exec":"myExec"},
+			"E":{"type":"sh","class":"AShell.sh","exec":"myExec"}
+			}"""
 		
 		val parser = new MondogrossoProcessParser(id, input, json)
-		val result = parser.parse
+		val result = parser.parseProcess
 	
 		val identity = UUID.randomUUID().toString
 		val s = orderCont.attachProcess(identity, result)
@@ -74,17 +76,22 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 			//全体インデックスを取得
 			currentContext.totalOrderNum == 6 must beTrue
 			
-			//現在の進捗インデックスを取得(開始していないので-1)
-			currentContext.currentOrderIndex == 0 must beTrue
+			//現在の進捗インデックスを取得
+			currentContext.currentOrderIndex must be_==(0) 
 		}
 		
 		
-		"最初から実行" in {
-//			currentContext.start
+		"最初から実行	現在実行中のOrderがAなハズ" in {
+			currentContext.run
+			println("currentContext.currentExecutingOrders(0)	"+currentContext.currentExecutingOrders(0))
+			currentContext.currentExecutingOrders(0) must be_==("A")
 		}
 		
 		"途中のindexから実行" in {
-//			orderCont.contexts(0).setIndex(1)
+//			currentContext.startFrom(2)
+//			
+//			//現在実行中のOrderがAなハズ
+//			currentContext.currentExecutingOrders must be_==(Map("A"))
 		}
 	}
 	
@@ -99,7 +106,7 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 			val worker = new context.ProcessWorker(childId, masterId)
 			context.run
 			
-			
+			"not yet" must be_==("applied")
 		}
 	}
 

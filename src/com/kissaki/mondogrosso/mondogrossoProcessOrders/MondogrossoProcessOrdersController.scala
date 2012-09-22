@@ -5,6 +5,7 @@ import com.kissaki.TagValue
 import com.kissaki.MessengerProtocol
 import com.kissaki.Messenger
 import java.util.UUID
+import scala.collection.mutable.MapBuilder
 
 /**
  * ランナー
@@ -28,7 +29,7 @@ class MondogrossoProcessOrdersController {
 	 * 準備済みのコンテキストを実行する
 	 */
 	def runAllContext = {
-		contexts.withFilter(_.currentCondition == Condition.CONDITION_PREPARED).foreach { context =>
+		contexts.foreach { context =>
 			context.run
 		}
 	}
@@ -58,15 +59,18 @@ class ProcessContext(processIdentity : String, contextSrc : ContextSource) exten
 	
 	val DEFAULT_INDEX = 0
 	
-	//コンテキスト
+	//コンテキストソース
 	val currentContext = contextSrc
 	
 	//ワーカーの名簿
 	val workersNameList : ListBuffer[String] = ListBuffer()
 
+	//現在実行しているIndex(全体を並べたときをもとにした順、実行順とは異なり、個数)
 	var currentOrderIndex = DEFAULT_INDEX
-	var condition = Condition.CONDITION_PREPARED
 
+	//実行中のOrderのList
+	val currentExecutingOrders:ListBuffer[String] = ListBuffer()
+	
 	//このコンテキストが所持するプロセスのID一覧
 	val processList : ListBuffer[String] = ListBuffer()
 
@@ -77,15 +81,8 @@ class ProcessContext(processIdentity : String, contextSrc : ContextSource) exten
 
 	def processNum = processList.size
 
-	def totalOrderNum = 1
-
-	def currentCondition = {
-		condition match {
-			case Condition.CONDITION_PREPARED => {
-				
-			}
-		}
-	}
+	def totalOrderNum = currentContext.totalOrderCount
+	
 
 	/**
 	 * このコンテキストの現在のindexからの実行開始
@@ -97,12 +94,17 @@ class ProcessContext(processIdentity : String, contextSrc : ContextSource) exten
 		
 //		currentContext.finallyOrderをfinally節に予約
 		
-		//ここから先は、
+		//ここから先は、Workerに送りこみ、待つだけ。
 		val currentOrderIdentity = currentContext.current.processList(0).orderIdentityList(currentOrderIndex)
 		
+		println("currentOrderIdentity	"+currentOrderIdentity)
+		println("here is	"+currentContext)
+		
 		//入力するkey-valueを用意する
+		
+		
 		val initial = currentContext.initialParam(currentOrderIdentity)
-		println("initial	"+initial)
+		println("current initial	"+initial)
 		
 		
 		//新しいWorkerを生成する
@@ -112,8 +114,10 @@ class ProcessContext(processIdentity : String, contextSrc : ContextSource) exten
 		new ProcessWorker(newWorkerName, processIdentity)
 		messenger.call(newWorkerName, MESSAGE_START,messenger.tagValues(
 				new TagValue("orderIdentity", currentOrderIdentity)
-				
 		))
+		
+		//実行中のOrderをセット
+		currentExecutingOrders += currentOrderIdentity
 	}
 
 	/**

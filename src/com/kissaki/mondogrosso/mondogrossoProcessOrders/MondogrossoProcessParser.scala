@@ -2,8 +2,10 @@ package com.kissaki.mondogrosso.mondogrossoProcessOrders
 
 import scala.collection.mutable._
 import scala.util.parsing.combinator.RegexParsers
-import scala.util.parsing.json.JSON
 import java.util.UUID
+import net.liftweb.json._
+import net.liftweb.json.JsonParser.{ parse ⇒ parseWithLiftJSONParser }
+import net.liftweb.json.JsonAST.JObject
 
 trait MondogrossoProcessOrdersAST
 
@@ -41,7 +43,7 @@ case class All(processes : Processes, finallyOrder : OrderIdentity) extends Mond
 /**
  * パース結果を格納するcase class
  */
-case class ContextSource(initialParam : Map[String, String], eventualParam : Map[String, String], current : Current, finallyOrder : String, totalOrderCount : Int, totalProcessNum : Int)
+case class ContextSource(initialParam : Map[String, Map[String,String]], eventualParam : Map[String, Map[String,String]], current : Current, finallyOrder : String, totalOrderCount : Int, totalProcessNum : Int)
 case class Current(processList : List[Process])
 case class Process(identity : String, currentIndex : Int, orderIdentityList : List[String], orderAdditional : Map[String, OrderAddition])
 case class OrderAddition(inputsList : List[InputRule], waitIdentitiesList : List[String])
@@ -59,7 +61,7 @@ class MondogrossoProcessParser(id : String, input : String, jsonSource : String)
 	/**
 	 * パース関数
 	 */
-	def parse = {
+	def parseProcess = {
 		//初期インデックス値
 		val defaultIndex = 0;
 
@@ -104,43 +106,92 @@ class MondogrossoProcessParser(id : String, input : String, jsonSource : String)
 
 		//JSONのパース結果をマップにして整形したもの
 		val initialParam = parseJSON(jsonSource)
-
+		println("initialParam	" + initialParam)
 		ContextSource(
-				initialParam,				//Orderの実行時に使用されるKV
-				Map(), 						//Orderの実行結果によってたまっていくKV(初期値は空)
-				current, 					//このContextに含まれるOrderのList
-				result.finallyOrder.myId,	//finallyのIdentity
-				totalOrderCount, 			//オーダー数の合計
-				totalProcessNum				//全プロセス数の合計
-				)
+			initialParam, //Orderの実行時に使用されるKV
+			Map(), //Orderの実行結果によってたまっていくKV(初期値は空)
+			current, //このContextに含まれるOrderのList
+			result.finallyOrder.myId, //finallyのIdentity
+			totalOrderCount, //オーダー数の合計
+			totalProcessNum //全プロセス数の合計
+			)
 	}
 
 	/**
 	 * JSONのパース
-	 * 
-	 * JSONの値は、ネスト不可なkey-value型に限る。
-	 * (initialにのみある制限で、eventualであれば突破できるかもしれない。おすすめはしないけど。)
+	 *
+	 * JSONの値は、１次のネストのみ可能なkey-value型に限る。
+	 * (initialにのみある制限で、eventual時であればこの制約は突破できるかもしれない。おすすめはしないけど。)
 	 */
-	def parseJSON(jsonInput : String) : Map[String, String] = {
+	def parseJSON(jsonInput : String) :Map[String, Map[String,String]] = {
 		println("jsonInput	" + jsonInput)
-		jsonInput match {
-			case "" => {
-				Map()
-			}
-			case _ => {
-				JSON.parseFull(jsonInput).get match {
-					//期待する形状のマップ
-					case mapValue : Map[String, Any] => {
-						//すべて文字列に変換(ここの時点から、ネストは不可)
-						for ((k, v) <- mapValue) yield (k, v.toString)
+
+		val origin = parseWithLiftJSONParser(jsonInput)
+		/*
+		 * JObject(List(JField(A,JObject(List(JField(type,JString(sh)), JField(class,JString(AShell.sh)), JField(exec,JString(myExec)))))))
+		 */
+
+		//ここで、lift-jsonの型を消す。
+		val initial = origin match {
+			case some : JObject => {
+				/*
+				 * List(JField(A,JObject(List(JField(type,JString(sh)), JField(class,JString(AShell.sh)), JField(exec,JString(myExec))))))
+				 */
+				println("some	" + some)
+
+				//まず再外郭のパラメータをList[Map[identity -> params]]で得る
+				val orderMap = 
+//					List(
+//					Map("A" -> Map("type" -> "sh")),
+//					Map("A" -> Map("class" -> "AShell.sh")),
+//					Map("A" -> Map("exec" -> "myExec")),
+//					Map("B" -> Map("class" -> "AShell.sh")))
+									
+					for {
+					JObject(items) <- some
+					item <- items
+					JField(identity, keyValuesListObj) <- item
+					JObject(keyValuesList) <- keyValuesListObj
+					keyValue <- keyValuesList
+					JField(key, valueString) <- keyValue
+					JString(value) <- valueString
+				} yield Map(identity -> Map(key->value))
+
+				//オリジナリティのあるキーだけにする
+				val keys = (for (map <- orderMap) yield map.keys.head).distinct
+				
+				val currentOrderIdentityInputList = for (key <- keys) yield { //キーごとに
+					val allInputsByIdentity = orderMap.filter(_.keys.head.equals(key)).map { //List(Map(A -> Map(type -> sh)), Map(A -> Map(class -> AShell.sh)), Map(A -> Map(exec -> myExec)))
+						case target : Map[String, Map[String, String]] => {
+							val currentKey = target.keys.head
+							println("target	" + target.get(currentKey).get)
+							target.get(currentKey).get
+						}
 					}
-					//それ以外
-					case _ => {
-						Map()
+					
+					//ここで、keyごとにMap(key -> value),Map(key -> value),, になっているので、reduce
+					val reduced = allInputsByIdentity.reduceLeft{
+						(total, toAdd) => total ++ toAdd
 					}
+					
+					//keyをつけて、reduceした値と纏める
+					Map(key -> reduced)
 				}
+				
+				//この時点でIdentityごとのMapになっているので、さらにreduceでまとめる
+				val currentOrderIdentityInput = currentOrderIdentityInputList.reduceLeft {
+					(total, toAdd) => total ++ toAdd
+				}
+				
+//				println("finally	"+currentOrderIdentityInput)
+				currentOrderIdentityInput
+			}
+			case other => {
+				println("other(bust be error)	" + other)
+				Map(UUID.randomUUID().toString -> Map(UUID.randomUUID().toString -> UUID.randomUUID().toString))
 			}
 		}
+		initial
 	}
 
 	/**
@@ -195,21 +246,19 @@ class MondogrossoProcessParser(id : String, input : String, jsonSource : String)
 		}
 	}
 
-	
 	/**
 	 * waitIdentity
 	 * <A
 	 */
-	def waitIdentity2nd : Parser[OrderIdentity] = ("," ~ identity) ^^ {default =>
-		println("waitIdentity2nd	"+default)
+	def waitIdentity2nd : Parser[OrderIdentity] = ("," ~ identity) ^^ { default =>
+		println("waitIdentity2nd	" + default)
 		default match {
-			case ("," ~ (id:OrderIdentity)) => {
+			case ("," ~ (id : OrderIdentity)) => {
 				id
 			}
 		}
 	}
-	
-	
+
 	/**
 	 * wait
 	 * <A
@@ -218,8 +267,8 @@ class MondogrossoProcessParser(id : String, input : String, jsonSource : String)
 	def waitOrdersOrNot : Parser[WaitOrders] = ("<" ~ identity ~ rep(waitIdentity2nd) | "") ^^ { default =>
 		println("waitOrdersOrNot	" + default)
 		default match {
-			case (("<"~(the1st:OrderIdentity))~(the2nd:List[OrderIdentity])) => {
-				WaitOrders(List(the1st)++the2nd)
+			case (("<" ~ (the1st : OrderIdentity)) ~ (the2nd : List[OrderIdentity])) => {
+				WaitOrders(List(the1st) ++ the2nd)
 			}
 			case _ => {
 				WaitOrders(List())

@@ -13,8 +13,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 	"orderInputs" should {
 		"have single triples" in {
 			val input = "(else:over:vie)"
-
-			val json = ""
+			val json = "{\"A\":{\"type\":\"sh\",\"class\":\"AShell.sh\",\"exec\":\"myExec\"}}"
 
 			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
 			val result = parser.parseAll(parser.orderInputs, input).get
@@ -82,7 +81,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 			val json = ""
 			val parser = new MondogrossoProcessParser(id, input, json)
 
-			val context = parser.parse
+			val context = parser.parseProcess
 
 			//finallyがあるはず
 			context.finallyOrder == "Z" must beTrue
@@ -164,7 +163,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 			val json = ""
 
 			val parser = new MondogrossoProcessParser(id, input, json)
-			val result = parser.parse
+			val result = parser.parseProcess
 
 			//Ordersが3つあるはず
 			result.current.processList.length == 3 must beTrue
@@ -199,7 +198,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 			val parser = new MondogrossoProcessParser(id, input, json)
 
 			try {
-				val result = parser.parse
+				val result = parser.parseProcess
 				false == true must beTrue
 			} catch {
 				case e => {
@@ -226,7 +225,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 
 			val parser = new MondogrossoProcessParser(id, input, json)
 			try {
-				val result = parser.parse
+				val result = parser.parseProcess
 				println("ここに到達しちゃいけない	")
 				false == true must beTrue
 			} catch {
@@ -247,7 +246,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 			val parser = new MondogrossoProcessParser(id, input, json)
 
 			try {
-				val result = parser.parse
+				val result = parser.parseProcess
 				false == true must beTrue
 			} catch {
 				case e => {
@@ -277,7 +276,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 			val json = ""
 
 			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
-			val result = parser.parse
+			val result = parser.parseProcess
 
 		}
 
@@ -286,7 +285,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 			val json = ""
 
 			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
-			val result = parser.parse
+			val result = parser.parseProcess
 
 		}
 
@@ -295,7 +294,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 			val json = ""
 
 			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
-			val result = parser.parse
+			val result = parser.parseProcess
 
 		}
 
@@ -340,7 +339,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 			val input = "A(else:over:vie,else:over:vie)!F"
 			val json = ""
 			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
-			val result = parser.parse
+			val result = parser.parseProcess
 
 		}
 
@@ -348,7 +347,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 			val input = "A(else:over:vie else:over:vie)<S\n+AB(elseB:overB:vieB elseB:overB:vieB)<SB\n+AB2(elseB2:overB2:vieB2 elseB2:overB2:vieB2)<SB2!Z"
 			val json = ""
 			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
-			val result = parser.parse
+			val result = parser.parseProcess
 
 		}
 
@@ -360,7 +359,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 
 			val json = ""
 			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
-			val result = parser.parse
+			val result = parser.parseProcess
 
 		}
 
@@ -368,7 +367,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 			val input = "A>B>C>D>E>F>G>H>I>J>K!Z"
 			val json = ""
 			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
-			val result = parser.parse
+			val result = parser.parseProcess
 
 		}
 	}
