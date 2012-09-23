@@ -226,7 +226,6 @@ class MondogrossoProcessOrdersTests extends Specification {
 			val parser = new MondogrossoProcessParser(id, input, json)
 			try {
 				val result = parser.parseProcess
-				println("ここに到達しちゃいけない	")
 				false == true must beTrue
 			} catch {
 				case e => {

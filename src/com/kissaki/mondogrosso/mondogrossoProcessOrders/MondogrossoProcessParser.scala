@@ -7,6 +7,20 @@ import net.liftweb.json._
 import net.liftweb.json.JsonParser.{ parse ⇒ parseWithLiftJSONParser }
 import net.liftweb.json.JsonAST.JObject
 
+
+//構文解釈
+/*
+ * AST
+ * 	process
+ * 		orders x n
+ * 			order x n
+ * 				identity
+ * 				inputs
+ * 					input x n
+ *	 					sourceIdentity、sourceKey、destinationKey
+ * 				waits
+ * 					waitIdentity x n
+ */
 trait MondogrossoProcessOrdersAST
 
 case class OrderString(myStr : String) extends MondogrossoProcessOrdersAST
@@ -27,18 +41,9 @@ case class Processes(myOrdersList : List[Orders]) extends MondogrossoProcessOrde
 
 case class All(processes : Processes, finallyOrder : OrderIdentity) extends MondogrossoProcessOrdersAST
 
-/*
- * AST
- * 	process
- * 		orders x n
- * 			order x n
- * 				identity
- * 				inputs
- * 					input x n
- *	 					sourceIdentity、sourceKey、destinationKey
- * 				waits
- * 					waitIdentity x n
- */
+
+
+
 
 /**
  * パース結果を格納するcase class
@@ -104,11 +109,8 @@ class MondogrossoProcessParser(id : String, input : String, jsonSource : String)
 		val totalOrderCount = totalOrderCountList.reduceLeft { (a, b) => a + b }
 		val totalProcessNum = processSource.length
 
-		//JSONのパース結果をマップにして整形したもの
-		val initialParam = parseJSON(jsonSource)
-		println("initialParam	" + initialParam)
 		ContextSource(
-			initialParam, //Orderの実行時に使用されるKV
+			parseJSON(jsonSource), //Orderの実行時に使用されるKV
 			Map(), //Orderの実行結果によってたまっていくKV(初期値は空)
 			current, //このContextに含まれるOrderのList
 			result.finallyOrder.myId, //finallyのIdentity
@@ -124,30 +126,17 @@ class MondogrossoProcessParser(id : String, input : String, jsonSource : String)
 	 * (initialにのみある制限で、eventual時であればこの制約は突破できるかもしれない。おすすめはしないけど。)
 	 */
 	def parseJSON(jsonInput : String) :Map[String, Map[String,String]] = {
-		println("jsonInput	" + jsonInput)
-
 		val origin = parseWithLiftJSONParser(jsonInput)
-		/*
+		/* sample:
 		 * JObject(List(JField(A,JObject(List(JField(type,JString(sh)), JField(class,JString(AShell.sh)), JField(exec,JString(myExec)))))))
 		 */
 
 		//ここで、lift-jsonの型を消す。
 		val initial = origin match {
 			case some : JObject => {
-				/*
-				 * List(JField(A,JObject(List(JField(type,JString(sh)), JField(class,JString(AShell.sh)), JField(exec,JString(myExec))))))
-				 */
-				println("some	" + some)
-
+				
 				//まず再外郭のパラメータをList[Map[identity -> params]]で得る
-				val orderMap = 
-//					List(
-//					Map("A" -> Map("type" -> "sh")),
-//					Map("A" -> Map("class" -> "AShell.sh")),
-//					Map("A" -> Map("exec" -> "myExec")),
-//					Map("B" -> Map("class" -> "AShell.sh")))
-									
-					for {
+				val orderMap = for {
 					JObject(items) <- some
 					item <- items
 					JField(identity, keyValuesListObj) <- item
@@ -164,7 +153,6 @@ class MondogrossoProcessParser(id : String, input : String, jsonSource : String)
 					val allInputsByIdentity = orderMap.filter(_.keys.head.equals(key)).map { //List(Map(A -> Map(type -> sh)), Map(A -> Map(class -> AShell.sh)), Map(A -> Map(exec -> myExec)))
 						case target : Map[String, Map[String, String]] => {
 							val currentKey = target.keys.head
-							println("target	" + target.get(currentKey).get)
 							target.get(currentKey).get
 						}
 					}
@@ -194,6 +182,9 @@ class MondogrossoProcessParser(id : String, input : String, jsonSource : String)
 		initial
 	}
 
+	
+	//Process parsers
+	
 	/**
 	 * key-valueの文字列
 	 */
@@ -213,18 +204,18 @@ class MondogrossoProcessParser(id : String, input : String, jsonSource : String)
 	 * A:a:c
 	 */
 	def orderInputTriple : Parser[OrderInputTriple] = str ~ ":" ~ str ~ ":" ~ str ~ ("," | "") ^^ { default =>
-		println("orderInputTriple	" + default)
+//		println("orderInputTriple	" + default)
 
 		default match {
 			//continue
 			case ((((((key : OrderString) ~ ":") ~ (from : OrderString)) ~ ":") ~ (to : OrderString)) ~ ",") => {
-				println("continue	" + default)
+//				println("continue	" + default)
 				OrderInputTriple(key, from, to)
 			}
 
 			//last or single
 			case ((((((key : OrderString) ~ ":") ~ (from : OrderString)) ~ ":") ~ (to : OrderString)) ~ "") => {
-				println("last or single	" + default)
+//				println("last or single	" + default)
 				OrderInputTriple(key, from, to)
 			}
 		}
@@ -236,11 +227,11 @@ class MondogrossoProcessParser(id : String, input : String, jsonSource : String)
 	 * (A:a:c,D:d:e,F:f:g)
 	 */
 	def orderInputs : Parser[OrderInputs] = "(" ~> rep(orderInputTriple) <~ ")" ^^ { default =>
-		println("orderInputs	" + default)
+//		println("orderInputs	" + default)
 
 		default match {
 			case (orderInputTriples : List[OrderInputTriple]) => {
-				println("orderInputTriples	" + orderInputTriples)
+//				println("orderInputTriples	" + orderInputTriples)
 				OrderInputs(orderInputTriples)
 			}
 		}
@@ -251,7 +242,7 @@ class MondogrossoProcessParser(id : String, input : String, jsonSource : String)
 	 * <A
 	 */
 	def waitIdentity2nd : Parser[OrderIdentity] = ("," ~ identity) ^^ { default =>
-		println("waitIdentity2nd	" + default)
+//		println("waitIdentity2nd	" + default)
 		default match {
 			case ("," ~ (id : OrderIdentity)) => {
 				id
@@ -265,7 +256,7 @@ class MondogrossoProcessParser(id : String, input : String, jsonSource : String)
 	 * <A<B<C
 	 */
 	def waitOrdersOrNot : Parser[WaitOrders] = ("<" ~ identity ~ rep(waitIdentity2nd) | "") ^^ { default =>
-		println("waitOrdersOrNot	" + default)
+//		println("waitOrdersOrNot	" + default)
 		default match {
 			case (("<" ~ (the1st : OrderIdentity)) ~ (the2nd : List[OrderIdentity])) => {
 				WaitOrders(List(the1st) ++ the2nd)
@@ -284,17 +275,17 @@ class MondogrossoProcessParser(id : String, input : String, jsonSource : String)
 	 * A(A2:a2:a, B:b:c)<D
 	 */
 	def order : Parser[Order] = (identity ~ (orderInputs | "") ~ (waitOrdersOrNot | "")) ^^ { default =>
-		println("order	" + default)
+//		println("order	" + default)
 
 		default match {
 			//フルセット
 			case (((id : OrderIdentity)) ~ (inputs : OrderInputs) ~ (waitOrders : WaitOrders)) => {
-				println("full case2 " + default)
+//				println("full case2 " + default)
 				Order(id, inputs, waitOrders)
 			}
 			//idとwait
 			case (((id : OrderIdentity)) ~ _ ~ (waitOrders : WaitOrders)) => {
-				println("full case3 " + default)
+//				println("full case3 " + default)
 				Order(id, OrderInputs(List()), waitOrders)
 			}
 			case _ => {
@@ -319,7 +310,7 @@ class MondogrossoProcessParser(id : String, input : String, jsonSource : String)
 	 * オーダーの集合
 	 */
 	def orders : Parser[Orders] = order ~ (rep(secondaryOrder) | "") ^^ { default =>
-		println("orders	" + default)
+//		println("orders	" + default)
 
 		default match {
 			//複数
@@ -339,7 +330,7 @@ class MondogrossoProcessParser(id : String, input : String, jsonSource : String)
 	 * parallelに実行される
 	 */
 	def secondaryOrders : Parser[SecondaryOrders] = ("+" ~ (orders)) ^^ { default =>
-		println("secondaryOrders	" + default)
+//		println("secondaryOrders	" + default)
 		default match {
 			case "+" ~ (secondalyOrder : Orders) => {
 				SecondaryOrders(secondalyOrder)
@@ -352,14 +343,14 @@ class MondogrossoProcessParser(id : String, input : String, jsonSource : String)
 	 */
 	def processes : Parser[Processes] = orders ~ (rep(secondaryOrders) | "") ^^ { default =>
 
-		println("processes	" + default)
+//		println("processes	" + default)
 
 		default match {
 
 			case ((firstOrders : Orders) ~ (secondaryOrdersList : List[SecondaryOrders])) => {
-				println("firstOrders	" + firstOrders + "	/secondaryOrdersList	" + secondaryOrdersList)
+//				println("firstOrders	" + firstOrders + "	/secondaryOrdersList	" + secondaryOrdersList)
 
-				//やりたいのは、secondaryOrdersList中のordersの中のsecondsを取り出してリストにすること
+				//secondaryOrdersList中のordersの中のsecondsを取り出してリストにする
 				val s = for (a <- secondaryOrdersList) yield a.seconds
 
 				//リストにして結合
@@ -378,15 +369,10 @@ class MondogrossoProcessParser(id : String, input : String, jsonSource : String)
 	 * finallyも含めた全体
 	 */
 	def all : Parser[All] = processes ~ "!" ~ identity ^^ { default =>
-		println("all	" + default)
+//		println("all	" + default)
 
 		default match {
-			case (all ~ _ ~ finallyOrderId) => {
-				println("all = " + all)
-				println("final = " + finallyOrderId)
-				val result = All(all, finallyOrderId)
-				result
-			}
+			case (all ~ _ ~ finallyOrderId) => All(all, finallyOrderId)
 		}
 	}
 }
