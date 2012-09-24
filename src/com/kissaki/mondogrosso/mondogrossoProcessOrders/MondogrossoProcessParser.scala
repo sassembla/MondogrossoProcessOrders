@@ -48,7 +48,7 @@ case class All(processes : Processes, finallyOrder : OrderIdentity) extends Mond
 /**
  * パース結果を格納するcase class
  */
-case class ContextSource(initialParam : Map[String, Map[String,String]], eventualParam : Map[String, Map[String,String]], current : Current, finallyOrder : String, totalOrderCount : Int, totalProcessNum : Int)
+case class ContextSource(initialParam : Map[String, Map[String,String]], current : Current, finallyOrder : String, totalOrderCount : Int, totalProcessNum : Int)
 case class Current(processList : List[Process])
 case class Process(identity : String, currentIndex : Int, orderIdentityList : List[String], orderAdditional : Map[String, OrderAddition])
 case class OrderAddition(inputsList : List[InputRule], waitIdentitiesList : List[String])
@@ -111,7 +111,6 @@ class MondogrossoProcessParser(id : String, input : String, jsonSource : String)
 
 		ContextSource(
 			parseJSON(jsonSource), //Orderの実行時に使用されるKV
-			Map(), //Orderの実行結果によってたまっていくKV(初期値は空)
 			current, //このContextに含まれるOrderのList
 			result.finallyOrder.myId, //finallyのIdentity
 			totalOrderCount, //オーダー数の合計

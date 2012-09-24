@@ -6,21 +6,18 @@ import org.junit.runner.RunWith
 import scala.collection.immutable.ListMap
 import scala.sys.process._
 import java.util.UUID
+import com.kissaki.TagValue
 
 @RunWith(classOf[JUnitRunner])
 class MondogrossoProcessOrdersControllerTests extends Specification {
+	val standardJSON = """{"A": {"_kind": "sh","_main": "AShell.sh","key": "value","key2": "value2"}}"""
+
 	"OrderController" should {
 		"attachされていて	まだ実行されていない	コンディションのContextを実行開始" in {
 			val orderCont = new MondogrossoProcessOrdersController
 			val id = UUID.randomUUID().toString
 			val input = "A>B>C(A:a:c)<E+B>D(A:a2:d1,A:a3:d2)>E!Z"
-			val json = """{	
-			"A":{"type":"sh","class":"AShell.sh","exec":"myExec"},
-			"B":{"type":"sh","class":"AShell.sh","exec":"myExec"},
-			"C":{"type":"sh","class":"AShell.sh","exec":"myExec"},
-			"D":{"type":"sh","class":"AShell.sh","exec":"myExec"},
-			"E":{"type":"sh","class":"AShell.sh","exec":"myExec"}
-			}"""
+			val json = standardJSON
 
 			val parser = new MondogrossoProcessParser(id, input, json)
 			val result = parser.parseProcess
@@ -30,9 +27,6 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 
 			//contextを生成
 			val currentContext = orderCont.contexts(0)
-			
-			
-			
 			//現在実行中のOrder、内容がまだ無い
 			orderCont.contexts(0).currentExecutingOrders.length must be_==(0)
 
@@ -45,6 +39,7 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 			//内容が,A
 			orderCont.contexts(0).currentExecutingOrders(0) must be_==("A")
 		}
+
 	}
 
 	"Context" should {
@@ -52,13 +47,7 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 
 		val id = UUID.randomUUID().toString
 		val input = "A>B>C(A:a:c)<E+B>D(A:a2:d1,A:a3:d2)>E!Z"
-		val json = """{
-			"A":{"type":"sh","class":"AShell.sh","exec":"myExec"},
-			"B":{"type":"sh","class":"AShell.sh","exec":"myExec"},
-			"C":{"type":"sh","class":"AShell.sh","exec":"myExec"},
-			"D":{"type":"sh","class":"AShell.sh","exec":"myExec"},
-			"E":{"type":"sh","class":"AShell.sh","exec":"myExec"}
-			}"""
+		val json = standardJSON
 
 		val parser = new MondogrossoProcessParser(id, input, json)
 		val result = parser.parseProcess
@@ -80,9 +69,10 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 		}
 
 		"最初から実行	現在実行中のOrderがAなハズ" in {
-			currentContext.run
-			println("currentContext.currentExecutingOrders(0)	" + currentContext.currentExecutingOrders(0))
-			currentContext.currentExecutingOrders(0) must be_==("A")
+			//			currentContext.run()
+			//			println("currentContext.currentExecutingOrders(0)	" + currentContext.currentExecutingOrders(0))
+			//			currentContext.currentExecutingOrders(0) must be_==("A")
+			"not yet applied" must be_==("")
 		}
 
 		"途中のindexから実行" in {
@@ -96,37 +86,67 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 	}
 
 	"Worker" should {
-		
+		val TEST_PROCESS_1 = "TEST_PROCESS_1"
+		val TEST_PROCESS_2 = "TEST_PROCESS_2"
+		val TEST_PROCESS_3 = "TEST_PROCESS_3"
+
 		//擬似的に親代わりを生成する
 		val dummyParent = new DummyParent()
-		
-		val id = UUID.randomUUID().toString
-		val input = "A>B>C(A:a:c)<E+B>D(A:a2:d1,A:a3:d2)>E!Z"
-		val json = """{
-			"A":{"type":"sh","class":"AShell.sh","exec":"myExec"},
-			"B":{"type":"sh","class":"AShell.sh","exec":"myExec"},
-			"C":{"type":"sh","class":"AShell.sh","exec":"myExec"},
-			"D":{"type":"sh","class":"AShell.sh","exec":"myExec"},
-			"E":{"type":"sh","class":"AShell.sh","exec":"myExec"}
-			}"""
-		
-//		val worker = new ProcessWorker()
 
-		"生成されたら、初期値でSTARTEDを親に返すはず" in {
-			"not yet" must be_==("applied")
+		val input = "A>B>C(A:a:c)<E+B>D(A:a2:d1,A:a3:d2)>E!Z"
+		val json = standardJSON
+
+		//Workerは、担当するProcessを与えられる
+
+		"Workerは現在実行中のInformationを所持しているはず" in {
+			val worker = new ProcessWorker(TEST_PROCESS_1, dummyParent.messenger.getName)
+			dummyParent.messenger.call(TEST_PROCESS_1, Messages.MESSAGE_START.toString,
+				dummyParent.messenger.tagValues(
+					new TagValue("identity", "A"),
+					new TagValue("context", Map(
+						"_kind" -> "sh",
+						"_main" -> "ls -l",
+						"b" -> "c"))))
+
+			worker.workerIdentity must be_==(TEST_PROCESS_1)
+
+			//Masterから与えられて変更になる、即時的な箇所
+			val latestWork = worker.getLatestWorkInformation
+
+			latestWork.orderIdentity must be_==("A")
+			latestWork.context must be_==(Map(
+				"_kind" -> "sh",
+				"_main" -> "ls -l",
+				"b" -> "c"))
 		}
-		
-		"typeパラメータを受け取る。種類に応じて" in {
-			
+
+		"Workerを完全同期で実行後、実行完了したのでDone状態" in {
+			val worker = new ProcessWorker(TEST_PROCESS_2, dummyParent.messenger.getName)
+			dummyParent.messenger.call(TEST_PROCESS_2, Messages.MESSAGE_START.toString,
+				dummyParent.messenger.tagValues(
+					new TagValue("identity", "A"),
+					new TagValue("context", Map(
+						"_kind" -> "sh",
+						"_main" -> "ls -l",
+						"key" -> "value"))))
+
+			//実行が同期的に行われ、実行されたあとの情報が残る
+			worker.currentStatus must be_==(WorkerStatus.STATUS_DONE)
 		}
-		
-		 "" in {
-			 
-		 }
-		 
-		 "" in {
-			 
-		 }
+
+		"Workerを実行、実行後のContext確認" in {
+			val worker = new ProcessWorker(TEST_PROCESS_3, dummyParent.messenger.getName)
+			dummyParent.messenger.call(TEST_PROCESS_3, Messages.MESSAGE_START.toString,
+				dummyParent.messenger.tagValues(
+					new TagValue("identity", "A"),
+					new TagValue("context", Map(
+						"_kind" -> "sh",
+						"_main" -> "ls -l",
+						"key" -> "value"))))
+
+			//結果が残っているはず
+			"not yet applied" must be_==("")
+		}
 	}
 
 }

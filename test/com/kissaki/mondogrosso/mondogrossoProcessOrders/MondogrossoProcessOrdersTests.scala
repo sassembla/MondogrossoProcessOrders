@@ -9,12 +9,13 @@ import java.util.UUID
 
 @RunWith(classOf[JUnitRunner])
 class MondogrossoProcessOrdersTests extends Specification {
-
+	val standardJSON = """{"A": {"_type": "sh","_class": "AShell.sh","_exec": "myExec","key": "value","key2": "value2"}}"""
+	
 	"orderInputs" should {
 		"have single triples" in {
 			val input = "(else:over:vie)"
-			val json = "{\"A\":{\"type\":\"sh\",\"class\":\"AShell.sh\",\"exec\":\"myExec\"}}"
-
+			val json = standardJSON
+			
 			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
 			val result = parser.parseAll(parser.orderInputs, input).get
 			result.myOrderInputTripleList.length == 1 must beTrue
@@ -25,8 +26,8 @@ class MondogrossoProcessOrdersTests extends Specification {
 
 		"have multiple triples" in {
 			val input = "(else:over:vie,else2:over2:vie2)"
-
-			val json = ""
+			val json = standardJSON
+			
 			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
 			val result = parser.parseAll(parser.orderInputs, input).get
 
@@ -37,8 +38,8 @@ class MondogrossoProcessOrdersTests extends Specification {
 
 		"have multiple triples with whitespace" in {
 			val input = "(else:over:vie, else2:over2:vie2)"
-
-			val json = ""
+			val json = standardJSON
+			
 			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
 			val result = parser.parseAll(parser.orderInputs, input).get
 
@@ -51,7 +52,8 @@ class MondogrossoProcessOrdersTests extends Specification {
 	"waitOrders" should {
 		"waits 1つのwaitをもつ" in {
 			val input = "<A"
-			val json = ""
+			val json = standardJSON
+			
 			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
 			
 			val result = parser.parseAll(parser.waitOrdersOrNot, input).get
@@ -63,7 +65,8 @@ class MondogrossoProcessOrdersTests extends Specification {
 		
 		"waits 2つのwaitをもつ" in {
 			val input = "<A,B"
-			val json = ""
+			val json = standardJSON
+			
 			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
 			val result = parser.parseAll(parser.waitOrdersOrNot, input).get
 			
@@ -77,8 +80,8 @@ class MondogrossoProcessOrdersTests extends Specification {
 		"all	finally付きのフルセット	" in {
 			val id = "finally付きのフルセット"
 			val input = "A(else:over:vie,else2:over2:vie2)>B>C(a:v:s)<S,T+AB(elseB:overB:vieB,elseB2:overB2:vieB2)<SB!Z"
-
-			val json = ""
+			val json = standardJSON
+			
 			val parser = new MondogrossoProcessParser(id, input, json)
 
 			val context = parser.parseProcess
@@ -160,7 +163,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 			 */
 			val id = UUID.randomUUID().toString
 			val input = "A>B>C<D>E>F>G+B>D+E>H>I!Z"
-			val json = ""
+			val json = standardJSON
 
 			val parser = new MondogrossoProcessParser(id, input, json)
 			val result = parser.parseProcess
@@ -193,7 +196,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 		"invalidな構文サンプル" in {
 			val id = UUID.randomUUID().toString
 			val input = ">>>>ASDG+-LASdB?Z"
-			val json = ""
+			val json = standardJSON
 
 			val parser = new MondogrossoProcessParser(id, input, json)
 
@@ -221,7 +224,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 			 */
 			val id = UUID.randomUUID().toString
 			val input = "A>B>C<X>E>F>G+B>D+E>H>I!Z"
-			val json = ""
+			val json = standardJSON
 
 			val parser = new MondogrossoProcessParser(id, input, json)
 			try {
@@ -240,7 +243,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 		"finallyが無い" in {
 			val id = UUID.randomUUID().toString
 			val input = "A>B>C"
-			val json = ""
+			val json = standardJSON
 
 			val parser = new MondogrossoProcessParser(id, input, json)
 
@@ -249,7 +252,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 				false == true must beTrue
 			} catch {
 				case e => {
-					println("excet?	"+e)
+					println("except?	"+e)
 					e == """java.lang.RuntimeException : Missing "Finally" OrderIdentity""" must beTrue
 				}
 
@@ -263,7 +266,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 	"samples" should {
 		"processes	複数のProcessフルセット	、finallyなし" in {
 			val input = "A(else:over:vie,else:over:vie)>B<S+AB(elseB:overB:vieB,elseB:overB:vieB)<SB"
-			val json = ""
+			val json = standardJSON
 
 			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
 			val result = parser.parseAll(parser.processes, input)
@@ -272,7 +275,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 
 		"all	複数のWaitあり、なしのProcessフルセット	" in {
 			val input = "A(else:over:vie,else:over:vie)<S+AB(elseB:overB:vieB,elseB:overB:vieB)!F"
-			val json = ""
+			val json = standardJSON
 
 			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
 			val result = parser.parseProcess
@@ -281,7 +284,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 
 		"all	複数のWaitなしのProcessフルセット	" in {
 			val input = "A(else:over:vie,else:over:vie)+AB(elseB:overB:vieB,elseB:overB:vieB)!F"
-			val json = ""
+			val json = standardJSON
 
 			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
 			val result = parser.parseProcess
@@ -290,7 +293,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 
 		"all	複数のWait、パラメータなしのProcessフルセット	" in {
 			val input = "A>B+AB(elseB:overB:vieB,elseB:overB:vieB)!F"
-			val json = ""
+			val json = standardJSON
 
 			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
 			val result = parser.parseProcess
@@ -300,7 +303,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 		"orders	<のあとにIdentityが一つあるケース" in {
 
 			val input = "A(else:over:vie,else:over:vie)<S"
-			val json = ""
+			val json = standardJSON
 			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
 			val result = parser.parseAll(parser.orders, input)
 
@@ -309,7 +312,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 		"orders	<のあとにIdentityが一つあるケース2 パラメータなし" in {
 
 			val input = "A<S"
-			val json = ""
+			val json = standardJSON
 			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
 			val result = parser.parseAll(parser.orders, input)
 
@@ -318,7 +321,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 		"orders	<のあとにIdentityが一つあるケース3 パラメータなし、複数のOrder" in {
 
 			val input = "A>B<S"
-			val json = ""
+			val json = standardJSON
 			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
 			val result = parser.parseAll(parser.orders, input)
 
@@ -327,7 +330,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 		"order	<が無いケース" in {
 
 			val input = "A(else:over:vie,else:over:vie)"
-			val json = ""
+			val json = standardJSON
 			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
 			val result = parser.parseAll(parser.order, input)
 
@@ -336,7 +339,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 		"all	<が無いケース" in {
 
 			val input = "A(else:over:vie,else:over:vie)!F"
-			val json = ""
+			val json = standardJSON
 			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
 			val result = parser.parseProcess
 
@@ -344,7 +347,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 
 		"all	改行入りのケース1 改行コード" in {
 			val input = "A(else:over:vie else:over:vie)<S\n+AB(elseB:overB:vieB elseB:overB:vieB)<SB\n+AB2(elseB2:overB2:vieB2 elseB2:overB2:vieB2)<SB2!Z"
-			val json = ""
+			val json = standardJSON
 			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
 			val result = parser.parseProcess
 
@@ -356,7 +359,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 +AB(elseB:overB:vieB elseB:overB:vieB)<SB
 +AB2(elseB2:overB2:vieB2 elseB2:overB2:vieB2)<SB2!Z"""
 
-			val json = ""
+			val json = standardJSON
 			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
 			val result = parser.parseProcess
 
@@ -364,10 +367,75 @@ class MondogrossoProcessOrdersTests extends Specification {
 
 		"単純なOrderの連続" in {
 			val input = "A>B>C>D>E>F>G>H>I>J>K!Z"
-			val json = ""
+			val json = standardJSON
 			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
 			val result = parser.parseProcess
 
+		}
+	}
+	
+	"JSON" should {
+		"単一のパラメータ" in {
+			val input = "A>B>C>D>E>F>G>H>I>J>K!Z"
+			val json = standardJSON
+			
+			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
+			val result = parser.parseProcess
+			
+			result.initialParam must be_==(Map("A"->Map("_type"->"sh","_class"->"AShell.sh","_exec"->"myExec","key"->"value", "key2"->"value2")))
+		}
+		
+		"複数のパラメータ" in {
+			val input = "A>B>C>D>E>F>G>H>I>J>K!Z"
+			val json = """{
+    "A": {
+        "_type": "sh",
+        "_class": "AShell.sh",
+        "_exec": "myExec",
+        "key": "value",
+        "key2": "value2"
+    },
+    "B": {
+        "_type": "sh",
+        "_class": "AShell.sh",
+        "_exec": "myExec",
+        "key": "value",
+        "key2": "value2"
+    },
+    "C": {
+        "_type": "sh",
+        "_class": "AShell.sh",
+        "_exec": "myExec",
+        "key": "value",
+        "key2": "value2"
+    },
+    "D": {
+        "_type": "sh",
+        "_class": "AShell.sh",
+        "_exec": "myExec",
+        "key": "value",
+        "key2": "value2"
+    },
+    "E": {
+        "_type": "sh",
+        "_class": "AShell.sh",
+        "_exec": "myExec",
+        "key": "value",
+        "key2": "value2"
+    }
+}"""
+			
+			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
+			val result = parser.parseProcess
+			
+			val a = Map("A"->Map("_type"->"sh","_class"->"AShell.sh","_exec"->"myExec","key"->"value", "key2"->"value2"))
+			val b = Map("B"->Map("_type"->"sh","_class"->"AShell.sh","_exec"->"myExec","key"->"value", "key2"->"value2"))
+			val c = Map("C"->Map("_type"->"sh","_class"->"AShell.sh","_exec"->"myExec","key"->"value", "key2"->"value2"))
+			val d = Map("D"->Map("_type"->"sh","_class"->"AShell.sh","_exec"->"myExec","key"->"value", "key2"->"value2"))
+			val e = Map("E"->Map("_type"->"sh","_class"->"AShell.sh","_exec"->"myExec","key"->"value", "key2"->"value2"))
+			
+			val total = a ++ b ++ c ++ d ++ e
+			result.initialParam must be_==(total)
 		}
 	}
 

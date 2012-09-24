@@ -1,26 +1,24 @@
 package com.kissaki.mondogrosso.mondogrossoProcessOrders
 
-object Messages extends Enumeration {
+object WorkerStatus extends Enumeration {
 	
-	type Messages = Value
+	type WorkerStatus = Value
 	
 	//MESSAGES
-	val MESSAGE_START,
-	MESSAGE_STARTED,
-	MESSAGE_PROCESSING,
-	MESSAGE_ERROR,
-	MESSAGE_DONE,
-	MESSAGE_NOTFOUND
+	val STATUS_READY, 
+	STATUS_DOING,
+	STATUS_DONE,
+	STATUS_NOTFOUND
 	= Value
 	
 	def get(in:String):Value = {
 		values.find(in == _.toString) match {
 			case None => {
-				MESSAGE_NOTFOUND
+				STATUS_NOTFOUND
 			}
 			case Some(v) => {
 				v
 			}
 		}
-	} 
+	}
 }
