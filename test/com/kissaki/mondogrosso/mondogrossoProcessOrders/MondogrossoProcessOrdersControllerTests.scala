@@ -10,7 +10,7 @@ import com.kissaki.TagValue
 
 @RunWith(classOf[JUnitRunner])
 class MondogrossoProcessOrdersControllerTests extends Specification {
-	val standardJSON = """{"A": {"_kind": "sh","_main": "AShell.sh","key": "value","key2": "value2"}}"""
+	val standardJSON = """{"A": {"_kind": "sh","_main": "ls -l"}}"""
 
 	"OrderController" should {
 		"attachされていて	まだ実行されていない	コンディションのContextを実行開始" in {
@@ -86,9 +86,6 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 	}
 
 	"Worker" should {
-		val TEST_PROCESS_1 = "TEST_PROCESS_1"
-		val TEST_PROCESS_2 = "TEST_PROCESS_2"
-		val TEST_PROCESS_3 = "TEST_PROCESS_3"
 
 		//擬似的に親代わりを生成する
 		val dummyParent = new DummyParent()
@@ -98,55 +95,146 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 
 		//Workerは、担当するProcessを与えられる
 
-		"Workerは現在実行中のInformationを所持しているはず" in {
-			val worker = new ProcessWorker(TEST_PROCESS_1, dummyParent.messenger.getName)
-			dummyParent.messenger.call(TEST_PROCESS_1, Messages.MESSAGE_START.toString,
+		"Workerを同期で実行後、実行完了したのでDone状態" in {
+			val workerId = UUID.randomUUID().toString
+			val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
+			dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
 				dummyParent.messenger.tagValues(
 					new TagValue("identity", "A"),
 					new TagValue("context", Map(
 						"_kind" -> "sh",
-						"_main" -> "ls -l",
-						"b" -> "c"))))
-
-			worker.workerIdentity must be_==(TEST_PROCESS_1)
-
-			//Masterから与えられて変更になる、即時的な箇所
-			val latestWork = worker.getLatestWorkInformation
-
-			latestWork.orderIdentity must be_==("A")
-			latestWork.context must be_==(Map(
-				"_kind" -> "sh",
-				"_main" -> "ls -l",
-				"b" -> "c"))
-		}
-
-		"Workerを完全同期で実行後、実行完了したのでDone状態" in {
-			val worker = new ProcessWorker(TEST_PROCESS_2, dummyParent.messenger.getName)
-			dummyParent.messenger.call(TEST_PROCESS_2, Messages.MESSAGE_START.toString,
-				dummyParent.messenger.tagValues(
-					new TagValue("identity", "A"),
-					new TagValue("context", Map(
-						"_kind" -> "sh",
-						"_main" -> "ls -l",
-						"key" -> "value"))))
+						"_main" -> "ls -l"))))
 
 			//実行が同期的に行われ、実行されたあとの情報が残る
 			worker.currentStatus must be_==(WorkerStatus.STATUS_DONE)
 		}
+		
+		"Workerを非同期で実行、タイムアウト" in {
+//			val workerId = UUID.randomUUID().toString
+//			val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
+//			dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
+//				dummyParent.messenger.tagValues(
+//					new TagValue("identity", "A"),
+//					new TagValue("context", Map(
+//						"_kind" -> "sh",
+//						"_main" -> "ls -l",
+//						"__trigger" -> "no key will be appear.",
+//						"__timeout" -> "1000"))))
+//
+//			//実行が同期的に行われ、実行されたあとの情報が残る
+//			worker.currentStatus must be_==(WorkerStatus.STATUS_TIMEOUT)
+		}
+		
 
-		"Workerを実行、実行後のContext確認" in {
-			val worker = new ProcessWorker(TEST_PROCESS_3, dummyParent.messenger.getName)
-			dummyParent.messenger.call(TEST_PROCESS_3, Messages.MESSAGE_START.toString,
+		"Workerでshellを実行" in {
+			val workerId = UUID.randomUUID().toString
+			val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
+			dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
 				dummyParent.messenger.tagValues(
 					new TagValue("identity", "A"),
 					new TagValue("context", Map(
 						"_kind" -> "sh",
-						"_main" -> "ls -l",
-						"key" -> "value"))))
+						"_main" -> "ls -l"))))
 
-			//結果が残っているはず
+			//ls -lを実行した結果が残っているはず
+			val latestWork = worker.getLatestWorkInformation
+			latestWork.localContext.keys must be_==(Set(
+				"_kind",
+				"_main",
+				"_result"))
+		}
+		
+		"Workerでshellを実行2" in {
+			val workerId = UUID.randomUUID().toString
+			val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
+			dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
+				dummyParent.messenger.tagValues(
+					new TagValue("identity", "A"),
+					new TagValue("context", Map(
+						"_kind" -> "sh",
+						"_main" -> "open",
+						"-a" -> "Safari.app http://google.com"))))
+
+			//ls -lを実行した結果が残っているはず
+			val latestWork = worker.getLatestWorkInformation
+			latestWork.localContext.keys must be_==(Set(
+				"_kind",
+				"_main",
+				"-a",
+				"_result"))
+		}
+		
+		"Workerで非同期のshellを実行" in {
+//			val workerId = UUID.randomUUID().toString
+//			val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
+//			dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
+//				dummyParent.messenger.tagValues(
+//					new TagValue("identity", "A"),
+//					new TagValue("context", Map(
+//						"_kind" -> "sh",
+//						"_main" -> "ls -l",
+//						"__trigger" -> "end"))))
+//
+//			
+////			//ls -lを実行した結果が残っているはず
+////			val latestWork = worker.getLatestWorkInformation
+////			latestWork.localContext.keys must be_==(Set(
+////				"_kind",
+////				"_main",
+////				"_result"))
 			"not yet applied" must be_==("")
 		}
+		
+		"WorkerでJavaを実行" in {
+			val workerId = UUID.randomUUID().toString
+			val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
+			dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
+				dummyParent.messenger.tagValues(
+					new TagValue("identity", "A"),
+					new TagValue("context", Map(
+						"_kind" -> "jar",
+						"_main" -> "TestProject",
+						"-i" -> "hereComes"
+					))))
+
+			//java -jar TestProject.jar -i herecomes を実行した結果が残っているはず
+			val latestWork = worker.getLatestWorkInformation
+			latestWork.localContext.keys must be_==(Set(
+				"_kind",
+				"_main",
+				"-i",
+				"_result"))
+				
+			latestWork.localContext("_result") must be_==("over:hereComes\n")
+		}
+		
+		"Workerで非同期なJavaを実行" in {
+			val workerId = UUID.randomUUID().toString
+			val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
+			dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
+				dummyParent.messenger.tagValues(
+					new TagValue("identity", "A"),
+					new TagValue("context", Map(
+						"_kind" -> "jar",
+						"_main" -> "TestProject",
+						"__trigger" -> "delayed with",
+						"-i" -> "hereComes",
+						"-t" -> "1000"//1秒後に答えが出る、そういうJar
+					))))
+			
+			//java -jar TestProject.jar -i herecomes を実行した結果が残っているはず
+			val latestWork = worker.getLatestWorkInformation
+			latestWork.localContext.keys must be_==(Set(
+				"_kind",
+				"_main",
+				"__trigger",
+				"-i",
+				"-t",
+				"_result"))
+			
+			"not yet applied" must be_==("")
+		}
+		
 	}
 
 }

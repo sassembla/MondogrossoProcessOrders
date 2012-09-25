@@ -8,6 +8,8 @@ object WorkerStatus extends Enumeration {
 	val STATUS_READY, 
 	STATUS_DOING,
 	STATUS_DONE,
+	STATUS_TIMEOUT,
+	STATUS_ERROR,
 	STATUS_NOTFOUND
 	= Value
 	
