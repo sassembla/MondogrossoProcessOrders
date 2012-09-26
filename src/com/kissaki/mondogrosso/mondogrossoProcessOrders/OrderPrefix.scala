@@ -11,7 +11,7 @@ object OrderPrefix extends Enumeration {
 	_result,
 	
 	//optional
-	__trigger,
+	__async,
 	__timeout,
 	
 	PREFIX_NOTFOUND

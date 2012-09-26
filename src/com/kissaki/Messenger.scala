@@ -2,7 +2,9 @@ package com.kissaki
 
 /**
  * Akka系の実装ではない、ちょっと残念なMessenger
- *
+ * 0.5.3	12/09/26 22:48:00	asyncでの指定時間遅延が実行可能
+ * 				非同期系を使う際、外界をロックせずに指定時間後のコード実行予約が可能。
+ * 
  * 0.5.2	12/09/09 20:43:33	Scala版のサンプルとbuild.gradleを追加
  * 				gradlew jar でJarのビルドができます。
  * 				ビルド済みのJarは、	build/libs/の中にあるはず。
@@ -96,11 +98,11 @@ class Messenger(myself : MessengerProtocol, nameInput : String) {
 		if (hasParent) {
 			actorImpl.removeFromParent
 		}
-		
+
 		if (hasChild) {
 			actorImpl.removeFromChild
-		} 
-		
+		}
+
 		val future1 = centralActorImpl !! MessengerRemove(actorImpl)
 		val result1 = future1()
 
@@ -125,7 +127,7 @@ class Messenger(myself : MessengerProtocol, nameInput : String) {
 	def hasParent : Boolean = !actorImpl.parent.isEmpty
 
 	def getChildNum = actorImpl.childList.size
-	
+
 	/**
 	 * 親の名前入力
 	 */
@@ -222,7 +224,7 @@ class Messenger(myself : MessengerProtocol, nameInput : String) {
 	 * 値を返す
 	 */
 	def get(tag : String, tagvalues : Array[TagValue]) = {
-		val ret = for (tagValue <- tagvalues.withFilter(_.m_tag.equals(tag)) ) yield tagValue.get(tag)
+		val ret = for (tagValue <- tagvalues.withFilter(_.m_tag.equals(tag))) yield tagValue.get(tag)
 		ret(0)
 	}
 }
@@ -336,7 +338,7 @@ class MessengerActor(myself : MessengerProtocol, inputtedName : String) extends 
 	def duplicate : SubMessengerActor = {
 		new SubMessengerActor(this, myself)
 	}
-	
+
 	/**
 	 * 親からの離脱
 	 */
@@ -344,20 +346,18 @@ class MessengerActor(myself : MessengerProtocol, inputtedName : String) extends 
 		val future = parent(0) !! RemoveFromParent(this)
 		val result = future()
 	}
-	
+
 	def removeFromChild = {
 		childList.foreach { targetChild =>
 			val future = targetChild.duplicate !! RemoveFromChild(this)
 			val result = future()
-			
+
 			result match {
 				case Done(_) =>
 				case Failure(reason) =>
 			}
 		}
 	}
-	
-	
 
 	/**
 	 * 同期系
@@ -405,25 +405,24 @@ class MessengerActor(myself : MessengerProtocol, inputtedName : String) extends 
 	def callWithAsync(targetName : String, exec : String, message : Array[TagValue]) = {
 		childList.withFilter(_.name.equals(targetName)).foreach { targetChild =>
 			log += Log.LOG_TYPE_CALLCHILD_ASYNC.toString
-			targetChild !! CallWithAsync(exec, message)
+			targetChild.duplicate !! CallWithAsync(exec, message)
 		}
 	}
 
 	def callMyselfWithAsync(exec : String, message : Array[TagValue]) = {
 		log += Log.LOG_TYPE_CALLMYSELF_ASYNC.toString
-		this !! CallMyselfWithAsync(exec, message)
+		this.duplicate !! CallMyselfWithAsync(exec, message)
 	}
 
 	def callParentWithAsync(exec : String, message : Array[TagValue]) = {
 		log += Log.LOG_TYPE_CALLPARENT_ASYNC.toString
-		parent(0) !! CallParentWithAsync(exec, message)
+		parent(0).duplicate !! CallParentWithAsync(exec, message)
 	}
 
 	//receive
 	def act() = {
 		loop {
 			react {
-				//act as parent
 				/*
 				 * centralを通じた、子ども候補からのインプット
 				 * 受け取りの時点で自分の名前をしたMessengerがターゲットなのは確定しているが、
@@ -448,15 +447,7 @@ class MessengerActor(myself : MessengerProtocol, inputtedName : String) extends 
 						}
 					}
 				}
-				case CallParentWithAsync(exec, message) => {
-					log += Log.LOG_TYPE_CALLED_AS_PARENT_ASYNC.toString
 
-					myself.receiver(exec, message)
-
-					reply(Done("parent-sync called"))
-				}
-
-				//act as child
 				case ParentAccepted(parentActor) => {
 					log += Log.LOG_TYPE_CHILD_RECEIVED.toString + parentActor
 					if (parent.isEmpty) { //まだ誰も親がいない
@@ -468,30 +459,12 @@ class MessengerActor(myself : MessengerProtocol, inputtedName : String) extends 
 					}
 				}
 
-				case CallWithAsync(exec, message) => {
-					log += Log.LOG_TYPE_CALLED_AS_CHILD_ASYNC.toString
-
-					myself.receiver(exec, message)
-
-					reply(Done("child-sync called"))
-				}
-
-				//act as myself
-				case CallMyselfWithAsync(exec, message) => {
-					log += Log.LOG_TYPE_CALLED_MYSELF_ASYNC.toString
-
-					myself.receiver(exec, message)
-
-					reply(Done("myself-async called"))
-				}
-
 				case RemoveFromParent(id) => {
 					log += Log.LOG_TYPE_REMOVE_CHILD.toString
 					childList -= id
 					reply(Done("child-removed"))
 				}
-					
-				
+
 				/*
 				 * messengerとしての駆動を終える
 				 */
@@ -516,6 +489,7 @@ class MessengerActor(myself : MessengerProtocol, inputtedName : String) extends 
 		def act() = {
 			loop {
 				react {
+					//call / async
 					case Call(exec, message) => {
 						master.log += Log.LOG_TYPE_CALLED_AS_CHILD.toString
 
@@ -524,7 +498,16 @@ class MessengerActor(myself : MessengerProtocol, inputtedName : String) extends 
 						reply(Done("child called"))
 						exit
 					}
+					case CallWithAsync(exec, message) => {
+						master.log += Log.LOG_TYPE_CALLED_AS_CHILD_ASYNC.toString
+	
+						myself.receiver(exec, message)
+	
+						reply(Done("child-sync called"))
+						exit
+					}
 
+					//callMyself / async
 					case CallMyself(exec, message) => {
 						master.log += Log.LOG_TYPE_CALLED_MYSELF.toString
 
@@ -533,7 +516,16 @@ class MessengerActor(myself : MessengerProtocol, inputtedName : String) extends 
 						reply(Done("myself called"))
 						exit
 					}
+					case CallMyselfWithAsync(exec, message) => {
+						master.log += Log.LOG_TYPE_CALLED_MYSELF_ASYNC.toString
 
+						myself.receiver(exec, message)
+
+						reply(Done("myself-async called"))
+						exit
+					}
+
+					//callParent / async
 					case CallParent(exec, message) => {
 						master.log += Log.LOG_TYPE_CALLED_AS_PARENT.toString
 
@@ -541,13 +533,21 @@ class MessengerActor(myself : MessengerProtocol, inputtedName : String) extends 
 
 						reply(Done("parent called"))
 					}
-					
+					case CallParentWithAsync(exec, message) => {
+						master.log += Log.LOG_TYPE_CALLED_AS_PARENT_ASYNC.toString
+	
+						myself.receiver(exec, message)
+	
+						reply(Done("parent-sync called"))
+						exit
+					}
+
 					case RemoveFromChild(id) => {
 						master.log += Log.LOG_TYPE_REMOVE_PARENT.toString
 						parent -= id
 						reply(Done("parent-removed"))
 					}
-					
+
 					case message => {
 						println("hereComes	" + message)
 					}
