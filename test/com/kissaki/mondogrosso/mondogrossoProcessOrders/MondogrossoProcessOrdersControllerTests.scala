@@ -91,13 +91,12 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 			"not yet applied" must be_==("")
 		}
 	}
-	
+
 	"Context run" should {
 		val orderCont = new MondogrossoProcessOrdersController
 
 		val id = UUID.randomUUID().toString
-		
-		
+
 		"run A then Z" in {
 			val input = "A!Z"
 			val json = """
@@ -113,35 +112,39 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 							}
 						}
 						"""
-	
+
 			val parser = new MondogrossoProcessParser(id, input, json)
 			val result = parser.parseProcess
-	
+
 			val identity = UUID.randomUUID().toString
 			val s = orderCont.attachProcess(identity, result)
-	
+
 			val currentContext = orderCont.contexts(0)
-		
+
 			//コンテキストからの実行開始
 			currentContext.runContext
-			
+
 			//同期で準備されているのでそのままA > Finallyと実行される
-			
+
 			//Aの実行記録がある
-			currentContext.currentContext.get("A").getOrElse(Map()).keys must be_==(Set(
-				"_kind",
-				"_main",
-				"_result"))
+			currentContext.currentContext.get("A").getOrElse(Map("key" -> "value")).keys must be_==(Set(
+				OrderPrefix._kind.toString,
+				OrderPrefix._main.toString,
+				OrderPrefix._result.toString))
+
+			println("Z実行調査まえ、ここに来てる")
 			
 			//Zの実行記録がある
-			currentContext.currentContext.get("Z").getOrElse(Map()).keys must be_==(Set(
-				"_kind",
-				"_main",
-				"_result"))
-				
+			currentContext.currentContext.get("Z").getOrElse(Map("key" -> "value")).keys must be_==(Set(
+				OrderPrefix._kind.toString,
+				OrderPrefix._main.toString,
+				OrderPrefix._result.toString))
+
+			println("Z実行調査後、ここに来てる")
+			
 			"not yet applied" must be_==("")
 		}
-		
+
 		"run A,B,Z" in {
 			val input = "A>B!Z"
 			val json = """
@@ -153,7 +156,7 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 						"B": 
 							{
 								"_kind": "sh",
-								"_main": "grep",
+								"_main": "grep"
 								"in" : "should be grep"
 							},
 						"Z": 
@@ -163,18 +166,18 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 							}
 						}
 						"""
-	
+
 			val parser = new MondogrossoProcessParser(id, input, json)
 			val result = parser.parseProcess
-	
+
 			val identity = UUID.randomUUID().toString
 			val s = orderCont.attachProcess(identity, result)
-	
+
 			val currentContext = orderCont.contexts(0)
-			
+
 			"not yet applied" must be_==("")
 		}
-		
+
 		"run A,B(A:_result:in),Z" in {
 			val input = "A>B(A:_result:in)!Z"
 			val json = """
@@ -186,7 +189,7 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 						"B": 
 							{
 								"_kind": "sh",
-								"_main": "grep",
+								"_main": "grep"
 								"in" : "should be grep"
 							},
 						"Z": 
@@ -196,37 +199,35 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 							}
 						}
 						"""
-	
+
 			val parser = new MondogrossoProcessParser(id, input, json)
 			val result = parser.parseProcess
-	
+
 			val identity = UUID.randomUUID().toString
 			val s = orderCont.attachProcess(identity, result)
-	
+
 			val currentContext = orderCont.contexts(0)
-			
+
 			//BがAの_resultをgrepした結果を持つ
-			
+
 			"not yet applied" must be_==("")
 		}
 	}
-	
+
 	"Context エラー処理" should {
-		
+
 		"timeoutエラー" in {
 			"not yet applied" must be_==("")
 		}
-		
+
 		"実行時エラー" in {
 			"not yet applied" must be_==("")
 		}
-		
+
 		"実行前エラー" in {
 			"not yet applied" must be_==("")
 		}
 	}
-	
-	
 
 	"Worker" should {
 
@@ -245,13 +246,13 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 				dummyParent.messenger.tagValues(
 					new TagValue("identity", "A"),
 					new TagValue("context", Map(
-						"_kind" -> "sh",
-						"_main" -> "ls -l"))))
+						OrderPrefix._kind.toString -> "sh",
+						OrderPrefix._main.toString -> "ls -l"))))
 
 			//実行が同期的に行われ、実行されたあとの情報が残る
 			worker.currentStatus must be_==(WorkerStatus.STATUS_DONE)
 		}
-		
+
 		"Workerを同期で実行、タイムアウト" in {
 			val workerId = UUID.randomUUID().toString
 			val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
@@ -259,29 +260,29 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 				dummyParent.messenger.tagValues(
 					new TagValue("identity", "A"),
 					new TagValue("context", Map(
-						"_kind" -> "sh",
-						"_main" -> "ls -l",
-						"__timeout" -> "1000"))))
+						OrderPrefix._kind.toString -> "sh",
+						OrderPrefix._main.toString -> "ls -l",
+						OrderPrefix.__timeout.toString -> "1000"))))
 
 			//非同期に待つ　この間に、タイムアウトは親に届いているはず
 			dummyParent.waitTime(2000) //2秒くらい待つ
 
 			//実行が同期的に行われ、実行されたあとの情報が残る
 			worker.currentStatus must be_==(WorkerStatus.STATUS_TIMEOUT)
-			
+
 			//親にタイムアウトの受信記録がある
 			dummyParent.messenger.getLog.contains("MESSAGE_TIMEOUT") must beTrue
-			
+
 			val latestWork = worker.getLatestWorkInformation
 			latestWork.localContext.keys must be_==(Set(
-				"_kind",
-				"_main",
-				"__timeout",
-				"_result"))
-				
-			latestWork.localContext.get("_result").getOrElse("...empty") must be_==("timeout 1000msec elapsed")
+				OrderPrefix._kind.toString,
+				OrderPrefix._main.toString,
+				OrderPrefix.__timeout.toString,
+				OrderPrefix._result.toString))
+
+			latestWork.localContext.get(OrderPrefix._result.toString).getOrElse("...empty") must be_==("timeout 1000msec elapsed")
 		}
-		
+
 		"Workerを同期で実行、実際に時間のかかる処理でタイムアウト" in {
 			val workerId = UUID.randomUUID().toString
 			val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
@@ -289,27 +290,27 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 				dummyParent.messenger.tagValues(
 					new TagValue("identity", "A"),
 					new TagValue("context", Map(
-						"_kind" -> "jar",
-						"_main" -> "TestProject",
+						OrderPrefix._kind.toString -> "jar",
+						OrderPrefix._main.toString -> "TestProject",
 						"-i" -> "hereComes",
-						"-t" -> "2000",//2秒かかる処理なので、確実にタイムアウトになる
-						"__timeout" -> "1000"))))
+						"-t" -> "1500", //1.5秒かかる処理なので、確実にタイムアウトになる
+						OrderPrefix.__timeout.toString -> "1000"))))
 
 			//実行が同期的に行われ、実行されたあとの情報が残る
 			worker.currentStatus must be_==(WorkerStatus.STATUS_TIMEOUT)
-			
+
 			val latestWork = worker.getLatestWorkInformation
 			latestWork.localContext.keys must be_==(Set(
-				"_kind",
-				"_main",
+				OrderPrefix._kind.toString,
+				OrderPrefix._main.toString,
 				"-i",
 				"-t",
-				"__timeout",
-				"_result"))
-				
-			latestWork.localContext.get("_result").getOrElse("...empty") must be_==("timeout 1000msec elapsed")
+				OrderPrefix.__timeout.toString,
+				OrderPrefix._result.toString))
+
+			latestWork.localContext.get(OrderPrefix._result.toString).getOrElse("...empty") must be_==("timeout 1000msec elapsed")
 		}
-		
+
 		"Workerを非同期で実行、タイムアウト" in {
 			val workerId = UUID.randomUUID().toString
 			val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
@@ -317,36 +318,60 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 				dummyParent.messenger.tagValues(
 					new TagValue("identity", "A"),
 					new TagValue("context", Map(
-						"_kind" -> "sh",
-						"_main" -> "ls -l",
-						"__async" -> "no key will be appear.",
-						"__timeout" -> "1000"))))
+						OrderPrefix._kind.toString -> "sh",
+						OrderPrefix._main.toString -> "ls -l",
+						OrderPrefix.__async.toString -> "no key will be appear.",
+						OrderPrefix.__timeout.toString -> "1000"))))
 
 			//非同期に待つ
-			dummyParent.waitTime(1200) //1.2秒くらい待つ
+			dummyParent.waitTime(1500) //1.5秒くらい待つ
 
 			//実行が同期的に行われ、実行されたあとの情報が残る
 			worker.currentStatus must be_==(WorkerStatus.STATUS_TIMEOUT)
-			
+
 			val latestWork = worker.getLatestWorkInformation
 			latestWork.localContext.keys must be_==(Set(
-				"_kind",
-				"_main",
-				"__async",
-				"__timeout",
-				"_result"))
-			
-			latestWork.localContext.get("_result").getOrElse("...empty") must be_==("timeout 1000msec elapsed")
+				OrderPrefix._kind.toString,
+				OrderPrefix._main.toString,
+				OrderPrefix.__async.toString,
+				OrderPrefix.__timeout.toString,
+				OrderPrefix._result.toString))
+
+			latestWork.localContext.get(OrderPrefix._result.toString).getOrElse("...empty") must be_==("timeout 1000msec elapsed")
 		}
-		
+
+		"__timeoutの値がセットされていない、実行前エラー" in {
+			val workerId = UUID.randomUUID().toString
+			val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
+			dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
+				dummyParent.messenger.tagValues(
+					new TagValue("identity", "A"),
+					new TagValue("context", Map(
+						OrderPrefix._kind.toString -> "sh",
+						OrderPrefix._main.toString -> "ls -l",
+						OrderPrefix.__timeout.toString -> "")))) //値の指定忘れ
+
+			//この時点でエラー
+			worker.currentStatus must be_==(WorkerStatus.STATUS_ERROR)
+
+			val latestWork = worker.getLatestWorkInformation
+			latestWork.localContext.keys must be_==(Set(
+				OrderPrefix._kind.toString,
+				OrderPrefix._main.toString,
+				OrderPrefix.__timeout.toString,
+				OrderPrefix._result.toString))
+
+			latestWork.localContext.get(OrderPrefix._result.toString).getOrElse("...empty") must be_==("java.lang.NumberFormatException: For input string: \"\"")
+		}
+
 		"パラメータが足りない 実行前エラー" in {
 			"not yet applied" must be_==("")
 		}
-		
+
 		"未知のtypeが送られてきた 実行前エラー" in {
 			"not yet applied" must be_==("")
 		}
-		
+
 		"Workerを同期で実行、実行時エラー" in {
 			val workerId = UUID.randomUUID().toString
 			val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
@@ -354,21 +379,21 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 				dummyParent.messenger.tagValues(
 					new TagValue("identity", "A"),
 					new TagValue("context", Map(
-						"_kind" -> "sh",
-						"_main" -> "dfghjklls -l"))))//存在しないコマンドで実行エラー
+						OrderPrefix._kind.toString -> "sh",
+						OrderPrefix._main.toString -> "dfghjklls -l")))) //存在しないコマンドで実行エラー
 
 			//実行が同期的に行われ、実行されたあとの情報が残る
 			worker.currentStatus must be_==(WorkerStatus.STATUS_ERROR)
-			
+
 			val latestWork = worker.getLatestWorkInformation
 			latestWork.localContext.keys must be_==(Set(
-				"_kind",
-				"_main",
-				"_result"))
-				
-			latestWork.localContext.get("_result").getOrElse("...empty") must be_==("java.io.IOException: Cannot run program \"dfghjklls\": error=2, No such file or directory")
+				OrderPrefix._kind.toString,
+				OrderPrefix._main.toString,
+				OrderPrefix._result.toString))
+
+			latestWork.localContext.get(OrderPrefix._result.toString).getOrElse("...empty") must be_==("java.io.IOException: Cannot run program \"dfghjklls\": error=2, No such file or directory")
 		}
-		
+
 		"Workerを非同期で実行、実行時エラー" in {
 			val workerId = UUID.randomUUID().toString
 			val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
@@ -376,21 +401,20 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 				dummyParent.messenger.tagValues(
 					new TagValue("identity", "A"),
 					new TagValue("context", Map(
-						"_kind" -> "sh",
-						"_main" -> "dfghjklls -l"))))//存在しないコマンドで非同期下のエラー
+						OrderPrefix._kind.toString -> "sh",
+						OrderPrefix._main.toString -> "dfghjklls -l")))) //存在しないコマンドで非同期下のエラー
 
 			//実行が同期的に行われ、実行されたあとの情報が残る
 			worker.currentStatus must be_==(WorkerStatus.STATUS_ERROR)
-			
+
 			val latestWork = worker.getLatestWorkInformation
 			latestWork.localContext.keys must be_==(Set(
-				"_kind",
-				"_main",
-				"_result"))
-				
-			latestWork.localContext.get("_result").getOrElse("...empty") must be_==("java.io.IOException: Cannot run program \"dfghjklls\": error=2, No such file or directory")
+				OrderPrefix._kind.toString,
+				OrderPrefix._main.toString,
+				OrderPrefix._result.toString))
+
+			latestWork.localContext.get(OrderPrefix._result.toString).getOrElse("...empty") must be_==("java.io.IOException: Cannot run program \"dfghjklls\": error=2, No such file or directory")
 		}
-		
 
 		"Workerでshellを実行" in {
 			val workerId = UUID.randomUUID().toString
@@ -399,16 +423,16 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 				dummyParent.messenger.tagValues(
 					new TagValue("identity", "A"),
 					new TagValue("context", Map(
-						"_kind" -> "sh",
-						"_main" -> "ls -l"))))
+						OrderPrefix._kind.toString -> "sh",
+						OrderPrefix._main.toString -> "ls -l"))))
 
 			//ls -lを実行した結果が残っているはず
 			val latestWork = worker.getLatestWorkInformation
 			latestWork.localContext.keys must be_==(Set(
-				"_kind",
-				"_main",
-				"_result"))
-				
+				OrderPrefix._kind.toString,
+				OrderPrefix._main.toString,
+				OrderPrefix._result.toString))
+
 			//結果はフォルダとかによって変化するため精査しない
 		}
 
@@ -419,18 +443,18 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 				dummyParent.messenger.tagValues(
 					new TagValue("identity", "A"),
 					new TagValue("context", Map(
-						"_kind" -> "sh",
-						"_main" -> "open",
-						"-a" -> "Safari.app http://google.com"))))
+						OrderPrefix._kind.toString -> "sh",
+						OrderPrefix._main.toString -> "open",
+						"-a" -> "Safari.app /Applications/eclipseScala/scalaworkspace/MondogrossoProcessOrders/build/reports/tests/com.kissaki.mondogrosso.mondogrossoProcessOrders.MondogrossoProcessOrdersControllerTests.html"))))
 
 			//ls -lを実行した結果が残っているはず
 			val latestWork = worker.getLatestWorkInformation
 			latestWork.localContext.keys must be_==(Set(
-				"_kind",
-				"_main",
+				OrderPrefix._kind.toString,
+				OrderPrefix._main.toString,
 				"-a",
-				"_result"))
-				
+				OrderPrefix._result.toString))
+
 			//結果はフォルダとかによって変化するため精査しない
 		}
 
@@ -441,9 +465,9 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 				dummyParent.messenger.tagValues(
 					new TagValue("identity", "A"),
 					new TagValue("context", Map(
-						"_kind" -> "sh",
-						"_main" -> "ls -l",
-						"__async" -> ""))))
+						OrderPrefix._kind.toString -> "sh",
+						OrderPrefix._main.toString -> "ls -l",
+						OrderPrefix.__async.toString -> ""))))
 
 			//非同期に待つ
 			dummyParent.waitTime(1000) //1秒くらい待つ
@@ -451,11 +475,11 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 			//ls -lを実行した結果が残っているはず
 			val latestWork = worker.getLatestWorkInformation
 			latestWork.localContext.keys must be_==(Set(
-				"_kind",
-				"_main",
-				"__async",
-				"_result"))
-				
+				OrderPrefix._kind.toString,
+				OrderPrefix._main.toString,
+				OrderPrefix.__async.toString,
+				OrderPrefix._result.toString))
+
 			//結果はフォルダとかによって変化するため精査しない
 		}
 
@@ -466,19 +490,19 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 				dummyParent.messenger.tagValues(
 					new TagValue("identity", "A"),
 					new TagValue("context", Map(
-						"_kind" -> "jar",
-						"_main" -> "TestProject",
+						OrderPrefix._kind.toString -> "jar",
+						OrderPrefix._main.toString -> "TestProject",
 						"-i" -> "hereComes"))))
 
 			//java -jar TestProject.jar -i herecomes を実行した結果が残っているはず
 			val latestWork = worker.getLatestWorkInformation
 			latestWork.localContext.keys must be_==(Set(
-				"_kind",
-				"_main",
+				OrderPrefix._kind.toString,
+				OrderPrefix._main.toString,
 				"-i",
-				"_result"))
+				OrderPrefix._result.toString))
 
-			latestWork.localContext("_result") must be_==("over:hereComes\n")
+			latestWork.localContext(OrderPrefix._result.toString) must be_==("over:hereComes\n")
 		}
 
 		"Workerで非同期なJavaを実行" in {
@@ -488,9 +512,9 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 				dummyParent.messenger.tagValues(
 					new TagValue("identity", "A"),
 					new TagValue("context", Map(
-						"_kind" -> "jar",
-						"_main" -> "TestProject",
-						"__async" -> "on",
+						OrderPrefix._kind.toString -> "jar",
+						OrderPrefix._main.toString -> "TestProject",
+						OrderPrefix.__async.toString -> "on",
 						"-i" -> "hereComes"))))
 
 			//非同期に待つ
@@ -499,13 +523,13 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 			//java -jar TestProject.jar -i herecomes を非同期に実行した結果が残っているはず
 			val latestWork = worker.getLatestWorkInformation
 			latestWork.localContext.keys must be_==(Set(
-				"_kind",
-				"_main",
-				"__async",
+				OrderPrefix._kind.toString,
+				OrderPrefix._main.toString,
+				OrderPrefix.__async.toString,
 				"-i",
-				"_result"))
-				
-			latestWork.localContext("_result") must be_==("over:hereComes\n")
+				OrderPrefix._result.toString))
+
+			latestWork.localContext(OrderPrefix._result.toString) must be_==("over:hereComes\n")
 		}
 
 		"Workerで非同期なJavaを実行2" in {
@@ -515,29 +539,28 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 				dummyParent.messenger.tagValues(
 					new TagValue("identity", "A"),
 					new TagValue("context", Map(
-						"_kind" -> "jar",
-						"_main" -> "TestProject",
-						"__async" -> "on",
+						OrderPrefix._kind.toString -> "jar",
+						OrderPrefix._main.toString -> "TestProject",
+						OrderPrefix.__async.toString -> "on",
 						"-i" -> "hereComes",
-						"-t" -> "10000" //10秒後に答えが出る、そういうJar
+						"-t" -> "1000" //1秒後に答えが出る、そういうJar
 						))))
 
 			//非同期に待つ
-			dummyParent.waitTime(11000) //11秒くらい待つ
+			dummyParent.waitTime(1500) //1.5秒くらい待つ
 
 			//java -jar TestProject.jar -i herecomes -t,,,を実行した結果が残っているはず
 			val latestWork = worker.getLatestWorkInformation
 			latestWork.localContext.keys must be_==(Set(
-				"_kind",
-				"_main",
-				"__async",
+				OrderPrefix._kind.toString,
+				OrderPrefix._main.toString,
+				OrderPrefix.__async.toString,
 				"-i",
 				"-t",
-				"_result"))
-			
+				OrderPrefix._result.toString))
+
 			//結果はタイムスタンプによって変化するため精査しない
 		}
-
 	}
 
 }

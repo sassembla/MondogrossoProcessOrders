@@ -151,10 +151,10 @@ class ProcessContext(processIdentity : String, contextSrc : ContextSource) exten
 				println("currentFinishedEventualContext	" + currentFinishedEventualContext)
 
 				//eventualを、currentContextに上書きする
-//				println("before	currentContext	" + currentContext)
+				//				println("before	currentContext	" + currentContext)
 				val appendedContext = (currentFinishedOrderIdentity -> currentFinishedEventualContext)
 				currentContext += appendedContext
-//				println("after	currentContext	" + currentContext)
+				//				println("after	currentContext	" + currentContext)
 			}
 
 			case other => {
@@ -190,14 +190,16 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 	}
 
 	//状態
-	var currentStatus = WorkerStatus.STATUS_READY
+	var currentStatus = WorkerStatus.STATUS_NONE
 
 	/**
 	 * レシーバ
 	 */
-	def receiver(execSrc : String, tagValues : Array[TagValue]) = {
+	def receiver(execSrc : String, tagValues : Array[TagValue]) : Unit = {
 		Messages.get(execSrc) match {
 			case Messages.MESSAGE_START => {
+
+				currentStatus = WorkerStatus.STATUS_READY
 
 				val orderIdentity = (messenger.get("identity", tagValues)).asInstanceOf[String]
 				val orderContext = (messenger.get("context", tagValues)).asInstanceOf[scala.collection.Map[String, String]]
@@ -208,16 +210,14 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 				currentAddedOrderInfo +=: currentWorkInformationHistory
 
 				//タイムアウトの設定があれば、リミットをセットする
-				orderContext.contains(OrderPrefix.__timeout.toString) match {
-					case true => {
-						val limit = orderContext.get(OrderPrefix.__timeout.toString) match {
-							case Some(v) => setTimeout(currentAddedOrderInfo)
-							case None => messenger.callParent(Messages.MESSAGE_ERROR.toString, messenger.tagValues(new TagValue("reason", OrderErrors.ERROR_NO_TIMEOUT_VALUE.toString)))
-						}
-					}
-					case false =>
+				orderContext.get(OrderPrefix.__timeout.toString) match {
+					case Some(v) => setTimeout(currentAddedOrderInfo)
+
+					//値がセットされてない
+					case None =>
 				}
 
+				
 				//非同期	/	同期
 				orderContext.contains(OrderPrefix.__async.toString) match {
 					case true => {
@@ -242,11 +242,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 			//Timeout
 			case Messages.MESSAGE_EXEC_TIMEOUT_READY => {
 				val timeoutContextWorkInfo = messenger.get("timeoutContext", tagValues).asInstanceOf[WorkInformation]
-
-				val delay = timeoutContextWorkInfo.localContext.get(OrderPrefix.__timeout.toString) match {
-					case Some(v) => v.toInt
-					case _ => 0 //事前にメソッド呼び出し前にセットしてあるので、到達不可能
-				}
+				val delay = messenger.get("delay", tagValues).asInstanceOf[Int]
 
 				Thread.sleep(delay)
 				/*-----------時間切れ-----------*/
@@ -281,9 +277,23 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 	 * timeout Contextのセット
 	 */
 	def setTimeout(timeoutContext : WorkInformation) = {
+		timeoutContext.localContext.get(OrderPrefix.__timeout.toString) match {
+			case Some(v) => {
+				try {
+					val delay = v.toInt
 
-		messenger.callMyselfWithAsync(Messages.MESSAGE_EXEC_TIMEOUT_READY.toString,
-			messenger.tagValues(new TagValue("timeoutContext", timeoutContext)))
+					messenger.callMyselfWithAsync(Messages.MESSAGE_EXEC_TIMEOUT_READY.toString,
+						messenger.tagValues(
+							new TagValue("timeoutContext", timeoutContext),
+							new TagValue("delay", delay)))
+				} catch {
+					case e : Exception => errorProc(timeoutContext, e)
+					
+					case _ =>
+				}
+			}
+			case _ =>
+		}
 
 	}
 
@@ -291,84 +301,90 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 	 * 実行
 	 */
 	def run(info : WorkInformation) = {
+		//実行前エラーの切り分け
+		currentStatus match {
+			case WorkerStatus.STATUS_READY => {
+				//開始
+				currentStatus = WorkerStatus.STATUS_DOING
 
-		//開始
-		currentStatus = WorkerStatus.STATUS_DOING
+				//予約語以外
+				val currentKeys = OrderPrefix.getXORWithKeyword(info.localContext.keys.toSet)
 
-		//予約語以外
-		val currentKeys = OrderPrefix.getXORWithKeyword(info.localContext.keys.toSet)
+				info.localContext(OrderPrefix._kind.toString) match {
 
-		info.localContext(OrderPrefix._kind.toString) match {
-
-			/*
-			 * jar実行
-			 */
-			case WorkKinds.kindJar => {
-				val inputKeyValuePair = for (key <- currentKeys) yield {
-					val value = info.localContext.get(key) match {
-						case Some(v) => v
-						case None => ""
-					}
-					key + WHITESPACE + value
-				}
-
-				val reduced = inputKeyValuePair match {
-					case v if (v.isEmpty) => ""
-					case default => {
-						inputKeyValuePair.reduceLeft {
-							(total, add) => total + WHITESPACE + add
+					/*
+					 * jar実行
+					 */
+					case WorkKinds.kindJar => {
+						val inputKeyValuePair = for (key <- currentKeys) yield {
+							val value = info.localContext.get(key) match {
+								case Some(v) => v
+								case None => ""
+							}
+							key + WHITESPACE + value
 						}
-					}
-				}
 
-				val stableCommand = RUN_PREFIX_JAVA + WHITESPACE +
-					RUN_PREFIX_JAR + WHITESPACE +
-					RUN_PREFIX_CURRENTDIR + info.localContext(OrderPrefix._main.toString) +
-					RUN_PREFIX_DOTJAR + WHITESPACE +
-					reduced
-
-				//process生成
-				val process = scalaProcess(stableCommand)
-
-				//実行
-				runProcess(info, process)
-			}
-
-			/*
-			 * process実行
-			 */
-			case WorkKinds.kindProcess => {
-				val inputKeyValuePair = for (key <- currentKeys) yield {
-					val value = info.localContext.get(key) match {
-						case Some(v) => v
-						case None => ""
-					}
-					key + WHITESPACE + value
-				}
-
-				val reduced = inputKeyValuePair match {
-					case v if (v.isEmpty) => ""
-
-					case default => {
-						inputKeyValuePair.reduceLeft {
-							(total, add) => total + WHITESPACE + add
+						val reduced = inputKeyValuePair match {
+							case v if (v.isEmpty) => ""
+							case default => {
+								inputKeyValuePair.reduceLeft {
+									(total, add) => total + WHITESPACE + add
+								}
+							}
 						}
+
+						val stableCommand = RUN_PREFIX_JAVA + WHITESPACE +
+							RUN_PREFIX_JAR + WHITESPACE +
+							RUN_PREFIX_CURRENTDIR + info.localContext(OrderPrefix._main.toString) +
+							RUN_PREFIX_DOTJAR + WHITESPACE +
+							reduced
+
+						//process生成
+						val process = scalaProcess(stableCommand)
+
+						//実行
+						runProcess(info, process)
+					}
+
+					/*
+					 * process実行
+					 */
+					case WorkKinds.kindProcess => {
+						val inputKeyValuePair = for (key <- currentKeys) yield {
+							val value = info.localContext.get(key) match {
+								case Some(v) => v
+								case None => ""
+							}
+							key + WHITESPACE + value
+						}
+
+						val reduced = inputKeyValuePair match {
+							case v if (v.isEmpty) => ""
+
+							case default => {
+								inputKeyValuePair.reduceLeft {
+									(total, add) => total + WHITESPACE + add
+								}
+							}
+						}
+
+						val stableCommand = info.localContext(OrderPrefix._main.toString) + WHITESPACE + reduced
+
+						println("shell stableCommand	" + stableCommand)
+
+						//プロセス生成
+						val process = scalaProcess(stableCommand)
+
+						//実行
+						runProcess(info, process)
+					}
+					case other => {
+						println("type not found	:" + other)
+						
 					}
 				}
-
-				val stableCommand = info.localContext(OrderPrefix._main.toString) + WHITESPACE + reduced
-
-				println("shell stableCommand	" + stableCommand)
-
-				//プロセス生成
-				val process = scalaProcess(stableCommand)
-
-				//実行
-				runProcess(info, process)
 			}
-			case other => {
-				println("type not found	:" + other)
-			}
+			case _ =>
 		}
 	}
 
@@ -377,10 +393,12 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 	 *
 	 * 成功するか、実行時エラーか
 	 */
-	def runProcess(info : WorkInformation, process : scala.sys.process.ProcessBuilder) = {
+	def runProcess(info : WorkInformation, process : scala.sys.process.ProcessBuilder) : Unit = {
+
 		try {
 			val result = process.!!
 
+			//実行後
 			currentStatus match {
 				case WorkerStatus.STATUS_DOING => {
 					//結果のコンテキストを作成する
@@ -401,22 +419,30 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 				case _ =>
 			}
 		} catch {
-			case e => {
-				//error結果のコンテキストを作成する
-				val errorContext = info.localContext ++ Map(OrderPrefix._result.toString -> e.toString)
-				println("errorContext	" + errorContext)
-				//結果を残す
-				new WorkInformation(info.orderIdentity, errorContext) +=: currentWorkInformationHistory
-
-				//親に終了を通知
-				messenger.callParent(Messages.MESSAGE_ERROR.toString,
-					messenger.tagValues(
-						new TagValue("identity", identity),
-						new TagValue("orderIdentity", info.orderIdentity),
-						new TagValue("eventualContext", errorContext)))
-				currentStatus = WorkerStatus.STATUS_ERROR
-			}
+			//実行後エラー
+			case e : Exception => errorProc(info, e)
+			case other => println("unknown error on " + this)
 		}
+	}
+
+	/**
+	 * Error時の統一的な処理
+	 */
+	def errorProc(info : WorkInformation, e : Exception) = {
+		//error結果のコンテキストを作成する
+		val errorContext = info.localContext ++ Map(OrderPrefix._result.toString -> e.toString)
+
+		//結果を残す
+		new WorkInformation(info.orderIdentity, errorContext) +=: currentWorkInformationHistory
+
+		//親に終了を通知
+		messenger.callParent(Messages.MESSAGE_ERROR.toString,
+			messenger.tagValues(
+				new TagValue("identity", identity),
+				new TagValue("orderIdentity", info.orderIdentity),
+				new TagValue("eventualContext", errorContext)))
+
+		currentStatus = WorkerStatus.STATUS_ERROR
 	}
 }
 	
