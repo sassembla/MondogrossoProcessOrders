@@ -151,10 +151,28 @@ class ProcessContext(processIdentity : String, contextSrc : ContextSource) exten
 				println("currentFinishedEventualContext	" + currentFinishedEventualContext)
 
 				//eventualを、currentContextに上書きする
-				//				println("before	currentContext	" + currentContext)
 				val appendedContext = (currentFinishedOrderIdentity -> currentFinishedEventualContext)
 				currentContext += appendedContext
-				//				println("after	currentContext	" + currentContext)
+
+				//非同期で、Contextが調整されたことを全Workerに通達する -> Workerからのリクエストを待つ(Wait状態になっていればRequestが来る。)
+				notifyFinishedOrderInfoToAllWorker(currentFinishedOrderIdentity)
+			}
+
+			/*
+			 * WorkerからのOrderリクエストを受ける
+			 * 
+			 * そのWorkerへの次のOrderが無ければ、対象Workerを停止する
+			 * 全Workerが停止されたら、Context自体のfinallyを実行する
+			 */
+			case Messages.MESSAGE_REQUEST => {
+				println("MESSAGE_REQUEST	に到着")
+				val processIdentity = messenger.get("workerIdentity", tagValues).asInstanceOf[String]
+				val finishedOrderIdentity = messenger.get("finishedOrderIdentity", tagValues).asInstanceOf[String]
+
+				processList.withFilter(_.equals(processIdentity)).foreach { n =>
+					println("answered to n = " + n)
+					//対象となるプロセスの次のcontextを渡す	/	 停める
+				}
 			}
 
 			case other => {
@@ -162,287 +180,15 @@ class ProcessContext(processIdentity : String, contextSrc : ContextSource) exten
 			}
 		}
 	}
-}
-
-case class WorkInformation(orderIdentity : String, localContext : scala.collection.Map[String, String])
-/**
- * ワーカー
- * Messagingで親(Context)との通信を行う
- */
-class ProcessWorker(identity : String, masterName : String) extends MessengerProtocol {
-	val RUN_PREFIX_JAVA = "java"
-	val RUN_PREFIX_JAR = "-jar"
-	val RUN_PREFIX_DOTJAR = ".jar"
-	val RUN_TIMEOUT_MESSAGE = "timeout"
-	val RUN_PREFIX_CURRENTDIR = "./"
-	val WHITESPACE = " "
-	val messenger = new Messenger(this, identity)
-	messenger.inputParent(masterName)
-
-	//このworkerのidentity
-	val workerIdentity = identity
-
-	//実行中のWork情報履歴
-	val currentWorkInformationHistory : ListBuffer[WorkInformation] = ListBuffer()
-
-	def getLatestWorkInformation = {
-		currentWorkInformationHistory.head
-	}
-
-	//状態
-	var currentStatus = WorkerStatus.STATUS_NONE
 
 	/**
-	 * レシーバ
+	 * 存在する有効なWorkerに直近のOrderの終了通知を投げる
 	 */
-	def receiver(execSrc : String, tagValues : Array[TagValue]) : Unit = {
-		Messages.get(execSrc) match {
-			case Messages.MESSAGE_START => {
-
-				currentStatus = WorkerStatus.STATUS_READY
-
-				val orderIdentity = (messenger.get("identity", tagValues)).asInstanceOf[String]
-				val orderContext = (messenger.get("context", tagValues)).asInstanceOf[scala.collection.Map[String, String]]
-
-				val currentAddedOrderInfo = new WorkInformation(orderIdentity, orderContext)
-
-				//currentWorkInformationHistoryのheadに、最新のInfoを加算する
-				currentAddedOrderInfo +=: currentWorkInformationHistory
-
-				//タイムアウトの設定があれば、リミットをセットする
-				orderContext.get(OrderPrefix.__timeout.toString) match {
-					case Some(v) => setTimeout(currentAddedOrderInfo)
-
-					//値がセットされてない
-					case None =>
-				}
-
-				
-				//非同期	/	同期
-				orderContext.contains(OrderPrefix.__async.toString) match {
-					case true => {
-						//動作開始の通知
-						messenger.callParent(Messages.MESSAGE_ASYNCRONOUSLY_STARTED.toString,
-							messenger.tagValues(new TagValue("workerIdentity", identity),
-								new TagValue("orderIdentity", orderIdentity)))
-
-						//自分自身を非同期で実行する
-						messenger.callMyselfWithAsync(Messages.MESSAGE_EXEC_ASYNC.toString, messenger.tagValues(new TagValue("currentAddedOrderInfo", currentAddedOrderInfo)))
-					}
-					case false => {
-						//動作開始の通知
-						messenger.callParent(Messages.MESSAGE_SYNCRONOUSLY_STARTED.toString,
-							messenger.tagValues(new TagValue("workerIdentity", identity),
-								new TagValue("orderIdentity", orderIdentity)))
-						run(currentAddedOrderInfo)
-					}
-				}
-			}
-
-			//Timeout
-			case Messages.MESSAGE_EXEC_TIMEOUT_READY => {
-				val timeoutContextWorkInfo = messenger.get("timeoutContext", tagValues).asInstanceOf[WorkInformation]
-				val delay = messenger.get("delay", tagValues).asInstanceOf[Int]
-
-				Thread.sleep(delay)
-				/*-----------時間切れ-----------*/
-
-				//結果のコンテキストを作成する
-				val timeoutContext = timeoutContextWorkInfo.localContext ++ Map(OrderPrefix._result.toString -> (RUN_TIMEOUT_MESSAGE + WHITESPACE + delay + "msec elapsed"))
-
-				//結果を残す
-				new WorkInformation(timeoutContextWorkInfo.orderIdentity, timeoutContext) +=: currentWorkInformationHistory
-
-				//timeoutの見なし　既存workの情報送信を行う
-				messenger.callParentWithAsync(Messages.MESSAGE_TIMEOUT.toString, messenger.tagValues(
-					new TagValue("timeoutOrderIdentity", timeoutContextWorkInfo.orderIdentity),
-					new TagValue("timeoutOrderContext", timeoutContextWorkInfo.localContext)))
-
-				currentStatus = WorkerStatus.STATUS_TIMEOUT
-			}
-
-			//非同期実行
-			case Messages.MESSAGE_EXEC_ASYNC => {
-				val currentAddedOrderInfo = messenger.get("currentAddedOrderInfo", tagValues).asInstanceOf[WorkInformation]
-				run(currentAddedOrderInfo)
-			}
-
-			case other => {
-				println("未整理の何か	" + other)
-			}
+	def notifyFinishedOrderInfoToAllWorker(finishedOrderIdentity : String) = {
+		for (processName <- processList) {
+			println("processName	" + processName)
+			messenger.callWithAsync(processName, Messages.MESSAGE_FINISHEDORDER_NOTIFY.toString, messenger.tagValues(
+				new TagValue("finishedOrderIdentity", finishedOrderIdentity)))
 		}
-	}
-
-	/**
-	 * timeout Contextのセット
-	 */
-	def setTimeout(timeoutContext : WorkInformation) = {
-		timeoutContext.localContext.get(OrderPrefix.__timeout.toString) match {
-			case Some(v) => {
-				try {
-					val delay = v.toInt
-
-					messenger.callMyselfWithAsync(Messages.MESSAGE_EXEC_TIMEOUT_READY.toString,
-						messenger.tagValues(
-							new TagValue("timeoutContext", timeoutContext),
-							new TagValue("delay", delay)))
-				} catch {
-					case e : Exception => errorProc(timeoutContext, e)
-					
-					case _ =>
-				}
-			}
-			case _ =>
-		}
-
-	}
-
-	/**
-	 * 実行
-	 */
-	def run(info : WorkInformation) = {
-		//実行前エラーの切り分け
-		currentStatus match {
-			case WorkerStatus.STATUS_READY => {
-				//開始
-				currentStatus = WorkerStatus.STATUS_DOING
-
-				//予約語以外
-				val currentKeys = OrderPrefix.getXORWithKeyword(info.localContext.keys.toSet)
-
-				info.localContext(OrderPrefix._kind.toString) match {
-
-					/*
-					 * jar実行
-					 */
-					case WorkKinds.kindJar => {
-						val inputKeyValuePair = for (key <- currentKeys) yield {
-							val value = info.localContext.get(key) match {
-								case Some(v) => v
-								case None => ""
-							}
-							key + WHITESPACE + value
-						}
-
-						val reduced = inputKeyValuePair match {
-							case v if (v.isEmpty) => ""
-							case default => {
-								inputKeyValuePair.reduceLeft {
-									(total, add) => total + WHITESPACE + add
-								}
-							}
-						}
-
-						val stableCommand = RUN_PREFIX_JAVA + WHITESPACE +
-							RUN_PREFIX_JAR + WHITESPACE +
-							RUN_PREFIX_CURRENTDIR + info.localContext(OrderPrefix._main.toString) +
-							RUN_PREFIX_DOTJAR + WHITESPACE +
-							reduced
-
-						//process生成
-						val process = scalaProcess(stableCommand)
-
-						//実行
-						runProcess(info, process)
-					}
-
-					/*
-					 * process実行
-					 */
-					case WorkKinds.kindProcess => {
-						val inputKeyValuePair = for (key <- currentKeys) yield {
-							val value = info.localContext.get(key) match {
-								case Some(v) => v
-								case None => ""
-							}
-							key + WHITESPACE + value
-						}
-
-						val reduced = inputKeyValuePair match {
-							case v if (v.isEmpty) => ""
-
-							case default => {
-								inputKeyValuePair.reduceLeft {
-									(total, add) => total + WHITESPACE + add
-								}
-							}
-						}
-
-						val stableCommand = info.localContext(OrderPrefix._main.toString) + WHITESPACE + reduced
-
-						println("shell stableCommand	" + stableCommand)
-
-						//プロセス生成
-						val process = scalaProcess(stableCommand)
-
-						//実行
-						runProcess(info, process)
-					}
-					case other => {
-						println("type not found	:" + other)
-						
-					}
-				}
-			}
-			case _ =>
-		}
-	}
-
-	/**
-	 * プロセスの実行
-	 *
-	 * 成功するか、実行時エラーか
-	 */
-	def runProcess(info : WorkInformation, process : scala.sys.process.ProcessBuilder) : Unit = {
-
-		try {
-			val result = process.!!
-
-			//実行後
-			currentStatus match {
-				case WorkerStatus.STATUS_DOING => {
-					//結果のコンテキストを作成する
-					val eventualContext = info.localContext ++ Map(OrderPrefix._result.toString -> result)
-
-					//結果を残す
-					new WorkInformation(info.orderIdentity, eventualContext) +=: currentWorkInformationHistory
-
-					//親に終了を通知
-					messenger.callParent(Messages.MESSAGE_DONE.toString,
-						messenger.tagValues(
-							new TagValue("identity", identity),
-							new TagValue("orderIdentity", info.orderIdentity),
-							new TagValue("eventualContext", eventualContext)))
-
-					currentStatus = WorkerStatus.STATUS_DONE
-				}
-				case _ =>
-			}
-		} catch {
-			//実行後エラー
-			case e : Exception => errorProc(info, e)
-			case other => println("unknown error on " + this)
-		}
-	}
-
-	/**
-	 * Error時の統一的な処理
-	 */
-	def errorProc(info : WorkInformation, e : Exception) = {
-		//error結果のコンテキストを作成する
-		val errorContext = info.localContext ++ Map(OrderPrefix._result.toString -> e.toString)
-
-		//結果を残す
-		new WorkInformation(info.orderIdentity, errorContext) +=: currentWorkInformationHistory
-
-		//親に終了を通知
-		messenger.callParent(Messages.MESSAGE_ERROR.toString,
-			messenger.tagValues(
-				new TagValue("identity", identity),
-				new TagValue("orderIdentity", info.orderIdentity),
-				new TagValue("eventualContext", errorContext)))
-
-		currentStatus = WorkerStatus.STATUS_ERROR
 	}
 }
-	

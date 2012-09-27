@@ -2,21 +2,18 @@ package com.kissaki.mondogrosso.mondogrossoProcessOrders
 
 object WorkKinds extends Enumeration {
 	
-	val kindJar = "jar"
-	val kindProcess = "sh"
-	
 	type WorkKinds = Value
 	
 	//WORK_KINDS
-	val KIND_PROCESS,
-	KIND_JAR,
-	KIND_NONE
+	val jar,
+	sh,
+	KIND_NOT_FOUND
 	= Value
 	
 	def get(in:String):Value = {
 		values.find(in == _.toString) match {
 			case None => {
-				KIND_NONE
+				KIND_NOT_FOUND
 			}
 			case Some(v) => {
 				v

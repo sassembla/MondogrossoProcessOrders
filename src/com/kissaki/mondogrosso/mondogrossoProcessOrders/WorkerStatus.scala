@@ -6,7 +6,8 @@ object WorkerStatus extends Enumeration {
 	
 	//MESSAGES
 	val STATUS_NONE, 
-	STATUS_READY, 
+	STATUS_READY,
+	STATUS_WAITING,
 	STATUS_DOING,
 	STATUS_DONE,
 	STATUS_TIMEOUT,
