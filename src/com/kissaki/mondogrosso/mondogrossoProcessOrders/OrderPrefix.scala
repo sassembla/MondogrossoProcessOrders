@@ -11,8 +11,11 @@ object OrderPrefix extends Enumeration {
 	_result,
 	
 	//optional
-	__async,
+	__delay,
 	__timeout,
+	
+	//finally
+	__finallyTimeout,
 	
 	PREFIX_NOTFOUND
 	= Value

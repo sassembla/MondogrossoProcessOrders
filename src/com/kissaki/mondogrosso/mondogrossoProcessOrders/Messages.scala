@@ -19,6 +19,12 @@ object Messages extends Enumeration {
 	
 	MESSAGE_TIMEOUT,
 	MESSAGE_DONE,
+	
+	MESSAGE_OVER,
+	MESSAGE_OVERED,
+	
+	MESSAGE_FINALLY,
+	
 	MESSAGE_NOTFOUND
 	= Value
 	

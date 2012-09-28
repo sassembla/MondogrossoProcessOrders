@@ -35,6 +35,13 @@ class DummyParent extends MessengerProtocol {
 					case Messages.MESSAGE_SYNCRONOUSLY_STARTED =>
 					case Messages.MESSAGE_ASYNCRONOUSLY_STARTED =>
 						
+					case Messages.MESSAGE_ERROR => {
+						val erroredWorkerIdentity = messenger.get("erroredWorkerIdentity", tagValues).asInstanceOf[String]
+						val erroredOrderIdentity = messenger.get("erroredOrderIdentity", tagValues).asInstanceOf[String]
+						
+						//messengerのログに追加
+						messenger.addLog(erroredWorkerIdentity+erroredOrderIdentity)
+					}
 					case Messages.MESSAGE_TIMEOUT => {
 						val timeoutedWorkerIdentity = messenger.get("timeoutedWorkerIdentity", tagValues).asInstanceOf[String]
 						val timeoutedOrderIdentity = messenger.get("timeoutedOrderIdentity", tagValues).asInstanceOf[String]

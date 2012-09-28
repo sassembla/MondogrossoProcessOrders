@@ -36,6 +36,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 
 	//状態
 	var currentStatus = WorkerStatus.STATUS_NONE
+	
 
 	/**
 	 * レシーバ
@@ -63,35 +64,40 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 				/*----------実行----------*/
 
 				//validation
-				validateKeys(currentAddedOrderInfo)
-
-				//タイムアウトの設定があれば、リミットをセットする
-				orderContext.get(OrderPrefix.__timeout.toString) match {
-					case Some(v) => setTimeout(currentAddedOrderInfo)
-
-					//値がセットされてない
-					case None =>
-				}
-
-				//非同期	/	同期
-				orderContext.contains(OrderPrefix.__async.toString) match {
+				validateKeys(currentAddedOrderInfo) match {
 					case true => {
-						//動作開始の通知
-						messenger.callParent(Messages.MESSAGE_ASYNCRONOUSLY_STARTED.toString,
-							messenger.tagValues(new TagValue("workerIdentity", identity),
-								new TagValue("orderIdentity", orderIdentity)))
+						//タイムアウトの設定があれば、リミットをセットする
+						orderContext.get(OrderPrefix.__timeout.toString) match {
+							case Some(v) => setTimeout(currentAddedOrderInfo)
 
-						//自分自身を非同期で実行する
-						messenger.callMyselfWithAsync(Messages.MESSAGE_EXEC_ASYNC.toString, messenger.tagValues(new TagValue("currentAddedOrderInfo", currentAddedOrderInfo)))
+							//値がセットされてない
+							case None =>
+						}
+
+						//非同期	/	同期
+						orderContext.contains(OrderPrefix.__delay.toString) match {
+							case true => {
+								//非同期動作開始の通知
+								messenger.callParent(Messages.MESSAGE_ASYNCRONOUSLY_STARTED.toString,
+									messenger.tagValues(new TagValue("workerIdentity", identity),
+										new TagValue("orderIdentity", orderIdentity)))
+
+								//自分自身を非同期で実行する
+								messenger.callMyselfWithAsync(Messages.MESSAGE_EXEC_ASYNC.toString, messenger.tagValues(new TagValue("asyncContextWorkInfo", currentAddedOrderInfo)))
+							}
+							case false => {
+								//動作開始の通知
+								messenger.callParent(Messages.MESSAGE_SYNCRONOUSLY_STARTED.toString,
+									messenger.tagValues(new TagValue("workerIdentity", identity),
+										new TagValue("orderIdentity", orderIdentity)))
+								run(currentAddedOrderInfo)
+							}
+						}
 					}
-					case false => {
-						//動作開始の通知
-						messenger.callParent(Messages.MESSAGE_SYNCRONOUSLY_STARTED.toString,
-							messenger.tagValues(new TagValue("workerIdentity", identity),
-								new TagValue("orderIdentity", orderIdentity)))
-						run(currentAddedOrderInfo)
-					}
+					
+					case false => //エラーは出力済みなので何も起こらない
 				}
+
 			}
 
 			//Timeout
@@ -119,8 +125,35 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 
 			//非同期実行
 			case Messages.MESSAGE_EXEC_ASYNC => {
-				val currentAddedOrderInfo = messenger.get("currentAddedOrderInfo", tagValues).asInstanceOf[WorkInformation]
-				run(currentAddedOrderInfo)
+				val asyncContextWorkInfo = messenger.get("asyncContextWorkInfo", tagValues).asInstanceOf[WorkInformation]
+				asyncContextWorkInfo.localContext.get(OrderPrefix.__delay.toString) match {
+					case Some(v) => {
+						try {
+							val delay = v.toInt
+
+							try {
+								Thread.sleep(delay)
+							} catch { //sleepに対するException -など
+								case e : Exception => errorProc(asyncContextWorkInfo, e.toString)
+							}
+
+							/*-----------一定時間後実行-----------*/
+
+							run(asyncContextWorkInfo)
+						} catch {
+							case e : Exception => errorProc(asyncContextWorkInfo, e.toString)
+
+							case _ =>
+						}
+					}
+					case _ =>
+				}
+			}
+
+			//終了命令
+			case Messages.MESSAGE_OVER => {
+				//messengerを閉じる
+				messenger.close
 			}
 
 			case other => {
@@ -135,10 +168,19 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 	def validateKeys(context : WorkInformation) = {
 		(context.localContext.isDefinedAt(OrderPrefix._kind.toString),
 			context.localContext.isDefinedAt(OrderPrefix._main.toString)) match {
-				case (true, true) => //validated.
-				case (false, true) => errorProc(context, "no" + WHITESPACE + OrderPrefix._kind + WHITESPACE + "key found in " + context)
-				case (true, false) => errorProc(context, "no" + WHITESPACE + OrderPrefix._main + WHITESPACE + "key found in " + context)
-				case _ => errorProc(context, "no" + WHITESPACE + OrderPrefix._kind + WHITESPACE + OrderPrefix._main + WHITESPACE + "keys found in " + context)
+				case (true, true) => true //validated.
+				case (false, true) => {
+					errorProc(context, "no" + WHITESPACE + OrderPrefix._kind + WHITESPACE + "key found in " + context)
+					false
+				}
+				case (true, false) => {
+					errorProc(context, "no" + WHITESPACE + OrderPrefix._main + WHITESPACE + "key found in " + context)
+					false
+				}
+				case _ => {
+					errorProc(context, "no" + WHITESPACE + OrderPrefix._kind + WHITESPACE + OrderPrefix._main + WHITESPACE + "keys found in " + context)
+					false
+				}
 			}
 	}
 
@@ -313,8 +355,8 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 		//親に終了を通知
 		messenger.callParent(Messages.MESSAGE_ERROR.toString,
 			messenger.tagValues(
-				new TagValue("identity", identity),
-				new TagValue("orderIdentity", info.orderIdentity),
+				new TagValue("erroredWorkerIdentity", identity),
+				new TagValue("erroredOrderIdentity", info.orderIdentity),
 				new TagValue("eventualContext", errorContext)))
 
 		currentStatus = WorkerStatus.STATUS_ERROR
