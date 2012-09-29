@@ -10,69 +10,69 @@ import java.util.UUID
 @RunWith(classOf[JUnitRunner])
 class MondogrossoProcessOrdersTests extends Specification {
 	val standardJSON = """{"A": {"_type": "sh","_class": "AShell.sh","_exec": "myExec","key": "value","key2": "value2"}}"""
-	
+
 	"orderInputs" should {
 		"have single triples" in {
 			val input = "(else:over:vie)"
 			val json = standardJSON
-			
+
 			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
 			val result = parser.parseAll(parser.orderInputs, input).get
-			result.myOrderInputTripleList.length == 1 must beTrue
+			result.myOrderInputTripleList.length must be_==(1)
 
 			val s = result.myOrderInputTripleList(0)
-			result.myOrderInputTripleList(0).myInputIdentity.myStr == "else" must beTrue
+			result.myOrderInputTripleList(0).myInputIdentity.myStr must be_==("else")
 		}
 
 		"have multiple triples" in {
 			val input = "(else:over:vie,else2:over2:vie2)"
 			val json = standardJSON
-			
+
 			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
 			val result = parser.parseAll(parser.orderInputs, input).get
 
-			result.myOrderInputTripleList.length == 2 must beTrue
+			result.myOrderInputTripleList.length must be_==(2)
 
-			result.myOrderInputTripleList(1).myInputIdentity.myStr == "else2" must beTrue
+			result.myOrderInputTripleList(1).myInputIdentity.myStr must be_==("else2")
 		}
 
 		"have multiple triples with whitespace" in {
 			val input = "(else:over:vie, else2:over2:vie2)"
 			val json = standardJSON
-			
+
 			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
 			val result = parser.parseAll(parser.orderInputs, input).get
 
-			result.myOrderInputTripleList.length == 2 must beTrue
+			result.myOrderInputTripleList.length must be_==(2)
 
-			result.myOrderInputTripleList(1).myInputIdentity.myStr == "else2" must beTrue
+			result.myOrderInputTripleList(1).myInputIdentity.myStr must be_==("else2")
 		}
 	}
-	
+
 	"waitOrders" should {
 		"waits 1つのwaitをもつ" in {
 			val input = "<A"
 			val json = standardJSON
-			
+
 			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
-			
+
 			val result = parser.parseAll(parser.waitOrdersOrNot, input).get
-			
-			result.myWaitOrdersList.length == 1 must beTrue
-			
-			result.myWaitOrdersList(0).myId == "A" must beTrue
+
+			result.myWaitOrdersList.length must be_==(1)
+
+			result.myWaitOrdersList(0).myId must be_==("A")
 		}
-		
+
 		"waits 2つのwaitをもつ" in {
 			val input = "<A,B"
 			val json = standardJSON
-			
+
 			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
 			val result = parser.parseAll(parser.waitOrdersOrNot, input).get
-			
-			result.myWaitOrdersList.length == 2 must beTrue
-			result.myWaitOrdersList(0).myId == "A" must beTrue
-			result.myWaitOrdersList(1).myId == "B" must beTrue
+
+			result.myWaitOrdersList.length must be_==(2)
+			result.myWaitOrdersList(0).myId must be_==("A")
+			result.myWaitOrdersList(1).myId must be_==("B")
 		}
 	}
 
@@ -81,76 +81,76 @@ class MondogrossoProcessOrdersTests extends Specification {
 			val id = "finally付きのフルセット"
 			val input = "A(else:over:vie,else2:over2:vie2)>B>C(a:v:s)<S,T+AB(elseB:overB:vieB,elseB2:overB2:vieB2)<SB!Z"
 			val json = standardJSON
-			
+
 			val parser = new MondogrossoProcessParser(id, input, json)
 
 			val context = parser.parseProcess
 
 			//finallyがあるはず
-			context.finallyOrder == "Z" must beTrue
+			context.finallyOrder must be_==("Z")
 
 			//総合Order数
-			context.totalOrderCount == 4 must beTrue
+			context.totalOrderCount must be_==(4)
 
 			//総合プロセス数
-			context.totalProcessNum == 2 must beTrue
+			context.totalProcessNum must be_==(2)
 
 			//Contextに投入する初期パラメータ一式
 			val contextSrc = context.initialParam
 
 			//プロセスがあるはず
 			val result = context.current
-			
+
 			//Ordersが2つあるはず
-			result.processList.length == 2 must beTrue
+			result.processList.length must be_==(2)
 
 			val the1stOrders = result.processList(0)
 			val the2ndOrders = result.processList(1)
 
 			//A,B,C,のOrderが入っているはず
-			the1stOrders.orderIdentityList.length == 3 must beTrue
+			the1stOrders.orderIdentityList.length must be_==(3)
 
 			//各identityがあっているはず		
-			the1stOrders.orderIdentityList(0) == "A" must beTrue
-			the1stOrders.orderIdentityList(1) == "B" must beTrue
-			the1stOrders.orderIdentityList(2) == "C" must beTrue
+			the1stOrders.orderIdentityList(0) must be_==("A")
+			the1stOrders.orderIdentityList(1) must be_==("B")
+			the1stOrders.orderIdentityList(2) must be_==("C")
 
 			//Aには2つのinputTripleがある
-			the1stOrders.orderAdditional("A").inputsList(0).sourceOrderIdentity == "else" must beTrue
-			the1stOrders.orderAdditional("A").inputsList(0).from == "over" must beTrue
-			the1stOrders.orderAdditional("A").inputsList(0).to == "vie" must beTrue
+			the1stOrders.orderAdditional("A").inputsList(0).sourceOrderIdentity must be_==("else")
+			the1stOrders.orderAdditional("A").inputsList(0).from must be_==("over")
+			the1stOrders.orderAdditional("A").inputsList(0).to must be_==("vie")
 
-			the1stOrders.orderAdditional("A").inputsList(1).sourceOrderIdentity == "else2" must beTrue
-			the1stOrders.orderAdditional("A").inputsList(1).from == "over2" must beTrue
-			the1stOrders.orderAdditional("A").inputsList(1).to == "vie2" must beTrue
+			the1stOrders.orderAdditional("A").inputsList(1).sourceOrderIdentity must be_==("else2")
+			the1stOrders.orderAdditional("A").inputsList(1).from must be_==("over2")
+			the1stOrders.orderAdditional("A").inputsList(1).to must be_==("vie2")
 
 			//Cには1つのinputTripleがある
-			the1stOrders.orderAdditional("C").inputsList(0).sourceOrderIdentity == "a" must beTrue
-			the1stOrders.orderAdditional("C").inputsList(0).from == "v" must beTrue
-			the1stOrders.orderAdditional("C").inputsList(0).to == "s" must beTrue
+			the1stOrders.orderAdditional("C").inputsList(0).sourceOrderIdentity must be_==("a")
+			the1stOrders.orderAdditional("C").inputsList(0).from must be_==("v")
+			the1stOrders.orderAdditional("C").inputsList(0).to must be_==("s")
 
 			//CにはS,T, 2つのwaitがある
-			the1stOrders.orderAdditional("C").waitIdentitiesList(0) == "S" must beTrue
-			the1stOrders.orderAdditional("C").waitIdentitiesList(1) == "T" must beTrue
-			
+			the1stOrders.orderAdditional("C").waitIdentitiesList(0) must be_==("S")
+			the1stOrders.orderAdditional("C").waitIdentitiesList(1) must be_==("T")
+
 			//2つめのOrders
 			//AB,のOrderが入っているはず
-			the2ndOrders.orderIdentityList.length == 1 must beTrue
+			the2ndOrders.orderIdentityList.length must be_==(1)
 
 			//プロセス２のIdentity AB
-			the2ndOrders.orderIdentityList(0) == "AB" must beTrue
+			the2ndOrders.orderIdentityList(0) must be_==("AB")
 
 			//ABには2つのinputTripleがある
-			the2ndOrders.orderAdditional("AB").inputsList(0).sourceOrderIdentity == "elseB" must beTrue
-			the2ndOrders.orderAdditional("AB").inputsList(0).from == "overB" must beTrue
-			the2ndOrders.orderAdditional("AB").inputsList(0).to == "vieB" must beTrue
+			the2ndOrders.orderAdditional("AB").inputsList(0).sourceOrderIdentity must be_==("elseB")
+			the2ndOrders.orderAdditional("AB").inputsList(0).from must be_==("overB")
+			the2ndOrders.orderAdditional("AB").inputsList(0).to must be_==("vieB")
 
-			the2ndOrders.orderAdditional("AB").inputsList(1).sourceOrderIdentity == "elseB2" must beTrue
-			the2ndOrders.orderAdditional("AB").inputsList(1).from == "overB2" must beTrue
-			the2ndOrders.orderAdditional("AB").inputsList(1).to == "vieB2" must beTrue
+			the2ndOrders.orderAdditional("AB").inputsList(1).sourceOrderIdentity must be_==("elseB2")
+			the2ndOrders.orderAdditional("AB").inputsList(1).from must be_==("overB2")
+			the2ndOrders.orderAdditional("AB").inputsList(1).to must be_==("vieB2")
 
 			//ABにはひとつのwaitがある
-			the2ndOrders.orderAdditional("AB").waitIdentitiesList(0) == "SB" must beTrue
+			the2ndOrders.orderAdditional("AB").waitIdentitiesList(0) must be_==("SB")
 		}
 
 		"all	wait整合性のあるProcess連続セット	" in {
@@ -169,26 +169,24 @@ class MondogrossoProcessOrdersTests extends Specification {
 			val result = parser.parseProcess
 
 			//Ordersが3つあるはず
-			result.current.processList.length == 3 must beTrue
+			result.current.processList.length must be_==(3)
 
 			val the1stOrders = result.current.processList(0)
 			val the2ndOrders = result.current.processList(1)
 			val the3rdOrders = result.current.processList(2)
 
 			//A,B,C, E,F,G のOrderが入っているはず
-			the1stOrders.orderIdentityList.length == 6 must beTrue
+			the1stOrders.orderIdentityList.length must be_==(6)
 
 			//Cがwait Dを持つはず
-			the1stOrders.orderAdditional("C").waitIdentitiesList(0) == "D" must beTrue
+			the1stOrders.orderAdditional("C").waitIdentitiesList(0) must be_==("D")
 
 			//B(processWait),D,のOrderが入っているはず
-			the2ndOrders.orderIdentityList.length == 2 must beTrue
+			the2ndOrders.orderIdentityList.length must be_==(2)
 
 			//E,H,I,のOrderが入っているはず
-			the3rdOrders.orderIdentityList.length == 3 must beTrue
+			the3rdOrders.orderIdentityList.length must be_==(3)
 		}
-
-		
 
 	}
 
@@ -202,18 +200,18 @@ class MondogrossoProcessOrdersTests extends Specification {
 
 			try {
 				val result = parser.parseProcess
-				false == true must beTrue
+				false must be_==(true)
 			} catch {
 				case e => {
-					println("excet?	"+e)
-					e == "java.lang.RuntimeException : Invalid Ideitifier" must beTrue
+					println("excet?	" + e)
+					e must be_==("java.lang.RuntimeException : Invalid Ideitifier")
 				}
 
 			} finally {
 				println("finally	done")
 			}
 		}
-		
+
 		"""all	wait整合性の "無い" Process連続セットのパースでwait整合性エラー""" in {
 			/*
 			 * 実際の流れは、
@@ -229,17 +227,17 @@ class MondogrossoProcessOrdersTests extends Specification {
 			val parser = new MondogrossoProcessParser(id, input, json)
 			try {
 				val result = parser.parseProcess
-				false == true must beTrue
+				"never reach here." must be_==("")
 			} catch {
 				case e => {
-					println("excet?	"+e)
-					e == "java.lang.RuntimeException: Illegular wait-relation when parsing failed" must beTrue
+					println("excet?	" + e)
+					e must be_==("java.lang.RuntimeException: Illegular wait-relation when parsing failed")
 				}
 			} finally {
 				println("finally	done")
 			}
 		}
-		
+
 		"finallyが無い" in {
 			val id = UUID.randomUUID().toString
 			val input = "A>B>C"
@@ -249,18 +247,18 @@ class MondogrossoProcessOrdersTests extends Specification {
 
 			try {
 				val result = parser.parseProcess
-				false == true must beTrue
+				"never reach here." must be_==("")
 			} catch {
 				case e => {
-					println("except?	"+e)
-					e == """java.lang.RuntimeException : Missing "Finally" OrderIdentity""" must beTrue
+					println("except?	" + e)
+					e must be_==("""java.lang.RuntimeException : Missing "Finally" OrderIdentity""")
 				}
 
 			} finally {
 				println("finally	done")
 			}
 		}
-		
+
 	}
 
 	"samples" should {
@@ -270,7 +268,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 
 			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
 			val result = parser.parseAll(parser.processes, input)
-
+			"not yet tested well" must be_==("")
 		}
 
 		"all	複数のWaitあり、なしのProcessフルセット	" in {
@@ -279,7 +277,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 
 			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
 			val result = parser.parseProcess
-
+			"not yet tested well" must be_==("")
 		}
 
 		"all	複数のWaitなしのProcessフルセット	" in {
@@ -288,7 +286,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 
 			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
 			val result = parser.parseProcess
-
+			"not yet tested well" must be_==("")
 		}
 
 		"all	複数のWait、パラメータなしのProcessフルセット	" in {
@@ -297,7 +295,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 
 			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
 			val result = parser.parseProcess
-
+			"not yet tested well" must be_==("")
 		}
 
 		"orders	<のあとにIdentityが一つあるケース" in {
@@ -306,7 +304,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 			val json = standardJSON
 			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
 			val result = parser.parseAll(parser.orders, input)
-
+			"not yet tested well" must be_==("")
 		}
 
 		"orders	<のあとにIdentityが一つあるケース2 パラメータなし" in {
@@ -315,7 +313,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 			val json = standardJSON
 			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
 			val result = parser.parseAll(parser.orders, input)
-
+			"not yet tested well" must be_==("")
 		}
 
 		"orders	<のあとにIdentityが一つあるケース3 パラメータなし、複数のOrder" in {
@@ -324,7 +322,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 			val json = standardJSON
 			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
 			val result = parser.parseAll(parser.orders, input)
-
+			"not yet tested well" must be_==("")
 		}
 
 		"order	<が無いケース" in {
@@ -333,7 +331,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 			val json = standardJSON
 			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
 			val result = parser.parseAll(parser.order, input)
-
+			"not yet tested well" must be_==("")
 		}
 
 		"all	<が無いケース" in {
@@ -342,7 +340,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 			val json = standardJSON
 			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
 			val result = parser.parseProcess
-
+			"not yet tested well" must be_==("")
 		}
 
 		"all	改行入りのケース1 改行コード" in {
@@ -350,7 +348,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 			val json = standardJSON
 			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
 			val result = parser.parseProcess
-
+			"not yet tested well" must be_==("")
 		}
 
 		"all	改行入りのケース2 改行される文章" in {
@@ -362,7 +360,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 			val json = standardJSON
 			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
 			val result = parser.parseProcess
-
+			"not yet tested well" must be_==("")
 		}
 
 		"単純なOrderの連続" in {
@@ -370,21 +368,21 @@ class MondogrossoProcessOrdersTests extends Specification {
 			val json = standardJSON
 			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
 			val result = parser.parseProcess
-
+			"not yet tested well" must be_==("")
 		}
 	}
-	
+
 	"JSON" should {
 		"単一のパラメータ" in {
 			val input = "A>B>C>D>E>F>G>H>I>J>K!Z"
 			val json = standardJSON
-			
+
 			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
 			val result = parser.parseProcess
-			
-			result.initialParam must be_==(Map("A"->Map("_type"->"sh","_class"->"AShell.sh","_exec"->"myExec","key"->"value", "key2"->"value2")))
+
+			result.initialParam must be_==(Map("A" -> Map("_type" -> "sh", "_class" -> "AShell.sh", "_exec" -> "myExec", "key" -> "value", "key2" -> "value2")))
 		}
-		
+
 		"複数のパラメータ" in {
 			val input = "A>B>C>D>E>F>G>H>I>J>K!Z"
 			val json = """{
@@ -424,16 +422,16 @@ class MondogrossoProcessOrdersTests extends Specification {
         "key2": "value2"
     }
 }"""
-			
+
 			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
 			val result = parser.parseProcess
-			
-			val a = Map("A"->Map("_type"->"sh","_class"->"AShell.sh","_exec"->"myExec","key"->"value", "key2"->"value2"))
-			val b = Map("B"->Map("_type"->"sh","_class"->"AShell.sh","_exec"->"myExec","key"->"value", "key2"->"value2"))
-			val c = Map("C"->Map("_type"->"sh","_class"->"AShell.sh","_exec"->"myExec","key"->"value", "key2"->"value2"))
-			val d = Map("D"->Map("_type"->"sh","_class"->"AShell.sh","_exec"->"myExec","key"->"value", "key2"->"value2"))
-			val e = Map("E"->Map("_type"->"sh","_class"->"AShell.sh","_exec"->"myExec","key"->"value", "key2"->"value2"))
-			
+
+			val a = Map("A" -> Map("_type" -> "sh", "_class" -> "AShell.sh", "_exec" -> "myExec", "key" -> "value", "key2" -> "value2"))
+			val b = Map("B" -> Map("_type" -> "sh", "_class" -> "AShell.sh", "_exec" -> "myExec", "key" -> "value", "key2" -> "value2"))
+			val c = Map("C" -> Map("_type" -> "sh", "_class" -> "AShell.sh", "_exec" -> "myExec", "key" -> "value", "key2" -> "value2"))
+			val d = Map("D" -> Map("_type" -> "sh", "_class" -> "AShell.sh", "_exec" -> "myExec", "key" -> "value", "key2" -> "value2"))
+			val e = Map("E" -> Map("_type" -> "sh", "_class" -> "AShell.sh", "_exec" -> "myExec", "key" -> "value", "key2" -> "value2"))
+
 			val total = a ++ b ++ c ++ d ++ e
 			result.initialParam must be_==(total)
 		}

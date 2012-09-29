@@ -13,6 +13,8 @@ object ContextStatus extends Enumeration {
 	STATUS_DONE,
 	
 	STATUS_TIMEOUT,
+	STATUS_TIMEOUTED,
+	
 	STATUS_ERROR,
 	
 	STATUS_NOTFOUND

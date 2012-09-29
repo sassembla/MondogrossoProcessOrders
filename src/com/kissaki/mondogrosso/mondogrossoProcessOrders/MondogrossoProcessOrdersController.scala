@@ -182,11 +182,11 @@ class ProcessContext(contextIdentity : String, contextSrc : ContextSource) exten
 	}
 
 	/**
-	 * 存在する有効なWorkerに直近のOrderの終了通知を投げる
+	 * 存在する有効なWorkerに直近のContext内でのOrderの終了通知を投げる
 	 */
 	def notifyFinishedOrderInfoToAllWorker(finishedOrderIdentity : String) = {
 		for (processName <- runningProcessList) {
-			println("processName	" + processName)
+			println("processName notify after	" + processName)
 			messenger.callWithAsync(processName, Messages.MESSAGE_FINISHEDORDER_NOTIFY.toString, messenger.tagValues(
 				new TagValue("finishedOrderIdentity", finishedOrderIdentity)))
 		}
@@ -216,43 +216,54 @@ class ProcessContext(contextIdentity : String, contextSrc : ContextSource) exten
 
 			case ContextStatus.STATUS_RUNNING => procRunning(exec, tagValues)
 
+			case ContextStatus.STATUS_TIMEOUT => procTimeout(exec, tagValues)
+			case ContextStatus.STATUS_TIMEOUTED => println("STATUS_TIMEOUTED")
+
 			case ContextStatus.STATUS_FINALLY => procFinally(exec, tagValues)
-			
+
 			case ContextStatus.STATUS_DONE => println("everything over at this context")
+
+			case ContextStatus.STATUS_ERROR => println("in the Error.." + exec)
 		}
 	}
 
+	/**
+	 * Order実行時の動作
+	 */
 	def procRunning(exec : Messages.Value, tagValues : Array[TagValue]) = {
 		exec match {
-			case Messages.MESSAGE_EXEC_TIMEOUT_READY => {
-				currentContext.get(finallyOrderIdentity).foreach { finallyContext => {
-						finallyContext.get(OrderPrefix.__finallyTimeout.toString).foreach { w => {
+			case Messages.MESSAGE_EXEC_TIMEOUT_READY => currentContext.get(finallyOrderIdentity).foreach { finallyContext =>
+				val source = finallyContext.get(OrderPrefix.__finallyTimeout.toString).getOrElse(OrderSettingDefault.SETTING_FINALLY_NO_TIMEOUT)
+				source match {
+					case OrderSettingDefault.SETTING_FINALLY_NO_TIMEOUT => println("記述が無いのでタイムアウトしない")
+					case other => {
 						try {
-							val delay = w.toInt
-
+							val delay = other.toInt
 							try {
 								Thread.sleep(delay)
 								/*-----------一定時間後実行-----------*/
 
-								runFinally(finallyContext)
-							} catch { //sleepに対するException -など
+								//Running間を連続していないと成立しない処理(正常終了後のFailSafeになっている
+								messenger.callMyself(Messages.MESSAGE_EXEC_TIMEOUT_RUN.toString, null)
+							} catch { //sleepに対するException -値など
 								case e : Exception => contextErrorProc(currentContext, e.toString)
-								case _ =>
+								case other => println("sleep 例外以外	" + other)
 							}
-						} catch {
+						} catch { //値が数値化できない、など
 							case e : Exception => contextErrorProc(currentContext, e.toString)
-							case _ =>
-						}}}
+							case other => println("toInt 例外以外	" + other)
+						}
 					}
 				}
+
 			}
-			case Messages.MESSAGE_SYNCRONOUSLY_STARTED => {
-				println("currentOrderIndex	started	" + currentOrderIndex + "	/tagValues	" + tagValues)
+			case Messages.MESSAGE_EXEC_TIMEOUT_RUN => {
+				currentStatus = ContextStatus.STATUS_TIMEOUT
+				currentContext.get(finallyOrderIdentity).foreach { finallyContext => runFinally(finallyContext) }
 			}
 
-			case Messages.MESSAGE_ASYNCRONOUSLY_STARTED => {
-				println("currentOrderIndex	async started	" + currentOrderIndex + "	/tagValues	" + tagValues)
-			}
+			case Messages.MESSAGE_SYNCRONOUSLY_STARTED => println("currentOrderIndex	started	" + currentOrderIndex + "	/tagValues	" + tagValues)
+			case Messages.MESSAGE_ASYNCRONOUSLY_STARTED => println("currentOrderIndex	async started	" + currentOrderIndex + "	/tagValues	" + tagValues)
 
 			case Messages.MESSAGE_DONE => {
 				val currentFinishedWorkerIdentity = messenger.get("identity", tagValues).asInstanceOf[String]
@@ -267,12 +278,16 @@ class ProcessContext(contextIdentity : String, contextSrc : ContextSource) exten
 				val appendedContext = (currentFinishedOrderIdentity -> currentFinishedEventualContext)
 				currentContext += appendedContext
 
-				//非同期で、Contextが調整されたことを全Workerに通達する -> Workerからのリクエストを待つ(Wait状態になっていればRequestが来る。)
+				/*
+				 * 非同期で、Contextが調整されたことを全Workerに通達する -> Workerからのリクエストを待つ(相手が特定のOrderのWait状態になっていればRequestが来る。) 
+				 * PushKVO。
+				 * WorkerからみればPassiveKVO。
+				 */
 				notifyFinishedOrderInfoToAllWorker(currentFinishedOrderIdentity)
 			}
 
 			/*
-			 * WorkerからのOrderリクエストを受ける
+			 * Notifyを受けたWorkerからのOrderリクエストを受ける
 			 * 
 			 * そのWorkerへの次のOrderが無ければ、対象Workerを停止する
 			 * 全Workerが停止されたら、Context自体のfinallyを実行する
@@ -281,8 +296,10 @@ class ProcessContext(contextIdentity : String, contextSrc : ContextSource) exten
 				val processIdentity = messenger.get("workerIdentity", tagValues).asInstanceOf[String]
 				val finishedOrderIdentity = messenger.get("finishedOrderIdentity", tagValues).asInstanceOf[String]
 
-				//identityを含むprocessを抜き出し、次のOrderを探す
+				//終了したOrderの属するProcessを検索、次のOrderを探す
 				contextSrc.current.processList.withFilter(_.identity.equals(processIdentity)).foreach { process =>
+
+					//終了したOrderのIndexを出し、次があれば実行する。
 					val currentOrderIdentityIndex = process.orderIdentityList.lastIndexOf(finishedOrderIdentity)
 					println("currentOrderIdentityIndex	" + currentOrderIdentityIndex)
 
@@ -314,28 +331,62 @@ class ProcessContext(contextIdentity : String, contextSrc : ContextSource) exten
 					}
 				}
 			}
+			case _ => println("nothing todo in STATUS_RUNNING	-exec	" + exec)
 		}
 	}
 
-	def procFinally(exec : Messages.Value, tagValues : Array[TagValue]) = {
+	/**
+	 * Timeout時の動作
+	 *
+	 * 現段階のContextでのfinallyが実行される
+	 */
+	def procTimeout(exec : Messages.Value, tagValues : Array[TagValue]) = {
 		exec match {
-			case Messages.MESSAGE_FINALLY => {
-				//contextTimeoutがtimeoutを待っているかもしれないのでabort
-				println("MESSAGE_FINALLYに来てる")
-			}
-			
+			case Messages.MESSAGE_SYNCRONOUSLY_STARTED => println("currentOrderIndex	started	" + currentOrderIndex + "	/tagValues	" + tagValues)
+			case Messages.MESSAGE_ASYNCRONOUSLY_STARTED => println("currentOrderIndex	async started	" + currentOrderIndex + "	/tagValues	" + tagValues)
+
 			case Messages.MESSAGE_DONE => {
 				val currentFinishedWorkerIdentity = messenger.get("identity", tagValues).asInstanceOf[String]
 				val currentFinishedOrderIdentity = messenger.get("orderIdentity", tagValues).asInstanceOf[String]
+				val currentFinishedEventualContext = messenger.get("eventualContext", tagValues).asInstanceOf[scala.collection.mutable.Map[String, String]]
+
 				if (currentFinishedOrderIdentity.equals(finallyOrderIdentity) && currentFinishedWorkerIdentity.equals(finallyProcessIdentity)) {
-					currentStatus = ContextStatus.STATUS_DONE
-					
+					val appendedContext = (currentFinishedOrderIdentity -> currentFinishedEventualContext)
+
+					currentContext += appendedContext
+					currentStatus = ContextStatus.STATUS_TIMEOUTED
 				}
 			}
 
-			case other => {
-				println("未整理のメッセージ	" + other)
+			case _ => println("nothing todo in STATUS_TIMEOUT	-exec	" + exec)
+		}
+	}
+
+	/**
+	 * Finallyが通常実行された際の動作
+	 */
+	def procFinally(exec : Messages.Value, tagValues : Array[TagValue]) = {
+		exec match {
+			case Messages.MESSAGE_FINALLY => currentContext.get(finallyOrderIdentity).foreach { finallyContext => runFinally(finallyContext) }
+
+			case Messages.MESSAGE_SYNCRONOUSLY_STARTED => println("currentOrderIndex	started	" + currentOrderIndex + "	/tagValues	" + tagValues)
+			case Messages.MESSAGE_ASYNCRONOUSLY_STARTED => println("currentOrderIndex	async started	" + currentOrderIndex + "	/tagValues	" + tagValues)
+
+			case Messages.MESSAGE_DONE => {
+				val currentFinishedWorkerIdentity = messenger.get("identity", tagValues).asInstanceOf[String]
+				val currentFinishedOrderIdentity = messenger.get("orderIdentity", tagValues).asInstanceOf[String]
+				val currentFinishedEventualContext = messenger.get("eventualContext", tagValues).asInstanceOf[scala.collection.mutable.Map[String, String]]
+
+				if (currentFinishedOrderIdentity.equals(finallyOrderIdentity) && currentFinishedWorkerIdentity.equals(finallyProcessIdentity)) {
+					//eventualを、currentContextに上書きする
+					val appendedContext = (currentFinishedOrderIdentity -> currentFinishedEventualContext)
+					currentContext += appendedContext
+
+					currentStatus = ContextStatus.STATUS_DONE
+				}
 			}
+
+			case _ => println("nothing todo in STATUS_FINALLY	-exec	" + exec)
 		}
 	}
 }

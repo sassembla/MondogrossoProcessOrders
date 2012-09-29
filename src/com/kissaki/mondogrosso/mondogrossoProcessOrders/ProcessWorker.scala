@@ -333,7 +333,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 
 					currentStatus = WorkerStatus.STATUS_DONE
 				}
-				case _ => println("エラーなど、DOING以外")
+				case _ => 
 			}
 		} catch {
 			//実行後エラー
