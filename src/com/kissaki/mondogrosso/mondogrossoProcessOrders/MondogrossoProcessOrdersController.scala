@@ -8,6 +8,9 @@ import java.util.UUID
 import scala.collection.mutable.MapBuilder
 import scala.sys.process.{ Process ⇒ scalaProcess }
 import java.util.Date
+import java.util.Timer
+import java.util.TimerTask
+import java.util.concurrent.TimeUnit
 
 /**
  * プロセスのコントローラ
@@ -49,9 +52,10 @@ class MondogrossoProcessOrdersController {
  * 各Orderを実行する、Workerメッセージングのコアになる。
  */
 class ProcessContext(contextIdentity : String, contextSrc : ContextSource) extends MessengerProtocol {
-
+	println(contextIdentity + "	contextIdentity	/	this	" + this)
+	
 	//状態
-	var currentStatus = ContextStatus.STATUS_NONE
+	var currentStatus:ListBuffer[ContextStatus.Value] = ListBuffer(ContextStatus.STATUS_NOTREADY)
 
 	//メッセージング送信/受信
 	val messenger = new Messenger(this, contextIdentity)
@@ -78,24 +82,31 @@ class ProcessContext(contextIdentity : String, contextSrc : ContextSource) exten
 	 * 現在のコンテキストのIdを返す
 	 */
 	def identity = contextIdentity
-
+	
 	def processNum = contextSrc.totalProcessNum
 
 	def totalOrderNum = contextSrc.totalOrderCount
 
+	
+	//timeout waiter
+	val waiterIdentity = UUID.randomUUID().toString
+	val currentWaiter = new Waiter(waiterIdentity, identity)
+	
+	
 	//finally
 	val finallyProcessIdentity = UUID.randomUUID().toString
 	val finallyOrderIdentity = contextSrc.finallyOrder
 	val finallyWorker = new ProcessWorker(finallyProcessIdentity, contextIdentity)
 
+	
 	//準備完了
-	currentStatus = ContextStatus.STATUS_READY
+	ContextStatus.STATUS_READY +=: currentStatus 
 
 	/**
 	 * このコンテキストの現在のindexからの実行開始
 	 */
 	def runContext = {
-		currentStatus = ContextStatus.STATUS_RUNNING
+		ContextStatus.STATUS_RUNNING +=: currentStatus
 
 		//初期状態での、finallyの予約時間起動
 		setContextTimeout
@@ -111,7 +122,29 @@ class ProcessContext(contextIdentity : String, contextSrc : ContextSource) exten
 	 * 時間設定がある場合は開始になる。
 	 */
 	def setContextTimeout = {
-		messenger.callMyselfWithAsync(Messages.MESSAGE_EXEC_TIMEOUT_READY.toString, null);
+		val delayValue = currentContext.get(finallyOrderIdentity) match {
+			case Some(v) => {
+				val candidate = v.get(OrderPrefix.__finallyTimeout.toString).getOrElse(OrderSettingDefault.SETTING_FINALLY_TIMEOUT_ZERO.toString)
+				try {
+					candidate.toInt
+				} catch { //値が数値化できない、など
+					case e : Exception => {
+						contextErrorProc(currentContext, e.toString)
+						OrderSettingDefault.SETTING_FINALLY_TIMEOUT_ZERO
+					}
+					case other => OrderSettingDefault.SETTING_FINALLY_TIMEOUT_ZERO
+				}
+			}
+			case None => OrderSettingDefault.SETTING_FINALLY_TIMEOUT_ZERO
+		}
+		
+		delayValue match {
+			case OrderSettingDefault.SETTING_FINALLY_TIMEOUT_ZERO => println("thisContext = "+this+"	no timeout")//無ければ0扱い
+			case other if (other < OrderSettingDefault.SETTING_FINALLY_TIMEOUT_ZERO) => contextErrorProc(currentContext, "negative value!")
+			case _ => messenger.callWithAsync(waiterIdentity, Messages.MESSAGE_WAITER_EXEC_TIMEOUT_READY.toString, messenger.tagValues(new TagValue("delay", delayValue)));
+		}
+		
+		println("set out!	"+delayValue)
 	}
 
 	/**
@@ -119,7 +152,7 @@ class ProcessContext(contextIdentity : String, contextSrc : ContextSource) exten
 	 */
 	def contextErrorProc(erroredContext : scala.collection.mutable.Map[String, scala.collection.mutable.Map[String, String]], error : String) = {
 		println("エラーが発生	" + erroredContext + "	/error	" + error)
-		currentStatus = ContextStatus.STATUS_ERROR
+		ContextStatus.STATUS_ERROR +=: currentStatus 
 	}
 
 	/**
@@ -186,7 +219,7 @@ class ProcessContext(contextIdentity : String, contextSrc : ContextSource) exten
 	 */
 	def notifyFinishedOrderInfoToAllWorker(finishedOrderIdentity : String) = {
 		for (processName <- runningProcessList) {
-			println("processName notify after	" + processName)
+			println("notify the end of processName	" + processName+"	/	"+identity)
 			messenger.callWithAsync(processName, Messages.MESSAGE_FINISHEDORDER_NOTIFY.toString, messenger.tagValues(
 				new TagValue("finishedOrderIdentity", finishedOrderIdentity)))
 		}
@@ -196,7 +229,6 @@ class ProcessContext(contextIdentity : String, contextSrc : ContextSource) exten
 	 * FinallyOrderを開始する
 	 */
 	def runFinally(finallyContext : scala.collection.mutable.Map[String, String]) = {
-		println("finallyContext	" + finallyContext)
 		messenger.call(finallyProcessIdentity, Messages.MESSAGE_START.toString, messenger.tagValues(
 			new TagValue("identity", finallyOrderIdentity),
 			new TagValue("context", finallyContext)))
@@ -209,19 +241,19 @@ class ProcessContext(contextIdentity : String, contextSrc : ContextSource) exten
 
 		val exec = Messages.get(execSrc)
 
-		currentStatus match {
-			case ContextStatus.STATUS_NONE => println("何も")
+		currentStatus.head match {
+			case ContextStatus.STATUS_NOTREADY => println("何も")
 
 			case ContextStatus.STATUS_READY => println("runContext should")
 
 			case ContextStatus.STATUS_RUNNING => procRunning(exec, tagValues)
 
 			case ContextStatus.STATUS_TIMEOUT => procTimeout(exec, tagValues)
-			case ContextStatus.STATUS_TIMEOUTED => println("STATUS_TIMEOUTED")
+			case ContextStatus.STATUS_TIMEOUTED => println("STATUS_TIMEOUTED	exec	"+exec+"	/	"+identity)
 
 			case ContextStatus.STATUS_FINALLY => procFinally(exec, tagValues)
 
-			case ContextStatus.STATUS_DONE => println("everything over at this context")
+			case ContextStatus.STATUS_DONE => println("everything over at this context" + identity + "	/currentStatus	" +currentStatus )
 
 			case ContextStatus.STATUS_ERROR => println("in the Error.." + exec)
 		}
@@ -232,33 +264,10 @@ class ProcessContext(contextIdentity : String, contextSrc : ContextSource) exten
 	 */
 	def procRunning(exec : Messages.Value, tagValues : Array[TagValue]) = {
 		exec match {
-			case Messages.MESSAGE_EXEC_TIMEOUT_READY => currentContext.get(finallyOrderIdentity).foreach { finallyContext =>
-				val source = finallyContext.get(OrderPrefix.__finallyTimeout.toString).getOrElse(OrderSettingDefault.SETTING_FINALLY_NO_TIMEOUT)
-				source match {
-					case OrderSettingDefault.SETTING_FINALLY_NO_TIMEOUT => println("記述が無いのでタイムアウトしない")
-					case other => {
-						try {
-							val delay = other.toInt
-							try {
-								Thread.sleep(delay)
-								/*-----------一定時間後実行-----------*/
-
-								//Running間を連続していないと成立しない処理(正常終了後のFailSafeになっている
-								messenger.callMyself(Messages.MESSAGE_EXEC_TIMEOUT_RUN.toString, null)
-							} catch { //sleepに対するException -値など
-								case e : Exception => contextErrorProc(currentContext, e.toString)
-								case other => println("sleep 例外以外	" + other)
-							}
-						} catch { //値が数値化できない、など
-							case e : Exception => contextErrorProc(currentContext, e.toString)
-							case other => println("toInt 例外以外	" + other)
-						}
-					}
-				}
-
-			}
+			//waiterからのdelay時にまだRunningだったら
 			case Messages.MESSAGE_EXEC_TIMEOUT_RUN => {
-				currentStatus = ContextStatus.STATUS_TIMEOUT
+				ContextStatus.STATUS_TIMEOUT +=: currentStatus 
+				println("MESSAGE_EXEC_TIMEOUT_RUN	currentStatus	"+currentStatus + "	/	"+identity)
 				currentContext.get(finallyOrderIdentity).foreach { finallyContext => runFinally(finallyContext) }
 			}
 
@@ -270,8 +279,8 @@ class ProcessContext(contextIdentity : String, contextSrc : ContextSource) exten
 				val currentFinishedOrderIdentity = messenger.get("orderIdentity", tagValues).asInstanceOf[String]
 				val currentFinishedEventualContext = messenger.get("eventualContext", tagValues).asInstanceOf[scala.collection.mutable.Map[String, String]]
 
-				println("currentFinishedWorkerIdentity	" + currentFinishedWorkerIdentity)
-				println("currentFinishedOrderIdentity	" + currentFinishedOrderIdentity)
+//				println("currentFinishedWorkerIdentity	" + currentFinishedWorkerIdentity)
+//				println("currentFinishedOrderIdentity	" + currentFinishedOrderIdentity)
 				println("currentFinishedEventualContext	" + currentFinishedEventualContext)
 
 				//eventualを、currentContextに上書きする
@@ -301,7 +310,7 @@ class ProcessContext(contextIdentity : String, contextSrc : ContextSource) exten
 
 					//終了したOrderのIndexを出し、次があれば実行する。
 					val currentOrderIdentityIndex = process.orderIdentityList.lastIndexOf(finishedOrderIdentity)
-					println("currentOrderIdentityIndex	" + currentOrderIdentityIndex)
+					println("currentOrderIdentityIndex	" + currentOrderIdentityIndex+"	/	"+identity)
 
 					currentOrderIdentityIndex match {
 						//先ほど完了したのがこのProcessのラスト
@@ -315,7 +324,8 @@ class ProcessContext(contextIdentity : String, contextSrc : ContextSource) exten
 
 							//runningProcessListが空だったらfinallyを実行
 							if (runningProcessList.isEmpty) {
-								currentStatus = ContextStatus.STATUS_FINALLY
+								println("Finally実行開始	"+identity)
+								ContextStatus.STATUS_FINALLY +=: currentStatus 
 								messenger.callMyself(Messages.MESSAGE_FINALLY.toString, null)
 							}
 						}
@@ -342,23 +352,25 @@ class ProcessContext(contextIdentity : String, contextSrc : ContextSource) exten
 	 */
 	def procTimeout(exec : Messages.Value, tagValues : Array[TagValue]) = {
 		exec match {
-			case Messages.MESSAGE_SYNCRONOUSLY_STARTED => println("currentOrderIndex	started	" + currentOrderIndex + "	/tagValues	" + tagValues)
-			case Messages.MESSAGE_ASYNCRONOUSLY_STARTED => println("currentOrderIndex	async started	" + currentOrderIndex + "	/tagValues	" + tagValues)
+			case Messages.MESSAGE_SYNCRONOUSLY_STARTED => //println("currentOrderIndex	started	" + currentOrderIndex + "	/tagValues	" + tagValues)
+			case Messages.MESSAGE_ASYNCRONOUSLY_STARTED => //println("currentOrderIndex	async started	" + currentOrderIndex + "	/tagValues	" + tagValues)
 
 			case Messages.MESSAGE_DONE => {
+				
 				val currentFinishedWorkerIdentity = messenger.get("identity", tagValues).asInstanceOf[String]
 				val currentFinishedOrderIdentity = messenger.get("orderIdentity", tagValues).asInstanceOf[String]
 				val currentFinishedEventualContext = messenger.get("eventualContext", tagValues).asInstanceOf[scala.collection.mutable.Map[String, String]]
 
 				if (currentFinishedOrderIdentity.equals(finallyOrderIdentity) && currentFinishedWorkerIdentity.equals(finallyProcessIdentity)) {
+					println("procTimeout	MESSAGE_DONEにきてる	"+identity)
 					val appendedContext = (currentFinishedOrderIdentity -> currentFinishedEventualContext)
 
 					currentContext += appendedContext
-					currentStatus = ContextStatus.STATUS_TIMEOUTED
+					ContextStatus.STATUS_TIMEOUTED +=: currentStatus 
 				}
 			}
 
-			case _ => println("nothing todo in STATUS_TIMEOUT	-exec	" + exec)
+			case _ => println("nothing todo in STATUS_TIMEOUT	-exec	" + exec+"	/	"+identity)
 		}
 	}
 
@@ -367,10 +379,13 @@ class ProcessContext(contextIdentity : String, contextSrc : ContextSource) exten
 	 */
 	def procFinally(exec : Messages.Value, tagValues : Array[TagValue]) = {
 		exec match {
-			case Messages.MESSAGE_FINALLY => currentContext.get(finallyOrderIdentity).foreach { finallyContext => runFinally(finallyContext) }
+			case Messages.MESSAGE_FINALLY => currentContext.get(finallyOrderIdentity).foreach { 
+				println("MESSAGE_FINALLYにきてる	"+identity)
+				finallyContext => runFinally(finallyContext) 
+			}
 
-			case Messages.MESSAGE_SYNCRONOUSLY_STARTED => println("currentOrderIndex	started	" + currentOrderIndex + "	/tagValues	" + tagValues)
-			case Messages.MESSAGE_ASYNCRONOUSLY_STARTED => println("currentOrderIndex	async started	" + currentOrderIndex + "	/tagValues	" + tagValues)
+			case Messages.MESSAGE_SYNCRONOUSLY_STARTED => //println("currentOrderIndex	started	" + currentOrderIndex + "	/tagValues	" + tagValues)
+			case Messages.MESSAGE_ASYNCRONOUSLY_STARTED => //println("currentOrderIndex	async started	" + currentOrderIndex + "	/tagValues	" + tagValues)
 
 			case Messages.MESSAGE_DONE => {
 				val currentFinishedWorkerIdentity = messenger.get("identity", tagValues).asInstanceOf[String]
@@ -378,15 +393,48 @@ class ProcessContext(contextIdentity : String, contextSrc : ContextSource) exten
 				val currentFinishedEventualContext = messenger.get("eventualContext", tagValues).asInstanceOf[scala.collection.mutable.Map[String, String]]
 
 				if (currentFinishedOrderIdentity.equals(finallyOrderIdentity) && currentFinishedWorkerIdentity.equals(finallyProcessIdentity)) {
+					println("procFinally	DONE!	"+identity)
 					//eventualを、currentContextに上書きする
 					val appendedContext = (currentFinishedOrderIdentity -> currentFinishedEventualContext)
 					currentContext += appendedContext
 
-					currentStatus = ContextStatus.STATUS_DONE
+					ContextStatus.STATUS_DONE +=: currentStatus
+
+					//掃除
+					currentWaiter.messenger.close
 				}
 			}
 
 			case _ => println("nothing todo in STATUS_FINALLY	-exec	" + exec)
 		}
+	}
+	
+	
+	class Waiter (waiterIdentity: String, masterName:String) extends MessengerProtocol {
+		//メッセージング送信/受信
+		val messenger = new Messenger(this, waiterIdentity)
+		messenger.inputParent(masterName)
+		
+		def receiver(execSrc : String, tagValues : Array[TagValue]) = {
+			Messages.get(execSrc) match {
+				case Messages.MESSAGE_WAITER_EXEC_TIMEOUT_READY => {
+					val delay = messenger.get("delay", tagValues).asInstanceOf[Int]
+					println("delay	"+delay)
+		
+					val timer = new Timer("testing"+this);
+					timer.schedule(new TimerTask {
+						def run = {
+							/*-----------一定時間後実行-----------*/
+							println(identity+"	delayied	"+delay)
+							//Running間を連続していないと成立しない処理(正常終了後のFailSafeになっている
+							messenger.callParent(Messages.MESSAGE_EXEC_TIMEOUT_RUN.toString, null)
+						}
+					}, TimeUnit.MILLISECONDS.toMillis(delay));
+
+					
+				}
+			}
+		}
+		
 	}
 }

@@ -46,7 +46,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 			case Messages.MESSAGE_FINISHEDORDER_NOTIFY => {
 				val finishedOrderIdentity = messenger.get("finishedOrderIdentity", tagValues).asInstanceOf[String]
 
-				println("finishedOrderIdentity	" + finishedOrderIdentity)
+//				println("finishedOrderIdentity	" + finishedOrderIdentity)
 			}
 
 			case Messages.MESSAGE_START => {
@@ -281,7 +281,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 
 						val stableCommand = info.localContext(OrderPrefix._main.toString) + WHITESPACE + reduced
 
-						println("shell stableCommand	" + stableCommand)
+//						println("shell stableCommand	" + stableCommand)
 
 						//プロセス生成
 						val process = scalaProcess(stableCommand)
@@ -324,7 +324,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 							new TagValue("identity", identity),
 							new TagValue("orderIdentity", info.orderIdentity),
 							new TagValue("eventualContext", eventualContext)))
-
+					println("from worker, process is	"+identity+" make request! to parent "+messenger.getParentName)
 					//親に、次のOrderをリクエスト
 					messenger.callParentWithAsync(Messages.MESSAGE_REQUEST.toString,
 						messenger.tagValues(

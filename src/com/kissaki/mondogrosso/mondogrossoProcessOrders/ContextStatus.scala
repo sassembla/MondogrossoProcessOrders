@@ -5,7 +5,7 @@ object ContextStatus extends Enumeration {
 	type ContextStatus = Value
 	
 	//MESSAGES
-	val STATUS_NONE,
+	val STATUS_NOTREADY,
 	STATUS_READY,
 	STATUS_RUNNING,
 	

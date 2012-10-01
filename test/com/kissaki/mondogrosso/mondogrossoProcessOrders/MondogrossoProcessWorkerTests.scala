@@ -103,7 +103,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 							OrderPrefix._main.toString -> "ls -l"))))
 
 				//非同期なので、待ち
-				dummyParent.waitTime(1000)
+				dummyParent.waitTime(1000, workerId)
 
 				val latestWork = worker.getLatestWorkInformation
 
@@ -135,7 +135,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 							OrderPrefix.__delay.toString -> "1000"))))
 
 				//非同期に待つ　この間に、非同期実行され、完了が親に届いているはず
-				dummyParent.waitTime(1200) //1.2秒くらい待つ
+				dummyParent.waitTime(1200, workerId) //1.2秒くらい待つ
 
 				//実行が同期的に行われ、実行されたあとの情報が残る
 				worker.currentStatus must be_==(WorkerStatus.STATUS_DONE)
@@ -169,7 +169,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 							OrderPrefix.__delay.toString -> "wrong expression of number"))))
 
 				//非同期のセット自体が非同期なので、待ち
-				dummyParent.waitTime(100)
+				dummyParent.waitTime(100, workerId)
 
 				//実行が同期的に行われ、実行されたあとの情報が残る
 				worker.currentStatus must be_==(WorkerStatus.STATUS_ERROR)
@@ -203,7 +203,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 							OrderPrefix.__delay.toString -> "-1000"))))
 
 				//非同期のセット自体が非同期なので、待ち
-				dummyParent.waitTime(100)
+				dummyParent.waitTime(100, workerId)
 
 				//実行が同期的に行われ、実行されたあとの情報が残る
 				worker.currentStatus must be_==(WorkerStatus.STATUS_ERROR)
@@ -248,7 +248,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 							OrderPrefix.__timeout.toString -> "100")))) //0.1秒でtimeout
 
 				//非同期に待つ　この間に、タイムアウトは親に届いているはず
-				dummyParent.waitTime(1500) //1.5秒くらい待つ
+				dummyParent.waitTime(1500, workerId) //1.5秒くらい待つ
 
 				//実行が同期的に行われ、実行されたあとの情報が残る
 				worker.currentStatus must be_==(WorkerStatus.STATUS_TIMEOUT)
@@ -313,7 +313,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 							OrderPrefix.__timeout.toString -> "100"))))
 
 				//非同期に待つ
-				dummyParent.waitTime(1000) //1秒くらい待つ
+				dummyParent.waitTime(1000, workerId) //1秒くらい待つ
 
 				//実行が同期的に行われ、実行されたあとの情報が残る
 				worker.currentStatus must be_==(WorkerStatus.STATUS_TIMEOUT)
@@ -342,7 +342,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 							OrderPrefix.__timeout.toString -> "100"))))
 
 				//非同期に待つ
-				dummyParent.waitTime(1000) //1秒くらい待つ
+				dummyParent.waitTime(1000, workerId) //1秒くらい待つ
 
 				//実行が同期的に行われ、実行されたあとの情報が残る
 				worker.currentStatus must be_==(WorkerStatus.STATUS_TIMEOUT)
@@ -613,7 +613,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 							OrderPrefix.__delay.toString -> ""))))
 
 				//非同期に待つ
-				dummyParent.waitTime(1000) //1秒くらい待つ
+				dummyParent.waitTime(1000, workerId) //1秒くらい待つ
 
 				//ls -lを実行した結果が残っているはず
 				val latestWork = worker.getLatestWorkInformation
@@ -661,7 +661,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 							"-i" -> "hereComes"))))
 
 				//非同期に待つ
-				dummyParent.waitTime(1000) //1秒くらい待つ
+				dummyParent.waitTime(1000, workerId) //1秒くらい待つ
 
 				//java -jar TestProject.jar -i herecomes を非同期に実行した結果が残っているはず
 				val latestWork = worker.getLatestWorkInformation
@@ -690,7 +690,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 							))))
 
 				//非同期に待つ
-				dummyParent.waitTime(1500) //1.5秒くらい待つ
+				dummyParent.waitTime(1500, workerId) //1.5秒くらい待つ
 
 				//java -jar TestProject.jar -i herecomes -t,,,を実行した結果が残っているはず
 				val latestWork = worker.getLatestWorkInformation
@@ -738,7 +738,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 	}
 
 	//TEST_HELP
-	if (true) {
+	if (false) {
 		"Test Helping" should {
 			//擬似的に親を生成する
 			val dummyParent = new DummyParent()

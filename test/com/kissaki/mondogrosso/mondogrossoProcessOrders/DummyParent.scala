@@ -14,20 +14,23 @@ class DummyParent extends MessengerProtocol {
 	val messenger = new Messenger(this, uuid)
 	def name = messenger.getName
 	
-	def waitTime (delay:Int) = {
-		println("delay	"+delay)
-		messenger.callMyself("wait", messenger.tagValues(new TagValue("delay", delay)))
+	def waitTime (delay:Int, delayId:String) = {
+		println("delay	"+delay+",	withId	"+delayId)
+		messenger.callMyself("wait", 
+				messenger.tagValues(new TagValue("delay", delay),
+						new TagValue("delayId",delayId)))
 	}
 	
 	def receiver(exec:String, tagValues:Array[TagValue]) = {
 		println("DummyParent exec	"+exec)
 		exec match {
 			case "wait" => {
-				println("dummyParent start to sleep")
+				val id = messenger.get("delayId", tagValues).asInstanceOf[String]
+				println("dummyParent start to sleep	"+id)
 				
 				val delay = messenger.get("delay", tagValues).asInstanceOf[Int]
 				Thread.sleep(delay)
-				println("dummyParent wake from sleep")
+				println("dummyParent wake from sleep	"+id)
 			}
 			case other => {
 				val messagesExec = Messages.get(other)
