@@ -48,7 +48,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 							{
 								"_kind": "sh",
 								"_main": "ls -l",
-								"__delay":"10000"
+								"__delay":"100"
 							}
 						}"""
 
@@ -103,7 +103,10 @@ class MondogrossoProcessWorkerTests extends Specification {
 							OrderPrefix._main.toString -> "ls -l"))))
 
 				//非同期なので、待ち
-				dummyParent.waitTime(1000, workerId)
+				while (!worker.currentStatus.equals(WorkerStatus.STATUS_DONE)) {
+					Thread.sleep(100)
+					println("waiting,,,Workerを同期で実行後、実行完了したので、次のOrderをリクエスト	"+this)
+				}
 
 				val latestWork = worker.getLatestWorkInformation
 
@@ -135,10 +138,10 @@ class MondogrossoProcessWorkerTests extends Specification {
 							OrderPrefix.__delay.toString -> "1000"))))
 
 				//非同期に待つ　この間に、非同期実行され、完了が親に届いているはず
-				dummyParent.waitTime(1200, workerId) //1.2秒くらい待つ
-
-				//実行が同期的に行われ、実行されたあとの情報が残る
-				worker.currentStatus must be_==(WorkerStatus.STATUS_DONE)
+				while (!worker.currentStatus.equals(WorkerStatus.STATUS_DONE)) {
+					Thread.sleep(100)
+					println("waiting,,,"+this)
+				}
 
 				val latestWork = worker.getLatestWorkInformation
 
@@ -169,10 +172,10 @@ class MondogrossoProcessWorkerTests extends Specification {
 							OrderPrefix.__delay.toString -> "wrong expression of number"))))
 
 				//非同期のセット自体が非同期なので、待ち
-				dummyParent.waitTime(100, workerId)
-
-				//実行が同期的に行われ、実行されたあとの情報が残る
-				worker.currentStatus must be_==(WorkerStatus.STATUS_ERROR)
+				while (!worker.currentStatus.equals(WorkerStatus.STATUS_ERROR)) {
+					Thread.sleep(100)
+					println("waiting,,,非同期のパラメータに数字以外を使用	"+this)
+				}
 
 				val latestWork = worker.getLatestWorkInformation
 
@@ -203,10 +206,10 @@ class MondogrossoProcessWorkerTests extends Specification {
 							OrderPrefix.__delay.toString -> "-1000"))))
 
 				//非同期のセット自体が非同期なので、待ち
-				dummyParent.waitTime(100, workerId)
-
-				//実行が同期的に行われ、実行されたあとの情報が残る
-				worker.currentStatus must be_==(WorkerStatus.STATUS_ERROR)
+				while (!worker.currentStatus.equals(WorkerStatus.STATUS_ERROR)) {
+					Thread.sleep(100)
+					println("waiting,,,非同期のパラメータに-数字を使用	"+this)
+				}
 
 				val latestWork = worker.getLatestWorkInformation
 
@@ -248,10 +251,10 @@ class MondogrossoProcessWorkerTests extends Specification {
 							OrderPrefix.__timeout.toString -> "100")))) //0.1秒でtimeout
 
 				//非同期に待つ　この間に、タイムアウトは親に届いているはず
-				dummyParent.waitTime(1500, workerId) //1.5秒くらい待つ
-
-				//実行が同期的に行われ、実行されたあとの情報が残る
-				worker.currentStatus must be_==(WorkerStatus.STATUS_TIMEOUT)
+				while (!worker.currentStatus.equals(WorkerStatus.STATUS_TIMEOUT)) {
+					Thread.sleep(100)
+					println("waiting,,,Workerを同期で実行、タイムアウト	"+this)
+				}
 
 				val latestWork = worker.getLatestWorkInformation
 
@@ -312,12 +315,11 @@ class MondogrossoProcessWorkerTests extends Specification {
 							OrderPrefix.__delay.toString -> "10000",
 							OrderPrefix.__timeout.toString -> "100"))))
 
-				//非同期に待つ
-				dummyParent.waitTime(1000, workerId) //1秒くらい待つ
-
-				//実行が同期的に行われ、実行されたあとの情報が残る
-				worker.currentStatus must be_==(WorkerStatus.STATUS_TIMEOUT)
-
+				while (!worker.currentStatus.equals(WorkerStatus.STATUS_TIMEOUT)) {
+					Thread.sleep(100)
+					println("waiting,,,Workerを非同期で実行、タイムアウト delayがtimeoutより十分大きい	"+this)
+				}
+				
 				val latestWork = worker.getLatestWorkInformation
 				latestWork.localContext.keys must be_==(Set(
 					OrderPrefix._kind.toString,
@@ -342,11 +344,11 @@ class MondogrossoProcessWorkerTests extends Specification {
 							OrderPrefix.__timeout.toString -> "100"))))
 
 				//非同期に待つ
-				dummyParent.waitTime(1000, workerId) //1秒くらい待つ
-
-				//実行が同期的に行われ、実行されたあとの情報が残る
-				worker.currentStatus must be_==(WorkerStatus.STATUS_TIMEOUT)
-
+				while (!worker.currentStatus.equals(WorkerStatus.STATUS_TIMEOUT)) {
+					Thread.sleep(100)
+					println("waiting,,,Workerを非同期で実行、タイムアウト delayがtimeoutより若干大きい = 追い付く可能性	"+this)
+				}
+				
 				val latestWork = worker.getLatestWorkInformation
 				latestWork.localContext.keys must be_==(Set(
 					OrderPrefix._kind.toString,
@@ -610,11 +612,14 @@ class MondogrossoProcessWorkerTests extends Specification {
 						new TagValue("context", Map(
 							OrderPrefix._kind.toString -> "sh",
 							OrderPrefix._main.toString -> "ls -l",
-							OrderPrefix.__delay.toString -> ""))))
+							OrderPrefix.__delay.toString -> "100"))))
 
 				//非同期に待つ
-				dummyParent.waitTime(1000, workerId) //1秒くらい待つ
-
+				while (!worker.currentStatus.equals(WorkerStatus.STATUS_DONE)) {
+					Thread.sleep(100)
+					println("waiting,,,Workerで非同期のshellを実行	"+this+"	worker.currentStatus	"+worker.currentStatus)
+				}
+							
 				//ls -lを実行した結果が残っているはず
 				val latestWork = worker.getLatestWorkInformation
 				latestWork.localContext.keys must be_==(Set(
@@ -661,8 +666,11 @@ class MondogrossoProcessWorkerTests extends Specification {
 							"-i" -> "hereComes"))))
 
 				//非同期に待つ
-				dummyParent.waitTime(1000, workerId) //1秒くらい待つ
-
+				while (!worker.currentStatus.equals(WorkerStatus.STATUS_DONE)) {
+					Thread.sleep(100)
+					println("waiting,,,Workerで非同期なJavaを実行	"+this)
+				}
+				
 				//java -jar TestProject.jar -i herecomes を非同期に実行した結果が残っているはず
 				val latestWork = worker.getLatestWorkInformation
 				latestWork.localContext.keys must be_==(Set(
@@ -690,7 +698,10 @@ class MondogrossoProcessWorkerTests extends Specification {
 							))))
 
 				//非同期に待つ
-				dummyParent.waitTime(1500, workerId) //1.5秒くらい待つ
+				while (!worker.currentStatus.equals(WorkerStatus.STATUS_DONE)) {
+					Thread.sleep(100)
+					println("waiting,,,Workerで非同期なJavaを実行2	"+this)
+				}
 
 				//java -jar TestProject.jar -i herecomes -t,,,を実行した結果が残っているはず
 				val latestWork = worker.getLatestWorkInformation
@@ -734,29 +745,6 @@ class MondogrossoProcessWorkerTests extends Specification {
 
 				"not yet applied" must be_==("")
 			}
-		}
-	}
-
-	//TEST_HELP
-	if (false) {
-		"Test Helping" should {
-			//擬似的に親を生成する
-			val dummyParent = new DummyParent()
-
-			"テスト補助、結果ページを表示" in {
-
-				val workerId = UUID.randomUUID().toString
-				val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
-				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
-					dummyParent.messenger.tagValues(
-						new TagValue("identity", "A"),
-						new TagValue("context", Map(
-							OrderPrefix._kind.toString -> "sh",
-							OrderPrefix._main.toString -> "open",
-							"-a" -> "Safari.app /Applications/eclipseScala/scalaworkspace/MondogrossoProcessOrders/build/reports/tests/com.kissaki.mondogrosso.mondogrossoProcessOrders.MondogrossoProcessOrdersControllerTests.html"))))
-				//終わればOK
-			}
-
 		}
 	}
 }

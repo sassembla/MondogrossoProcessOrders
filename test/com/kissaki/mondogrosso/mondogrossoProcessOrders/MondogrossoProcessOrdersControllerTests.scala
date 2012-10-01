@@ -48,10 +48,13 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 						"Z": 
 							{
 								"_kind": "sh",
-								"_main": "ls -l"
+								"_main": "open",
+								"-a":"Safari.app /Applications/eclipseScala/scalaworkspace/MondogrossoProcessOrders/build/reports/tests/com.kissaki.mondogrosso.mondogrossoProcessOrders.MondogrossoProcessOrdersControllerTests.html"
 							}
 						}"""
 
+		
+		
 	//OrderController	
 	if (false) {
 		"OrderController" should {
@@ -189,14 +192,17 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 				val parser = new MondogrossoProcessParser(id, input, json)
 				val result = parser.parseProcess
 
-				val identity = "1:run A then Z" //UUID.randomUUID().toString
+				val identity = "Context 基礎的な挙動　run A then Z" //UUID.randomUUID().toString
 				val currentContext = new ProcessContext(identity, result)
 
 				//コンテキストからの実行開始
 				currentContext.runContext
 
-				Thread.sleep(200)
-
+				
+				while (!currentContext.currentStatus.head.equals(ContextStatus.STATUS_DONE)) {
+					Thread.sleep(100)
+				}
+				
 				//実行履歴
 				currentContext.currentStatus must be_==(ListBuffer(ContextStatus.STATUS_DONE,
 					ContextStatus.STATUS_FINALLY,
@@ -218,7 +224,7 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 			}
 		}
 	}
-	if (false) {
+	if (true) {
 		"Context タイムアウトについて" should {
 			"1:run A then Z finallyTimeout付きで時間内に完了する" in {
 				val id = UUID.randomUUID().toString
@@ -241,13 +247,15 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 				val parser = new MondogrossoProcessParser(id, input, json)
 				val result = parser.parseProcess
 
-				val identity = "2:run A then Z finallyTimeout付きで時間内に完了する" //UUID.randomUUID().toString
+				val identity = "1:run A then Z finallyTimeout付きで時間内に完了する" //UUID.randomUUID().toString
 				val currentContext = new ProcessContext(identity, result)
 
 				//コンテキストからの実行開始
 				currentContext.runContext
 
-				Thread.sleep(200)
+				while (!currentContext.currentStatus.head.equals(ContextStatus.STATUS_DONE)) {
+					Thread.sleep(100)
+				}
 
 				//実行履歴
 				currentContext.currentStatus must be_==(ListBuffer(ContextStatus.STATUS_DONE,
@@ -256,12 +264,7 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 					ContextStatus.STATUS_READY,
 					ContextStatus.STATUS_NOTREADY))
 			}
-		}
-	}
-	
-	//shouldから分散させると動く。Specs2とThreadの相性っぽいな。　Thread自体の中身に触っているのかな。
-	if (true) {
-		"2:run A then Z 1msec で　ContextTimeoutする" should {
+			
 			"2:run A then Z 1msec で　ContextTimeoutする" in {
 				val id = UUID.randomUUID().toString
 				val input = "A!Z"
@@ -285,14 +288,16 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 
 				val parser = new MondogrossoProcessParser(id, input, json)
 				val result = parser.parseProcess
-				println("HereComes")
+				
 				val identity = "2:run A then Z 1msec で　ContextTimeoutする" //UUID.randomUUID().toString
 				val currentContext = new ProcessContext(identity, result)
 
 				//コンテキストからの実行開始
 				currentContext.runContext
 
-				Thread.sleep(200)
+				while (!currentContext.currentStatus.head.equals(ContextStatus.STATUS_TIMEOUTED)) {
+					Thread.sleep(100)
+				}
 
 				//実行履歴
 				currentContext.currentStatus must be_==(ListBuffer(ContextStatus.STATUS_TIMEOUTED,
@@ -301,10 +306,7 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 					ContextStatus.STATUS_READY,
 					ContextStatus.STATUS_NOTREADY))
 			}
-		}
-	}
-	if (true) {
-		"3:run A then Z 0msec で、timeoutが成立せず、正常終了" should {
+			
 			"3:run A then Z 0msec で正常終了" in {
 				val id = UUID.randomUUID().toString
 				val input = "A!Z"
@@ -333,7 +335,9 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 				currentContext.runContext
 
 				//Timeout処理の待ち
-				Thread.sleep(200)
+				while (!currentContext.currentStatus.head.equals(ContextStatus.STATUS_DONE)) {
+					Thread.sleep(100)
+				}
 
 				//実行履歴
 				currentContext.currentStatus must be_==(ListBuffer(ContextStatus.STATUS_DONE,
@@ -379,7 +383,9 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 
 				currentContext.runContext
 
-				Thread.sleep(200)
+				while (!currentContext.currentStatus.head.equals(ContextStatus.STATUS_DONE)) {
+					Thread.sleep(100)
+				}
 
 				//実行順が入っているはず
 				println("runningProcessList	" + currentContext.runningProcessList)

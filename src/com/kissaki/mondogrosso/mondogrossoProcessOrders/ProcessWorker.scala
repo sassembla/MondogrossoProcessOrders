@@ -7,6 +7,9 @@ import com.kissaki.TagValue
 import com.kissaki.MessengerProtocol
 import com.kissaki.Messenger
 import java.util.UUID
+import java.util.Timer
+import java.util.TimerTask
+import java.util.concurrent.TimeUnit
 
 case class WorkInformation(orderIdentity : String, localContext : scala.collection.Map[String, String])
 
@@ -36,7 +39,6 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 
 	//状態
 	var currentStatus = WorkerStatus.STATUS_NONE
-	
 
 	/**
 	 * レシーバ
@@ -46,7 +48,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 			case Messages.MESSAGE_FINISHEDORDER_NOTIFY => {
 				val finishedOrderIdentity = messenger.get("finishedOrderIdentity", tagValues).asInstanceOf[String]
 
-//				println("finishedOrderIdentity	" + finishedOrderIdentity)
+				//				println("finishedOrderIdentity	" + finishedOrderIdentity)
 			}
 
 			case Messages.MESSAGE_START => {
@@ -94,7 +96,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 							}
 						}
 					}
-					
+
 					case false => //エラーは出力済みなので何も起こらない
 				}
 
@@ -105,22 +107,27 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 				val timeoutContextWorkInfo = messenger.get("timeoutContext", tagValues).asInstanceOf[WorkInformation]
 				val delay = messenger.get("delay", tagValues).asInstanceOf[Int]
 
-				Thread.sleep(delay)
-				/*-----------時間切れ-----------*/
+				val timer = new Timer("testing" + this);
+				timer.schedule(new TimerTask {
+					def run = {
+						/*-----------時間切れ-----------*/
 
-				//結果のコンテキストを作成する
-				val timeoutContext = timeoutContextWorkInfo.localContext ++ Map(OrderPrefix._result.toString -> (RUN_TIMEOUT_MESSAGE + WHITESPACE + delay + "msec elapsed"))
+						//結果のコンテキストを作成する
+						val timeoutContext = timeoutContextWorkInfo.localContext ++ Map(OrderPrefix._result.toString -> (RUN_TIMEOUT_MESSAGE + WHITESPACE + delay + "msec elapsed"))
 
-				//結果を残す
-				new WorkInformation(timeoutContextWorkInfo.orderIdentity, timeoutContext) +=: currentWorkInformationHistory
+						//結果を残す
+						new WorkInformation(timeoutContextWorkInfo.orderIdentity, timeoutContext) +=: currentWorkInformationHistory
 
-				//timeoutの見なし　既存workの情報送信を行う
-				messenger.callParentWithAsync(Messages.MESSAGE_TIMEOUT.toString, messenger.tagValues(
-					new TagValue("timeoutedWorkerIdentity", identity),
-					new TagValue("timeoutedOrderIdentity", timeoutContextWorkInfo.orderIdentity),
-					new TagValue("timeoutedOrderContext", timeoutContextWorkInfo.localContext)))
+						//timeoutの見なし　既存workの情報送信を行う
+						messenger.callParentWithAsync(Messages.MESSAGE_TIMEOUT.toString, messenger.tagValues(
+							new TagValue("timeoutedWorkerIdentity", identity),
+							new TagValue("timeoutedOrderIdentity", timeoutContextWorkInfo.orderIdentity),
+							new TagValue("timeoutedOrderContext", timeoutContextWorkInfo.localContext)))
 
-				currentStatus = WorkerStatus.STATUS_TIMEOUT
+						currentStatus = WorkerStatus.STATUS_TIMEOUT
+					}
+				}, TimeUnit.MILLISECONDS.toMillis(delay));
+
 			}
 
 			//非同期実行
@@ -281,7 +288,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 
 						val stableCommand = info.localContext(OrderPrefix._main.toString) + WHITESPACE + reduced
 
-//						println("shell stableCommand	" + stableCommand)
+						//						println("shell stableCommand	" + stableCommand)
 
 						//プロセス生成
 						val process = scalaProcess(stableCommand)
@@ -324,7 +331,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 							new TagValue("identity", identity),
 							new TagValue("orderIdentity", info.orderIdentity),
 							new TagValue("eventualContext", eventualContext)))
-					println("from worker, process is	"+identity+" make request! to parent "+messenger.getParentName)
+					println("from worker, process is	" + identity + " make request! to parent " + messenger.getParentName)
 					//親に、次のOrderをリクエスト
 					messenger.callParentWithAsync(Messages.MESSAGE_REQUEST.toString,
 						messenger.tagValues(
@@ -333,7 +340,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 
 					currentStatus = WorkerStatus.STATUS_DONE
 				}
-				case _ => 
+				case _ =>
 			}
 		} catch {
 			//実行後エラー

@@ -219,7 +219,7 @@ class ProcessContext(contextIdentity : String, contextSrc : ContextSource) exten
 	 */
 	def notifyFinishedOrderInfoToAllWorker(finishedOrderIdentity : String) = {
 		for (processName <- runningProcessList) {
-			println("notify the end of processName	" + processName+"	/	"+identity)
+//			println("notify the end of processName	" + processName+"	/	"+identity)
 			messenger.callWithAsync(processName, Messages.MESSAGE_FINISHEDORDER_NOTIFY.toString, messenger.tagValues(
 				new TagValue("finishedOrderIdentity", finishedOrderIdentity)))
 		}
@@ -266,8 +266,8 @@ class ProcessContext(contextIdentity : String, contextSrc : ContextSource) exten
 		exec match {
 			//waiterからのdelay時にまだRunningだったら
 			case Messages.MESSAGE_EXEC_TIMEOUT_RUN => {
+				println("to STATUS_TIMEOUT	"+contextIdentity)
 				ContextStatus.STATUS_TIMEOUT +=: currentStatus 
-				println("MESSAGE_EXEC_TIMEOUT_RUN	currentStatus	"+currentStatus + "	/	"+identity)
 				currentContext.get(finallyOrderIdentity).foreach { finallyContext => runFinally(finallyContext) }
 			}
 
@@ -281,7 +281,7 @@ class ProcessContext(contextIdentity : String, contextSrc : ContextSource) exten
 
 //				println("currentFinishedWorkerIdentity	" + currentFinishedWorkerIdentity)
 //				println("currentFinishedOrderIdentity	" + currentFinishedOrderIdentity)
-				println("currentFinishedEventualContext	" + currentFinishedEventualContext)
+//				println("currentFinishedEventualContext	" + currentFinishedEventualContext)
 
 				//eventualを、currentContextに上書きする
 				val appendedContext = (currentFinishedOrderIdentity -> currentFinishedEventualContext)
@@ -310,8 +310,6 @@ class ProcessContext(contextIdentity : String, contextSrc : ContextSource) exten
 
 					//終了したOrderのIndexを出し、次があれば実行する。
 					val currentOrderIdentityIndex = process.orderIdentityList.lastIndexOf(finishedOrderIdentity)
-					println("currentOrderIdentityIndex	" + currentOrderIdentityIndex+"	/	"+identity)
-
 					currentOrderIdentityIndex match {
 						//先ほど完了したのがこのProcessのラスト
 						case 0 => {
@@ -324,7 +322,8 @@ class ProcessContext(contextIdentity : String, contextSrc : ContextSource) exten
 
 							//runningProcessListが空だったらfinallyを実行
 							if (runningProcessList.isEmpty) {
-								println("Finally実行開始	"+identity)
+								println("to MESSAGE_FINALLY	"+contextIdentity)
+				
 								ContextStatus.STATUS_FINALLY +=: currentStatus 
 								messenger.callMyself(Messages.MESSAGE_FINALLY.toString, null)
 							}
@@ -362,9 +361,9 @@ class ProcessContext(contextIdentity : String, contextSrc : ContextSource) exten
 				val currentFinishedEventualContext = messenger.get("eventualContext", tagValues).asInstanceOf[scala.collection.mutable.Map[String, String]]
 
 				if (currentFinishedOrderIdentity.equals(finallyOrderIdentity) && currentFinishedWorkerIdentity.equals(finallyProcessIdentity)) {
-					println("procTimeout	MESSAGE_DONEにきてる	"+identity)
+					
 					val appendedContext = (currentFinishedOrderIdentity -> currentFinishedEventualContext)
-
+					println("to STATUS_TIMEOUTED	"+contextIdentity)
 					currentContext += appendedContext
 					ContextStatus.STATUS_TIMEOUTED +=: currentStatus 
 				}
@@ -397,7 +396,8 @@ class ProcessContext(contextIdentity : String, contextSrc : ContextSource) exten
 					//eventualを、currentContextに上書きする
 					val appendedContext = (currentFinishedOrderIdentity -> currentFinishedEventualContext)
 					currentContext += appendedContext
-
+					
+					println("to STATUS_DONE	"+contextIdentity)				
 					ContextStatus.STATUS_DONE +=: currentStatus
 
 					//掃除
