@@ -92,7 +92,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 								messenger.callParent(Messages.MESSAGE_SYNCRONOUSLY_STARTED.toString,
 									messenger.tagValues(new TagValue("workerIdentity", identity),
 										new TagValue("orderIdentity", orderIdentity)))
-								run(currentAddedOrderInfo)
+								doWork(currentAddedOrderInfo)
 							}
 						}
 					}
@@ -137,19 +137,20 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 					case Some(v) => {
 						try {
 							val delay = v.toInt
-
+							
 							try {
-								Thread.sleep(delay)
+								val timer = new Timer("testing"+this);
+								timer.schedule(new TimerTask {
+									def run = {
+											doWork(asyncContextWorkInfo)
+									}
+								}, TimeUnit.MILLISECONDS.toMillis(delay));
+					
 							} catch { //sleepに対するException -など
 								case e : Exception => errorProc(asyncContextWorkInfo, e.toString)
 							}
-
-							/*-----------一定時間後実行-----------*/
-
-							run(asyncContextWorkInfo)
 						} catch {
 							case e : Exception => errorProc(asyncContextWorkInfo, e.toString)
-
 							case _ =>
 						}
 					}
@@ -218,7 +219,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 	/**
 	 * 実行
 	 */
-	def run(info : WorkInformation) = {
+	def doWork(info : WorkInformation) = {
 		//実行前エラーの切り分け
 		currentStatus match {
 			case WorkerStatus.STATUS_READY => {

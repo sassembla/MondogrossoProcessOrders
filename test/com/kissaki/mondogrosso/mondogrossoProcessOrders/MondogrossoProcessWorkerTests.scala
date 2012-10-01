@@ -225,7 +225,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 					OrderPrefix.__delay.toString,
 					OrderPrefix._result.toString))
 
-				latestWork.localContext.get(OrderPrefix._result.toString).getOrElse("...empty") must be_==("java.lang.IllegalArgumentException: timeout value is negative")
+				latestWork.localContext.get(OrderPrefix._result.toString).getOrElse("...empty") must be_==("java.lang.IllegalArgumentException: Negative delay.")
 			}
 		}
 
