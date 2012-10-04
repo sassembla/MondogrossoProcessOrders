@@ -65,6 +65,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
 					dummyParent.messenger.tagValues(
 						new TagValue("identity", "A"),
+						new TagValue("processSplitIds",List()),
 						new TagValue("context", Map(
 							OrderPrefix._kind.toString -> "sh",
 							OrderPrefix._main.toString -> "ls -l"))))
@@ -79,6 +80,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
 					dummyParent.messenger.tagValues(
 						new TagValue("identity", "A"),
+						new TagValue("processSplitIds",List()),
 						new TagValue("context", Map(
 							OrderPrefix._kind.toString -> "sh",
 							OrderPrefix._main.toString -> "ls -l"))))
@@ -98,6 +100,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
 					dummyParent.messenger.tagValues(
 						new TagValue("identity", "A"),
+						new TagValue("processSplitIds",List()),
 						new TagValue("context", Map(
 							OrderPrefix._kind.toString -> "sh",
 							OrderPrefix._main.toString -> "ls -l"))))
@@ -132,6 +135,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
 					dummyParent.messenger.tagValues(
 						new TagValue("identity", "A"),
+						new TagValue("processSplitIds",List()),
 						new TagValue("context", Map(
 							OrderPrefix._kind.toString -> "sh",
 							OrderPrefix._main.toString -> "ls -l",
@@ -166,6 +170,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
 					dummyParent.messenger.tagValues(
 						new TagValue("identity", "A"),
+						new TagValue("processSplitIds",List()),
 						new TagValue("context", Map(
 							OrderPrefix._kind.toString -> "sh",
 							OrderPrefix._main.toString -> "ls -l",
@@ -200,6 +205,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
 					dummyParent.messenger.tagValues(
 						new TagValue("identity", "A"),
+						new TagValue("processSplitIds",List()),
 						new TagValue("context", Map(
 							OrderPrefix._kind.toString -> "sh",
 							OrderPrefix._main.toString -> "ls -l",
@@ -243,6 +249,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
 					dummyParent.messenger.tagValues(
 						new TagValue("identity", "A"),
+						new TagValue("processSplitIds",List()),
 						new TagValue("context", Map(
 							OrderPrefix._kind.toString -> "jar",
 							OrderPrefix._main.toString -> "TestProject",
@@ -281,6 +288,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
 					dummyParent.messenger.tagValues(
 						new TagValue("identity", "A"),
+						new TagValue("processSplitIds",List()),
 						new TagValue("context", Map(
 							OrderPrefix._kind.toString -> "jar",
 							OrderPrefix._main.toString -> "TestProject",
@@ -309,6 +317,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
 					dummyParent.messenger.tagValues(
 						new TagValue("identity", "A"),
+						new TagValue("processSplitIds",List()),
 						new TagValue("context", Map(
 							OrderPrefix._kind.toString -> "sh",
 							OrderPrefix._main.toString -> "ls -l",
@@ -337,6 +346,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
 					dummyParent.messenger.tagValues(
 						new TagValue("identity", "A"),
+						new TagValue("processSplitIds",List()),
 						new TagValue("context", Map(
 							OrderPrefix._kind.toString -> "sh",
 							OrderPrefix._main.toString -> "ls -l",
@@ -374,6 +384,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
 					dummyParent.messenger.tagValues(
 						new TagValue("identity", "A"),
+						new TagValue("processSplitIds",List()),
 						new TagValue("context", Map(
 							OrderPrefix._kind.toString -> "sh",
 							OrderPrefix._main.toString -> "ls -l",
@@ -391,6 +402,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
 					dummyParent.messenger.tagValues(
 						new TagValue("identity", "A"),
+						new TagValue("processSplitIds",List()),
 						new TagValue("context", Map(
 							OrderPrefix._kind.toString -> "sh",
 							OrderPrefix._main.toString -> "ls -l",
@@ -406,6 +418,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
 					dummyParent.messenger.tagValues(
 						new TagValue("identity", "A"),
+						new TagValue("processSplitIds",List()),
 						new TagValue("context", Map(
 							OrderPrefix._kind.toString -> "sh",
 							OrderPrefix._main.toString -> "ls -l",
@@ -428,6 +441,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
 					dummyParent.messenger.tagValues(
 						new TagValue("identity", "A"),
+						new TagValue("processSplitIds",List()),
 						new TagValue("context", Map(
 							OrderPrefix._kind.toString -> "sh",
 							OrderPrefix._main.toString -> "ls -l",
@@ -452,6 +466,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
 					dummyParent.messenger.tagValues(
 						new TagValue("identity", "A"),
+						new TagValue("processSplitIds",List()),
 						new TagValue("context", Map("a" -> "b")))) //must値の指定忘れ
 
 				//この時点でエラー
@@ -471,6 +486,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
 					dummyParent.messenger.tagValues(
 						new TagValue("identity", "A"), //必須な_main、_kind値の指定忘れ
+						new TagValue("processSplitIds",List()),
 						new TagValue("context", Map("a" -> "b",
 							OrderPrefix.__timeout.toString -> "1"))))
 
@@ -493,6 +509,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
 					dummyParent.messenger.tagValues(
 						new TagValue("identity", "A"),
+						new TagValue("processSplitIds",List()),
 						new TagValue("context", Map(
 							OrderPrefix._kind.toString -> "undefined type!",
 							OrderPrefix._main.toString -> "ls -l"))))
@@ -515,6 +532,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
 					dummyParent.messenger.tagValues(
 						new TagValue("identity", "A"),
+						new TagValue("processSplitIds",List()),
 						new TagValue("context", Map(
 							OrderPrefix._kind.toString -> "sh",
 							OrderPrefix._main.toString -> "dfghjklls -l")))) //存在しないコマンドで実行エラー
@@ -537,6 +555,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
 					dummyParent.messenger.tagValues(
 						new TagValue("identity", "A"),
+						new TagValue("processSplitIds",List()),
 						new TagValue("context", Map(
 							OrderPrefix._kind.toString -> "sh",
 							OrderPrefix._main.toString -> "dfghjklls -l")))) //存在しないコマンドで非同期下のエラー
@@ -567,6 +586,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
 					dummyParent.messenger.tagValues(
 						new TagValue("identity", "A"),
+						new TagValue("processSplitIds",List()),
 						new TagValue("context", Map(
 							OrderPrefix._kind.toString -> "sh",
 							OrderPrefix._main.toString -> "ls -l"))))
@@ -587,6 +607,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
 					dummyParent.messenger.tagValues(
 						new TagValue("identity", "A"),
+						new TagValue("processSplitIds",List()),
 						new TagValue("context", Map(
 							OrderPrefix._kind.toString -> "sh",
 							OrderPrefix._main.toString -> "open",
@@ -609,6 +630,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
 					dummyParent.messenger.tagValues(
 						new TagValue("identity", "A"),
+						new TagValue("processSplitIds",List()),
 						new TagValue("context", Map(
 							OrderPrefix._kind.toString -> "sh",
 							OrderPrefix._main.toString -> "ls -l",
@@ -637,6 +659,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
 					dummyParent.messenger.tagValues(
 						new TagValue("identity", "A"),
+						new TagValue("processSplitIds",List()),
 						new TagValue("context", Map(
 							OrderPrefix._kind.toString -> "jar",
 							OrderPrefix._main.toString -> "TestProject",
@@ -659,6 +682,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
 					dummyParent.messenger.tagValues(
 						new TagValue("identity", "A"),
+						new TagValue("processSplitIds",List()),
 						new TagValue("context", Map(
 							OrderPrefix._kind.toString -> "jar",
 							OrderPrefix._main.toString -> "TestProject",
@@ -689,6 +713,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
 					dummyParent.messenger.tagValues(
 						new TagValue("identity", "A"),
+						new TagValue("processSplitIds",List()),
 						new TagValue("context", Map(
 							OrderPrefix._kind.toString -> "jar",
 							OrderPrefix._main.toString -> "TestProject",
@@ -727,9 +752,16 @@ class MondogrossoProcessWorkerTests extends Specification {
 			"Workerにwaitが存在するOrderを渡し、待たせる" in {
 				val workerId = UUID.randomUUID().toString
 				val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
+				
+				/*
+				 * どんなパラメータが必要なのか
+				 * ←Waitがあるものを送り込んでみよう。
+				 */
+				
 				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
 					dummyParent.messenger.tagValues(
 						new TagValue("identity", "A"),
+						new TagValue("processSplitIds",List()),
 						new TagValue("context", Map(
 							OrderPrefix._kind.toString -> "jar",
 							OrderPrefix._main.toString -> "TestProject",

@@ -86,11 +86,6 @@ class ProcessContext(contextIdentity : String, contextSrc : ContextSource) exten
 	def processNum = contextSrc.totalProcessNum
 
 	def totalOrderNum = contextSrc.totalOrderCount
-
-	
-	//timeout waiter
-	val waiterIdentity = UUID.randomUUID().toString
-	val currentWaiter = new Waiter(waiterIdentity, identity)
 	
 	
 	//finally
@@ -141,7 +136,17 @@ class ProcessContext(contextIdentity : String, contextSrc : ContextSource) exten
 		delayValue match {
 			case OrderSettingDefault.SETTING_FINALLY_TIMEOUT_ZERO => println("thisContext = "+this+"	no timeout")//無ければ0扱い
 			case other if (other < OrderSettingDefault.SETTING_FINALLY_TIMEOUT_ZERO) => contextErrorProc(currentContext, "negative value!")
-			case _ => messenger.callWithAsync(waiterIdentity, Messages.MESSAGE_WAITER_EXEC_TIMEOUT_READY.toString, messenger.tagValues(new TagValue("delay", delayValue)));
+			case _ => {
+					val timer = new Timer("delay_"+this);
+					timer.schedule(new TimerTask {
+						def run = {
+							/*-----------一定時間後実行-----------*/
+							
+							//Running間を連続していないと成立しない処理(正常終了後のFailSafeになっている
+							messenger.callMyself(Messages.MESSAGE_EXEC_TIMEOUT_RUN.toString, null)
+						}
+					}, TimeUnit.MILLISECONDS.toMillis(delayValue));
+			}
 		}
 		
 		println("set out!	"+delayValue)
@@ -159,6 +164,7 @@ class ProcessContext(contextIdentity : String, contextSrc : ContextSource) exten
 	 * プロセスに対して新規にWorkerを割当、起動する
 	 */
 	def dispachNewWorkerToProcess(process : Process) = {
+		println("process	"+process)
 		//新しいProcessを登録する
 		runningProcessList += process.identity
 
@@ -167,11 +173,19 @@ class ProcessContext(contextIdentity : String, contextSrc : ContextSource) exten
 
 		//開始すべきIdentityを取得する(ここでは決めうちで0)
 		val currentOrderIdentity = process.orderIdentityList(0)
-
+		
+		val processSplitIds = process.processSplitHeaders
+		
+		//Initialコンテキスト + 既存コンテキスト(既存コンテキストで上塗り)
 		val actualRuntimeContext = generateRuntimeContext(currentOrderIdentity)
 
+		println("currentOrderIdentity	"+currentOrderIdentity)
+		println("processSplitIds	"+processSplitIds)
+		println("actualRuntimeContext	"+actualRuntimeContext)
+		
 		messenger.call(process.identity, Messages.MESSAGE_START.toString, messenger.tagValues(
 			new TagValue("identity", currentOrderIdentity),
+			new TagValue("processSplitIds", processSplitIds),
 			new TagValue("context", actualRuntimeContext)))
 
 		//実行中のOrderをセット
@@ -184,11 +198,12 @@ class ProcessContext(contextIdentity : String, contextSrc : ContextSource) exten
 	def dispachWorkerToNextOrder(process : Process, index : Int) = {
 		//開始すべきIdentityを取得する(ここでは決めうちで0)
 		val currentOrderIdentity = process.orderIdentityList(index)
-
+		val processSplitIds = process.processSplitHeaders
 		val actualRuntimeContext = generateRuntimeContext(currentOrderIdentity)
 
 		messenger.call(process.identity, Messages.MESSAGE_START.toString, messenger.tagValues(
 			new TagValue("identity", currentOrderIdentity),
+			new TagValue("processSplitIds", processSplitIds),
 			new TagValue("context", actualRuntimeContext)))
 
 		//実行中のOrderをセット
@@ -231,6 +246,7 @@ class ProcessContext(contextIdentity : String, contextSrc : ContextSource) exten
 	def runFinally(finallyContext : scala.collection.mutable.Map[String, String]) = {
 		messenger.call(finallyProcessIdentity, Messages.MESSAGE_START.toString, messenger.tagValues(
 			new TagValue("identity", finallyOrderIdentity),
+			new TagValue("processSplitIds", List()),
 			new TagValue("context", finallyContext)))
 	}
 
@@ -399,42 +415,10 @@ class ProcessContext(contextIdentity : String, contextSrc : ContextSource) exten
 					
 					println("to STATUS_DONE	"+contextIdentity)				
 					ContextStatus.STATUS_DONE +=: currentStatus
-
-					//掃除
-					currentWaiter.messenger.close
 				}
 			}
 
 			case _ => println("nothing todo in STATUS_FINALLY	-exec	" + exec)
 		}
-	}
-	
-	
-	class Waiter (waiterIdentity: String, masterName:String) extends MessengerProtocol {
-		//メッセージング送信/受信
-		val messenger = new Messenger(this, waiterIdentity)
-		messenger.inputParent(masterName)
-		
-		def receiver(execSrc : String, tagValues : Array[TagValue]) = {
-			Messages.get(execSrc) match {
-				case Messages.MESSAGE_WAITER_EXEC_TIMEOUT_READY => {
-					val delay = messenger.get("delay", tagValues).asInstanceOf[Int]
-					println("delay	"+delay)
-		
-					val timer = new Timer("testing"+this);
-					timer.schedule(new TimerTask {
-						def run = {
-							/*-----------一定時間後実行-----------*/
-							println(identity+"	delayied	"+delay)
-							//Running間を連続していないと成立しない処理(正常終了後のFailSafeになっている
-							messenger.callParent(Messages.MESSAGE_EXEC_TIMEOUT_RUN.toString, null)
-						}
-					}, TimeUnit.MILLISECONDS.toMillis(delay));
-
-					
-				}
-			}
-		}
-		
 	}
 }

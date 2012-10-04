@@ -52,12 +52,25 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 			}
 
 			case Messages.MESSAGE_START => {
-
 				currentStatus = WorkerStatus.STATUS_READY
 
 				val orderIdentity = (messenger.get("identity", tagValues)).asInstanceOf[String]
+				println("ここまで来てる	MESSAGE_START"+"	/iden	"+orderIdentity)
+				tagValues.foreach(tv =>
+						println("tv	"+tv.m_tag))
+				val processSplitIds = (messenger.get("processSplitIds", tagValues))
+				println("で、ここまで来てる	processSplitIds	"+processSplitIds)
 				val orderContext = (messenger.get("context", tagValues)).asInstanceOf[scala.collection.Map[String, String]]
-
+			
+				println("processSplitIds	"+processSplitIds)
+				
+				Option(messenger.get("identity", tagValues)) match {
+					case Some(v) => {
+						v.asInstanceOf[String]
+					}
+					case None => 
+				}
+				
 				val currentAddedOrderInfo = new WorkInformation(orderIdentity, orderContext)
 
 				//currentWorkInformationHistoryのheadに、最新のInfoを加算する

@@ -33,7 +33,7 @@ case class OrderInputs(myOrderInputTripleList : List[OrderInputTriple]) extends 
 
 case class WaitOrders(myWaitOrdersList : List[OrderIdentity]) extends MondogrossoProcessOrdersAST
 
-case class Orders(myOrderList : List[Order]) extends MondogrossoProcessOrdersAST
+case class Orders(myOrderList : List[Order], processSplitHeaders:List[OrderIdentity]) extends MondogrossoProcessOrdersAST
 case class FirstOrders(first : Orders) extends MondogrossoProcessOrdersAST
 case class SecondaryOrders(seconds : Orders) extends MondogrossoProcessOrdersAST
 
@@ -50,7 +50,7 @@ case class All(processes : Processes, finallyOrder : OrderIdentity) extends Mond
  */
 case class ContextSource(initialParam : Map[String, Map[String,String]], current : Current, finallyOrder : String, totalOrderCount : Int, totalProcessNum : Int)
 case class Current(processList : List[Process])
-case class Process(identity : String, currentIndex : Int, orderIdentityList : List[String], orderAdditional : Map[String, OrderAddition])
+case class Process(identity : String, processSplitHeaders:List[OrderIdentity], currentIndex : Int, orderIdentityList : List[String], orderAdditional : Map[String, OrderAddition])
 case class OrderAddition(inputsList : List[InputRule], waitIdentitiesList : List[String])
 case class InputRule(sourceOrderIdentity : String, from : String, to : String)
 
@@ -81,6 +81,9 @@ class MondogrossoProcessParser(id : String, input : String, jsonSource : String)
 			//オーダー順
 			val orderIdentities = for (order <- currentOrders.myOrderList) yield order.myOrderIdentity.myId
 
+			//プロセス分割ID
+			val processSplitHeaders = currentOrders.processSplitHeaders
+			
 			//オーダーの追加情報の準備
 			val orderAdditionalList = currentOrders.myOrderList.map { currentOrder =>
 				val identity = currentOrder.myOrderIdentity.myId
@@ -101,7 +104,7 @@ class MondogrossoProcessParser(id : String, input : String, jsonSource : String)
 			}
 
 			//プロセスの合成
-			Process(processIdentity, defaultIndex, orderIdentities, orderAddition)
+			Process(processIdentity, processSplitHeaders, defaultIndex, orderIdentities, orderAddition)
 		}
 		val current = Current(processSource)
 
@@ -265,7 +268,8 @@ class MondogrossoProcessParser(id : String, input : String, jsonSource : String)
 			}
 		}
 	}
-
+	
+	
 	/**
 	 * Order
 	 * A
@@ -274,16 +278,16 @@ class MondogrossoProcessParser(id : String, input : String, jsonSource : String)
 	 * A(A2:a2:a, B:b:c)<D
 	 */
 	def order : Parser[Order] = (identity ~ (orderInputs | "") ~ (waitOrdersOrNot | "")) ^^ { default =>
-//		println("order	" + default)
+		println("order	" + default)
 
 		default match {
 			//フルセット
-			case (((id : OrderIdentity)) ~ (inputs : OrderInputs) ~ (waitOrders : WaitOrders)) => {
+			case ((id : OrderIdentity) ~ (inputs : OrderInputs) ~ (waitOrders : WaitOrders)) => {
 //				println("full case2 " + default)
 				Order(id, inputs, waitOrders)
 			}
-			//idとwait
-			case (((id : OrderIdentity)) ~ _ ~ (waitOrders : WaitOrders)) => {
+			//idとwaitのみ
+			case ((id : OrderIdentity) ~ _ ~ (waitOrders : WaitOrders)) => {
 //				println("full case3 " + default)
 				Order(id, OrderInputs(List()), waitOrders)
 			}
@@ -305,21 +309,42 @@ class MondogrossoProcessParser(id : String, input : String, jsonSource : String)
 		}
 	}
 
+	def processSplitHeaders : Parser[List[OrderIdentity]] = (("(" ~ identity ~ rep(waitIdentity2nd) ~")") | "")^^ {default =>
+		println("processSplitHeaders	"+default)
+		default match {
+			case ("("  ~ (the1st : OrderIdentity) ~ (the2nd : List[OrderIdentity]) ~ ")") => {
+				println("hereComes")
+				List(the1st) ++ the2nd
+			}
+			case _ => List()
+		}
+		
+	}
+	
 	/**
 	 * オーダーの集合
 	 */
-	def orders : Parser[Orders] = order ~ (rep(secondaryOrder) | "") ^^ { default =>
-//		println("orders	" + default)
+	def orders : Parser[Orders] = (processSplitHeaders | "")~order ~ (rep(secondaryOrder) | "") ^^ { default =>
+		println("orders	" + default)
 
 		default match {
-			//複数
-			case ((firstOrder : Order) ~ (seconds : List[Order])) => {
-				Orders(List(firstOrder) ++ seconds)
+			//複数 processSplitHeader付き
+			case ((headers : List[OrderIdentity]) ~ (firstOrder : Order) ~ (seconds : List[Order])) => {
+				Orders(List(firstOrder) ++ seconds, headers)
 			}
-
-			//一つ
+			//複数 processSplitHeader無し
+			case ((firstOrder : Order) ~ (seconds : List[Order])) => {
+				Orders(List(firstOrder) ++ seconds, List())
+			}
+			
+			//一つ	processSplitHeader付き
+			case ((headers : List[OrderIdentity]) ~ (singleOrder : Order)) => {
+				Orders(List(singleOrder), headers)
+			}
+			
+			//一つ	processSplitHeader無し
 			case ((singleOrder : Order)) => {
-				Orders(List(singleOrder))
+				Orders(List(singleOrder), List())
 			}
 		}
 	}

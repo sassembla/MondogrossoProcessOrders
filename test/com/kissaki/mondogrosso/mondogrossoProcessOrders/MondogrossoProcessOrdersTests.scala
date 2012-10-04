@@ -76,10 +76,139 @@ class MondogrossoProcessOrdersTests extends Specification {
 		}
 	}
 
-	"サンプル" should {
+	"processSplit" should {
+		"1つのprocessSplit	(A)Bを一つのOrdersとして計算する" in {
+			val input = "(A)B"
+			val json = standardJSON
+
+			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
+			val result = parser.parseAll(parser.orders, input).get
+
+			result.processSplitHeaders.head.myId must be_==("A")
+		}
+		
+		"2つのprocessSplit	(A,B)Cを一つのOrdersとして計算する" in {
+			val input = "(A,B)C"
+			val json = standardJSON
+
+			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
+			val result = parser.parseAll(parser.orders, input).get
+
+			result.processSplitHeaders(0).myId must be_==("A")
+			result.processSplitHeaders(1).myId must be_==("B")
+		}
+	}
+	
+
+	"order" should {
+		"order	<が無いケース" in {
+			val input = "A(else:over:vie,else2:over2:vie2)"
+			val json = standardJSON
+			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
+			val result = parser.parseAll(parser.order, input)
+		
+			result.get.myOrderIdentity.myId must be_==("A")
+			
+			result.get.orderInputs.myOrderInputTripleList.size must be_==(2)
+			
+			result.get.orderInputs.myOrderInputTripleList(0).myInputIdentity.myStr must be_==("else")
+			result.get.orderInputs.myOrderInputTripleList(0).fromKey.myStr must be_==("over")
+			result.get.orderInputs.myOrderInputTripleList(0).toKey.myStr must be_==("vie")
+			
+			result.get.orderInputs.myOrderInputTripleList(1).myInputIdentity.myStr must be_==("else2")
+			result.get.orderInputs.myOrderInputTripleList(1).fromKey.myStr must be_==("over2")
+			result.get.orderInputs.myOrderInputTripleList(1).toKey.myStr must be_==("vie2")
+		}
+		
+		"order	Input,waitが無いケース" in {
+			val input = "A"
+			val json = standardJSON
+			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
+			val result = parser.parseAll(parser.order, input)
+			
+			result.get.myOrderIdentity.myId must be_==("A")
+		}
+		
+		"order	Inputが無いケース" in {
+			val input = "A<S,T,U"
+			val json = standardJSON
+			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
+			val result = parser.parseAll(parser.order, input)
+			
+			result.get.myOrderIdentity.myId must be_==("A")
+			
+			result.get.waitIdentities.myWaitOrdersList.size must be_==(3)
+			
+			result.get.waitIdentities.myWaitOrdersList(0).myId must be_==("S")
+			result.get.waitIdentities.myWaitOrdersList(1).myId must be_==("T")
+			result.get.waitIdentities.myWaitOrdersList(2).myId must be_==("U")
+		}
+		
+		
+	}
+	
+	"orders" should {
+		"orders	Identity + wait のあとにIdentityが一つあるケース" in {
+
+			val input = "A(else:over:vie,else:over:vie)<S>T"
+			val json = standardJSON
+			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
+			val result = parser.parseAll(parser.orders, input)
+			
+			result.get.myOrderList(0).myOrderIdentity.myId must be_==("A")
+			result.get.myOrderList(1).myOrderIdentity.myId must be_==("T")
+		}
+
+
+		"orders	Identity + wait のあとに複数のOrder" in {
+
+			val input = "A>B<S>T<U,V>W"
+			val json = standardJSON
+			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
+			val result = parser.parseAll(parser.orders, input)
+			
+			result.get.myOrderList(0).myOrderIdentity.myId must be_==("A")
+			result.get.myOrderList(1).myOrderIdentity.myId must be_==("B")
+			result.get.myOrderList(2).myOrderIdentity.myId must be_==("T")
+			result.get.myOrderList(3).myOrderIdentity.myId must be_==("W")
+		}
+	}
+	
+	"processes" should {
+		"processes	複数のProcessフルセット" in {
+			val input = "A>B<S>AB(elseB:overB:vieB,elseB:overB:vieB)<SB"
+			val json = standardJSON
+
+			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
+			val result = parser.parseAll(parser.processes, input)
+			
+			//A,B,AB
+			result.get.myOrdersList(0).myOrderList.size must be_==(3)	
+		}
+		
+		"processes	複数のProcessフルセット	、processSplitあり" in {
+			val input = "A>B<S+(T)AB(elseB:overB:vieB,elseB:overB:vieB)<SB"
+			val json = standardJSON
+
+			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
+			val result = parser.parseAll(parser.processes, input)
+			
+			//A,B　とAB
+			result.get.myOrdersList(0).myOrderList.size must be_==(2)
+			result.get.myOrdersList(1).myOrderList.size must be_==(1)
+			
+			
+			//ABは T processSplitを持つ
+			result.get.myOrdersList(0).processSplitHeaders must be_==(List())
+			result.get.myOrdersList(1).processSplitHeaders must be_==(List(OrderIdentity("T")))
+		}
+	}
+	
+	
+	"all" should {
 		"all	finally付きのフルセット	" in {
 			val id = "finally付きのフルセット"
-			val input = "A(else:over:vie,else2:over2:vie2)>B>C(a:v:s)<S,T+AB(elseB:overB:vieB,elseB2:overB2:vieB2)<SB!Z"
+			val input = "A(else:over:vie,else2:over2:vie2)>B>C(a:v:s)<S,T+(U)AB(elseB:overB:vieB,elseB2:overB2:vieB2)<SB!Z"
 			val json = standardJSON
 
 			val parser = new MondogrossoProcessParser(id, input, json)
@@ -107,6 +236,9 @@ class MondogrossoProcessOrdersTests extends Specification {
 			val the1stOrders = result.processList(0)
 			val the2ndOrders = result.processList(1)
 
+			//processSplitが存在しないはず
+			the1stOrders.processSplitHeaders must be_==(List())
+			
 			//A,B,C,のOrderが入っているはず
 			the1stOrders.orderIdentityList.length must be_==(3)
 
@@ -134,6 +266,9 @@ class MondogrossoProcessOrdersTests extends Specification {
 			the1stOrders.orderAdditional("C").waitIdentitiesList(1) must be_==("T")
 
 			//2つめのOrders
+			//processSplitHeader　Uがあるはず
+			the2ndOrders.processSplitHeaders(0).myId must be_==("U")
+			
 			//AB,のOrderが入っているはず
 			the2ndOrders.orderIdentityList.length must be_==(1)
 
@@ -162,7 +297,7 @@ class MondogrossoProcessOrdersTests extends Specification {
 			 *f				Z 	//									全プロセスの完了時/エラー時/タイムアウト時に実行
 			 */
 			val id = UUID.randomUUID().toString
-			val input = "A>B>C<D>E>F>G+B>D+E>H>I!Z"
+			val input = "A>B>C<D>E>F>G+(B)D+(E)H>I!Z"
 			val json = standardJSON
 
 			val parser = new MondogrossoProcessParser(id, input, json)
@@ -175,192 +310,96 @@ class MondogrossoProcessOrdersTests extends Specification {
 			val the2ndOrders = result.current.processList(1)
 			val the3rdOrders = result.current.processList(2)
 
+			/*1*/
+			//processSplitが存在しないはず
+			the1stOrders.processSplitHeaders must be_==(List())
+			
 			//A,B,C, E,F,G のOrderが入っているはず
 			the1stOrders.orderIdentityList.length must be_==(6)
 
 			//Cがwait Dを持つはず
 			the1stOrders.orderAdditional("C").waitIdentitiesList(0) must be_==("D")
 
-			//B(processWait),D,のOrderが入っているはず
-			the2ndOrders.orderIdentityList.length must be_==(2)
+			/*2*/
+			//processSplit B
+			the2ndOrders.processSplitHeaders(0).myId must be_==("B")
+			
+			//D,のOrderが入っているはず
+			the2ndOrders.orderIdentityList.length must be_==(1)
 
-			//E,H,I,のOrderが入っているはず
-			the3rdOrders.orderIdentityList.length must be_==(3)
-		}
-
-	}
-
-	"parseError" in {
-		"invalidな構文サンプル" in {
-			val id = UUID.randomUUID().toString
-			val input = ">>>>ASDG+-LASdB?Z"
-			val json = standardJSON
-
-			val parser = new MondogrossoProcessParser(id, input, json)
-
-			try {
-				val result = parser.parseProcess
-				false must be_==(true)
-			} catch {
-				case e => {
-					println("excet?	" + e)
-					e must be_==("java.lang.RuntimeException : Invalid Ideitifier")
-				}
-
-			} finally {
-				println("finally	done")
-			}
-		}
-
-		"""all	wait整合性の "無い" Process連続セットのパースでwait整合性エラー""" in {
-			/*
-			 * 実際の流れは、
-			 *1 A>B>C  E>F>G	//Cまで動いてXの完了を待つ	→	Xの完了後、E,F,Gまで動いて完了 ===== Xなんて無いのでロックする
-			 *2	　　>D			//Bの完了後発生、Dが動いて完了
-			 *3		  	>H>I	//								Eの完了後発生、H,I,まで動いて完了
-			 *f				Z 	//									全プロセスの完了時/エラー時/タイムアウト時に実行
-			 */
-			val id = UUID.randomUUID().toString
-			val input = "A>B>C<X>E>F>G+B>D+E>H>I!Z"
-			val json = standardJSON
-
-			val parser = new MondogrossoProcessParser(id, input, json)
-			try {
-				val result = parser.parseProcess
-				"never reach here." must be_==("")
-			} catch {
-				case e => {
-					println("excet?	" + e)
-					e must be_==("java.lang.RuntimeException: Illegular wait-relation when parsing failed")
-				}
-			} finally {
-				println("finally	done")
-			}
-		}
-
-		"finallyが無い" in {
-			val id = UUID.randomUUID().toString
-			val input = "A>B>C"
-			val json = standardJSON
-
-			val parser = new MondogrossoProcessParser(id, input, json)
-
-			try {
-				val result = parser.parseProcess
-				"never reach here." must be_==("")
-			} catch {
-				case e => {
-					println("except?	" + e)
-					e must be_==("""java.lang.RuntimeException : Missing "Finally" OrderIdentity""")
-				}
-
-			} finally {
-				println("finally	done")
-			}
-		}
-
-	}
-
-	"samples" should {
-		"processes	複数のProcessフルセット	、finallyなし" in {
-			val input = "A(else:over:vie,else:over:vie)>B<S+AB(elseB:overB:vieB,elseB:overB:vieB)<SB"
-			val json = standardJSON
-
-			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
-			val result = parser.parseAll(parser.processes, input)
-			"not yet tested well" must be_==("")
+			/*3*/
+			//processSplit E
+			the3rdOrders.processSplitHeaders(0).myId must be_==("E")
+			
+			//H,I,のOrderが入っているはず
+			the3rdOrders.orderIdentityList.length must be_==(2)
 		}
 
 		"all	複数のWaitあり、なしのProcessフルセット	" in {
-			val input = "A(else:over:vie,else:over:vie)<S+AB(elseB:overB:vieB,elseB:overB:vieB)!F"
+			val input = "A(else:over:vie,else:over:vie)<S+(T)AB(elseB:overB:vieB,elseB:overB:vieB)!F"
 			val json = standardJSON
 
 			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
 			val result = parser.parseProcess
-			"not yet tested well" must be_==("")
+			
+			//Ordersが2つあるはず
+			result.current.processList.length must be_==(2)
 		}
 
 		"all	複数のWaitなしのProcessフルセット	" in {
-			val input = "A(else:over:vie,else:over:vie)+AB(elseB:overB:vieB,elseB:overB:vieB)!F"
+			val input = "A(else:over:vie,else:over:vie)+(A)AB(elseB:overB:vieB,elseB:overB:vieB)!F"
 			val json = standardJSON
 
 			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
 			val result = parser.parseProcess
-			"not yet tested well" must be_==("")
+			
+			//Ordersが2つあるはず
+			result.current.processList.length must be_==(2)
 		}
 
 		"all	複数のWait、パラメータなしのProcessフルセット	" in {
-			val input = "A>B+AB(elseB:overB:vieB,elseB:overB:vieB)!F"
+			val input = "A>B+(S)AB(elseB:overB:vieB,elseB:overB:vieB)!F"
 			val json = standardJSON
 
 			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
 			val result = parser.parseProcess
-			"not yet tested well" must be_==("")
+			
+			//Ordersが2つあるはず
+			result.current.processList.length must be_==(2)
 		}
 
-		"orders	<のあとにIdentityが一つあるケース" in {
-
-			val input = "A(else:over:vie,else:over:vie)<S"
-			val json = standardJSON
-			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
-			val result = parser.parseAll(parser.orders, input)
-			"not yet tested well" must be_==("")
-		}
-
-		"orders	<のあとにIdentityが一つあるケース2 パラメータなし" in {
-
-			val input = "A<S"
-			val json = standardJSON
-			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
-			val result = parser.parseAll(parser.orders, input)
-			"not yet tested well" must be_==("")
-		}
-
-		"orders	<のあとにIdentityが一つあるケース3 パラメータなし、複数のOrder" in {
-
-			val input = "A>B<S"
-			val json = standardJSON
-			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
-			val result = parser.parseAll(parser.orders, input)
-			"not yet tested well" must be_==("")
-		}
-
-		"order	<が無いケース" in {
-
-			val input = "A(else:over:vie,else:over:vie)"
-			val json = standardJSON
-			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
-			val result = parser.parseAll(parser.order, input)
-			"not yet tested well" must be_==("")
-		}
-
-		"all	<が無いケース" in {
-
-			val input = "A(else:over:vie,else:over:vie)!F"
+		"all	wait <が無いケース" in {
+			val input = "A(else:over:vie,else2:over2:vie2)!F"
 			val json = standardJSON
 			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
 			val result = parser.parseProcess
-			"not yet tested well" must be_==("")
+			
+			//Ordersが1つあるはず
+			result.current.processList.length must be_==(1)
 		}
 
 		"all	改行入りのケース1 改行コード" in {
-			val input = "A(else:over:vie else:over:vie)<S\n+AB(elseB:overB:vieB elseB:overB:vieB)<SB\n+AB2(elseB2:overB2:vieB2 elseB2:overB2:vieB2)<SB2!Z"
+			val input = "A(else:over:vie else:over:vie)<S\n+(T)AB(elseB:overB:vieB elseB:overB:vieB)<SB\n+(U)AB2(elseB2:overB2:vieB2 elseB2:overB2:vieB2)<SB2!Z"
 			val json = standardJSON
 			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
 			val result = parser.parseProcess
-			"not yet tested well" must be_==("")
+			
+			//Ordersが3つあるはず
+			result.current.processList.length must be_==(3)
 		}
 
 		"all	改行入りのケース2 改行される文章" in {
 			val input =
 				"""A(else:over:vie,else:over:vie)<S
-+AB(elseB:overB:vieB elseB:overB:vieB)<SB
-+AB2(elseB2:overB2:vieB2 elseB2:overB2:vieB2)<SB2!Z"""
++(S)AB(elseB:overB:vieB elseB:overB:vieB)<SB
++(T)AB2(elseB2:overB2:vieB2 elseB2:overB2:vieB2)<SB2!Z"""
 
 			val json = standardJSON
 			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
 			val result = parser.parseProcess
-			"not yet tested well" must be_==("")
+			
+			//Ordersが3つあるはず
+			result.current.processList.length must be_==(3)
 		}
 
 		"単純なOrderの連続" in {
@@ -368,9 +407,13 @@ class MondogrossoProcessOrdersTests extends Specification {
 			val json = standardJSON
 			val parser = new MondogrossoProcessParser(UUID.randomUUID().toString, input, json)
 			val result = parser.parseProcess
-			"not yet tested well" must be_==("")
+			
+			//Ordersが1つあるはず
+			result.current.processList.length must be_==(1)
 		}
 	}
+	
+	
 
 	"JSON" should {
 		"単一のパラメータ" in {
@@ -436,5 +479,77 @@ class MondogrossoProcessOrdersTests extends Specification {
 			result.initialParam must be_==(total)
 		}
 	}
+	
+	"parseError" in {
+		"invalidな構文サンプル" in {
+			val id = UUID.randomUUID().toString
+			val input = ">>>>ASDG+-LASdB?Z"
+			val json = standardJSON
+
+			val parser = new MondogrossoProcessParser(id, input, json)
+
+			try {
+				val result = parser.parseProcess
+				false must be_==(true)
+			} catch {
+				case e => {
+					println("excet?	" + e)
+					e must be_==("java.lang.RuntimeException : Invalid Ideitifier")
+				}
+
+			} finally {
+				println("finally	done")
+			}
+		}
+
+		"""all	wait整合性の "無い" Process連続セットのパースでwait整合性エラー""" in {
+			/*
+			 * 実際の流れは、
+			 *1 A>B>C  E>F>G	//Cまで動いてXの完了を待つ	→	Xの完了後、E,F,Gまで動いて完了 ===== Xなんて無いのでロックする
+			 *2	　　>D			//Bの完了後発生、Dが動いて完了
+			 *3		  	>H>I	//								Eの完了後発生、H,I,まで動いて完了
+			 *f				Z 	//									全プロセスの完了時/エラー時/タイムアウト時に実行
+			 */
+			val id = UUID.randomUUID().toString
+			val input = "A>B>C<X>E>F>G(B)D+(E)H>I!Z"
+			val json = standardJSON
+
+			val parser = new MondogrossoProcessParser(id, input, json)
+			try {
+				val result = parser.parseProcess
+				"never reach here." must be_==("")
+			} catch {
+				case e => {
+					println("excet?	" + e)
+					e must be_==("java.lang.RuntimeException: Illegular wait-relation when parsing failed")
+				}
+			} finally {
+				println("finally	done")
+			}
+		}
+
+		"finallyが無い" in {
+			val id = UUID.randomUUID().toString
+			val input = "A>B>C"
+			val json = standardJSON
+
+			val parser = new MondogrossoProcessParser(id, input, json)
+
+			try {
+				val result = parser.parseProcess
+				"never reach here." must be_==("")
+			} catch {
+				case e => {
+					println("except?	" + e)
+					e must be_==("""java.lang.RuntimeException : Missing "Finally" OrderIdentity""")
+				}
+
+			} finally {
+				println("finally	done")
+			}
+		}
+	}
+	
+	
 
 }

@@ -8,10 +8,29 @@ import scala.sys.process._
 import java.util.UUID
 import com.kissaki.TagValue
 import scala.collection.mutable.ListBuffer
+import org.specs2.main.CommandLineArguments
+import org.specs2.matcher.TerminationMatchers
+import org.specs2.specification.AroundExample
+import org.specs2.matcher.MustMatchers
+import org.specs2.execute.Result
+import org.specs2.time.TimeConversions._
+
+//timeoutTrait　なのだが、ちょっと調整が必要。必ず終了時間が一定になってしまう。
+trait TimeoutTrait extends AroundExample with MustMatchers with TerminationMatchers with CommandLineArguments {
+
+  lazy val commandLineTimeOut = arguments.commandLine.int("timeout").map(_.millis)
+  def timeout = commandLineTimeOut.getOrElse(2500.millis)
+
+  def around[T <% Result](t: =>T) = {
+    lazy val result = t
+    val termination = result must terminate[T](sleep = timeout).orSkip((ko: String) => "TIMEOUT: "+timeout)
+    termination.toResult and result
+  }
+}
 
 @RunWith(classOf[JUnitRunner])
-class MondogrossoProcessOrdersControllerTests extends Specification {
-
+class MondogrossoProcessOrdersControllerTests extends Specification with TimeoutTrait {
+	
 	val standardJSON = """
 						{"A": 
 							{
@@ -56,7 +75,7 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 		
 		
 	//OrderController	
-	if (false) {
+	if (true) {
 		"OrderController" should {
 
 			"Contextを実行開始" in {
@@ -89,7 +108,7 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 	}
 
 	//Context information
-	if (false) {
+	if (true) {
 		"Context information" should {
 			val id = UUID.randomUUID().toString
 			val input = "A>B>C(A:a:c)<E+B>D(A:a2:d1,A:a3:d2)>E!Z"
@@ -353,7 +372,7 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 		"Context 複雑なOrder" should {
 			"5:run A,B,Z 複数のOrder" in {
 				val id = UUID.randomUUID().toString
-				val input = "A>B!Z"
+				val input = "A>B!Z"//なんでもgrep
 				val json = """
 						{"A": 
 							{
@@ -363,8 +382,8 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 						"B": 
 							{
 								"_kind": "sh",
-								"_main": "grep"
-								"in" : "should be grep"
+								"_main": "grep",
+								"\"a\"" : "*.*"
 							},
 						"Z": 
 							{
@@ -385,6 +404,7 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 
 				while (!currentContext.currentStatus.head.equals(ContextStatus.STATUS_DONE)) {
 					Thread.sleep(100)
+					println("5")
 				}
 
 				//実行順が入っているはず
@@ -400,13 +420,13 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 						{"A": 
 							{
 								"_kind": "sh",
-								"_main": "ls -l"
+								"_main": "echo *.*"
 							},
 						"B": 
 							{
 								"_kind": "sh",
 								"_main": "grep"
-								"in" : "should be grep"
+								"\"a\"" : "should be grep"
 							},
 						"Z": 
 							{
@@ -425,7 +445,11 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 
 				currentContext.runContext
 
-				Thread.sleep(200)
+				//	Timeout処理の待ち
+				while (!currentContext.currentStatus.head.equals(ContextStatus.STATUS_DONE)) {
+					Thread.sleep(100)
+					println("6")
+				}
 
 				//実行順が入っているはず
 				println("runningProcessList	" + currentContext.runningProcessList)
@@ -472,7 +496,11 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 
 				currentContext.runContext
 
-				Thread.sleep(400)
+				//	Timeout処理の待ち
+				while (!currentContext.currentStatus.head.equals(ContextStatus.STATUS_DONE)) {
+					Thread.sleep(100)
+					println("6.5")
+				}
 
 				//実行順が入っているはず
 				println("runningProcessList	" + currentContext.runningProcessList)
@@ -534,7 +562,12 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 
 				currentContext.runContext
 
-				Thread.sleep(2000) //2秒待つ
+				println("入れ替えマップが用意された状態のcurrent	"+currentContext.currentContext)
+				//	Timeout処理の待ち
+				while (!currentContext.currentStatus.head.equals(ContextStatus.STATUS_DONE)) {
+					Thread.sleep(100)
+					println("7")
+				}
 
 				//実行順が入っているはず
 				println("runningProcessList	" + currentContext.runningProcessList)
@@ -543,6 +576,105 @@ class MondogrossoProcessOrdersControllerTests extends Specification {
 
 				"not yet applied" must be_==("")
 			}
+			
+			
+			"8:待ちが存在するOrder Aが完了したらBが動き出す" in {
+				
+				val id = UUID.randomUUID().toString
+				val input = "A+A>B(A:_result:in)!Z"
+				val json = """
+						{"A": 
+							{
+								"_kind": "sh",
+								"_main": "echo *.*"
+							},
+						"B": 
+							{
+								"_kind": "sh",
+								"_main": "grep"
+								"\"a\"" : "should be grep"
+							},
+						"Z": 
+							{
+								"_kind": "sh",
+								"_main": "ls -l",
+								"__finallyTimeout":"10000"
+							}
+						}
+						"""
+
+				val parser = new MondogrossoProcessParser(id, input, json)
+				val result = parser.parseProcess
+
+				val identity = UUID.randomUUID().toString
+				val currentContext = new ProcessContext(identity, result)
+
+				currentContext.runContext
+
+				//	Timeout処理の待ち
+				while (!currentContext.currentStatus.head.equals(ContextStatus.STATUS_DONE)) {
+					Thread.sleep(100)
+					println("8")
+				}
+
+				//実行順が入っているはず
+				println("runningProcessList	" + currentContext.runningProcessList)
+
+				//BがAの_resultをgrepした結果を持つ
+
+				"not yet applied" must be_==("")
+
+			}
+			
+			"9:待ちが存在するOrder Aの値を継いで、Aが完了したらBが動き出す" in {
+				
+				val id = UUID.randomUUID().toString
+				val input = "A+A>B(A:_result:in)!Z"
+				val json = """
+						{"A": 
+							{
+								"_kind": "sh",
+								"_main": "echo *.*"
+							},
+						"B": 
+							{
+								"_kind": "sh",
+								"_main": "grep"
+								"\"a\"" : "should be grep"
+							},
+						"Z": 
+							{
+								"_kind": "sh",
+								"_main": "ls -l",
+								"__finallyTimeout":"10000"
+							}
+						}
+						"""
+
+				val parser = new MondogrossoProcessParser(id, input, json)
+				val result = parser.parseProcess
+				println("開始されているはず	result	"+result)
+				val identity = UUID.randomUUID().toString
+				val currentContext = new ProcessContext(identity, result)
+
+				currentContext.runContext
+
+				//	Timeout処理の待ち
+				while (!currentContext.currentStatus.head.equals(ContextStatus.STATUS_DONE)) {
+					Thread.sleep(100)
+					println("9")
+				}
+
+				//実行順が入っているはず
+				println("runningProcessList	" + currentContext.runningProcessList)
+
+				//BがAの_resultをgrepした結果を持つ
+
+				"not yet applied" must be_==("")
+
+			}
+			
+			
 		}
 	}
 
