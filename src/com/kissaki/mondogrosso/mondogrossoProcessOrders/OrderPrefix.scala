@@ -1,6 +1,14 @@
 package com.kissaki.mondogrosso.mondogrossoProcessOrders
 
 object OrderPrefix extends Enumeration {
+	
+	val RUN_PREFIX_JAVA = "java"
+	val RUN_PREFIX_JAR = "-jar"
+	val RUN_PREFIX_DOTJAR = ".jar"
+	val RUN_TIMEOUT_MESSAGE = "timeout"
+	val RUN_PREFIX_CURRENTDIR = "./"
+	val RUN_PREFIX_WHITESPACE = " "
+		
 	type OrderPrefix = Value
 	
 	//PREFIX

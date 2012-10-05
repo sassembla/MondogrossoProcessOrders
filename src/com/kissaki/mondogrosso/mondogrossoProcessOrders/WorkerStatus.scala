@@ -5,9 +5,10 @@ object WorkerStatus extends Enumeration {
 	type WorkerStatus = Value
 	
 	//MESSAGES
-	val STATUS_NONE, 
+	val STATUS_EMPTY,
 	STATUS_READY,
-	STATUS_WAITING,
+	STATUS_SPLIT_WAIT,
+	STATUS_AFTER_WAIT,
 	STATUS_DOING,
 	STATUS_DONE,
 	STATUS_TIMEOUT,

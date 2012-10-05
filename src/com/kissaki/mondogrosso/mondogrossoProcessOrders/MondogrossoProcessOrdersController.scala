@@ -198,12 +198,11 @@ class ProcessContext(contextIdentity : String, contextSrc : ContextSource) exten
 	def dispachWorkerToNextOrder(process : Process, index : Int) = {
 		//開始すべきIdentityを取得する(ここでは決めうちで0)
 		val currentOrderIdentity = process.orderIdentityList(index)
-		val processSplitIds = process.processSplitHeaders
 		val actualRuntimeContext = generateRuntimeContext(currentOrderIdentity)
 
 		messenger.call(process.identity, Messages.MESSAGE_START.toString, messenger.tagValues(
 			new TagValue("identity", currentOrderIdentity),
-			new TagValue("processSplitIds", processSplitIds),
+			new TagValue("processSplitIds", List()),
 			new TagValue("context", actualRuntimeContext)))
 
 		//実行中のOrderをセット
@@ -282,7 +281,6 @@ class ProcessContext(contextIdentity : String, contextSrc : ContextSource) exten
 		exec match {
 			//waiterからのdelay時にまだRunningだったら
 			case Messages.MESSAGE_EXEC_TIMEOUT_RUN => {
-				println("to STATUS_TIMEOUT	"+contextIdentity)
 				ContextStatus.STATUS_TIMEOUT +=: currentStatus 
 				currentContext.get(finallyOrderIdentity).foreach { finallyContext => runFinally(finallyContext) }
 			}

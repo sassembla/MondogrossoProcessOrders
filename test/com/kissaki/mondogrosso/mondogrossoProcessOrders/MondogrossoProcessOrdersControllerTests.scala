@@ -68,7 +68,7 @@ class MondogrossoProcessOrdersControllerTests extends Specification with Timeout
 							{
 								"_kind": "sh",
 								"_main": "open",
-								"-a":"Safari.app /Applications/eclipseScala/scalaworkspace/MondogrossoProcessOrders/build/reports/tests/com.kissaki.mondogrosso.mondogrossoProcessOrders.MondogrossoProcessOrdersControllerTests.html"
+								"-a":"Safari.app /Applications/eclipseScala/scalaworkspace/MondogrossoProcessOrders/build/reports/tests/com.kissaki.mondogrosso.mondogrossoProcessOrders.MondogrossoProcessWorkerTests.html"
 							}
 						}"""
 
@@ -182,7 +182,7 @@ class MondogrossoProcessOrdersControllerTests extends Specification with Timeout
 			val currentContext = new ProcessContext(identity, result)
 
 			//run前、ContextのstatusがREADY
-			currentContext.currentStatus must be_==(ContextStatus.STATUS_READY)
+			currentContext.currentStatus.head must be_==(ContextStatus.STATUS_READY)
 		}
 
 		
