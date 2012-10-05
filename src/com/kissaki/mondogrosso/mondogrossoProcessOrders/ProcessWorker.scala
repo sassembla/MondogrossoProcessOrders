@@ -11,7 +11,7 @@ import java.util.Timer
 import java.util.TimerTask
 import java.util.concurrent.TimeUnit
 
-case class WorkInformation(orderIdentity : String, localContext : scala.collection.Map[String, String], currentAfterWaitIds:List[String])
+case class WorkInformation(orderIdentity : String, localContext : scala.collection.Map[String, String], afterWaitIds:List[String])
 
 /**
  * ワーカー
@@ -146,6 +146,9 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 	 *  EMPTY/READYからの開始
 	 */
 	def procStart(tagValues : Array[TagValue]) = {
+		tagValues.foreach{some =>
+			println("some	"+some.m_tag)}
+		
 		val orderIdentity = (messenger.get("identity", tagValues)).asInstanceOf[String]
 		val processSplitIds = (messenger.get("processSplitIds", tagValues)).asInstanceOf[List[String]]
 		val afterWaitIds = (messenger.get("afterWaitIds", tagValues)).asInstanceOf[List[String]]
@@ -156,7 +159,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 			case None =>
 		}
 
-		val currentAddedOrderInfo = new WorkInformation(orderIdentity, orderContext)
+		val currentAddedOrderInfo = new WorkInformation(orderIdentity, orderContext, null)
 
 		//currentWorkInformationHistoryのheadに、最新のInfoを加算する
 		currentAddedOrderInfo +=: currentWorkInformationHistory
@@ -166,9 +169,6 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 		
 		//バリデーション
 		validateKeys(currentAddedOrderInfo)
-		
-		//afterWaitIdsが有る場合、マークする
-		currentAfterWaitIds += afterWaitIds
 		
 		//splitでの分岐
 		processSplitIds.size match {
@@ -308,7 +308,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 				val timeoutContext = timeoutContextWorkInfo.localContext ++ Map(OrderPrefix._result.toString -> (OrderPrefix.RUN_TIMEOUT_MESSAGE + OrderPrefix.RUN_PREFIX_WHITESPACE + delay + "msec elapsed"))
 
 				//結果を残す
-				new WorkInformation(timeoutContextWorkInfo.orderIdentity, timeoutContext) +=: currentWorkInformationHistory
+				new WorkInformation(timeoutContextWorkInfo.orderIdentity, timeoutContext, timeoutContextWorkInfo.afterWaitIds) +=: currentWorkInformationHistory
 
 				//timeoutの見なし　既存workの情報送信を行う
 				messenger.callParentWithAsync(Messages.MESSAGE_TIMEOUT.toString, messenger.tagValues(
@@ -335,7 +335,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 		val eventualContext = info.localContext ++ Map(OrderPrefix._result.toString -> result)
 
 		//結果を残す
-		new WorkInformation(info.orderIdentity, eventualContext) +=: currentWorkInformationHistory
+		new WorkInformation(info.orderIdentity, eventualContext, info.afterWaitIds) +=: currentWorkInformationHistory
 
 		//親に終了を通知
 		messenger.callParent(Messages.MESSAGE_DONE.toString,
@@ -491,7 +491,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 		val errorContext = info.localContext ++ Map(OrderPrefix._result.toString -> eStr)
 
 		//結果を残す
-		new WorkInformation(info.orderIdentity, errorContext) +=: currentWorkInformationHistory
+		new WorkInformation(info.orderIdentity, errorContext, info.afterWaitIds) +=: currentWorkInformationHistory
 
 		//親に終了を通知
 		messenger.callParent(Messages.MESSAGE_ERROR.toString,

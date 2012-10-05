@@ -174,18 +174,24 @@ class ProcessContext(contextIdentity : String, contextSrc : ContextSource) exten
 		//開始すべきIdentityを取得する(ここでは決めうちで0)
 		val currentOrderIdentity = process.orderIdentityList(0)
 		
+		//process開始WaitId
 		val processSplitIds = process.processSplitHeaders
+		
+		//order完了後WaitId
+		val afterWaitIds = process.orderAdditional(currentOrderIdentity).waitIdentitiesList
 		
 		//Initialコンテキスト + 既存コンテキスト(既存コンテキストで上塗り)
 		val actualRuntimeContext = generateRuntimeContext(currentOrderIdentity)
 
 		println("currentOrderIdentity	"+currentOrderIdentity)
 		println("processSplitIds	"+processSplitIds)
+		println("afterWaitIds	"+afterWaitIds)
 		println("actualRuntimeContext	"+actualRuntimeContext)
 		
 		messenger.call(process.identity, Messages.MESSAGE_START.toString, messenger.tagValues(
 			new TagValue("identity", currentOrderIdentity),
 			new TagValue("processSplitIds", processSplitIds),
+			new TagValue("afterWaitIds", afterWaitIds),
 			new TagValue("context", actualRuntimeContext)))
 
 		//実行中のOrderをセット
@@ -198,11 +204,13 @@ class ProcessContext(contextIdentity : String, contextSrc : ContextSource) exten
 	def dispachWorkerToNextOrder(process : Process, index : Int) = {
 		//開始すべきIdentityを取得する(ここでは決めうちで0)
 		val currentOrderIdentity = process.orderIdentityList(index)
+		val afterWaitIds = process.orderAdditional(currentOrderIdentity).waitIdentitiesList
 		val actualRuntimeContext = generateRuntimeContext(currentOrderIdentity)
 
 		messenger.call(process.identity, Messages.MESSAGE_START.toString, messenger.tagValues(
 			new TagValue("identity", currentOrderIdentity),
 			new TagValue("processSplitIds", List()),
+			new TagValue("afterWaitIds", afterWaitIds),
 			new TagValue("context", actualRuntimeContext)))
 
 		//実行中のOrderをセット
@@ -246,6 +254,7 @@ class ProcessContext(contextIdentity : String, contextSrc : ContextSource) exten
 		messenger.call(finallyProcessIdentity, Messages.MESSAGE_START.toString, messenger.tagValues(
 			new TagValue("identity", finallyOrderIdentity),
 			new TagValue("processSplitIds", List()),
+			new TagValue("afterWaitIds", List()),
 			new TagValue("context", finallyContext)))
 	}
 

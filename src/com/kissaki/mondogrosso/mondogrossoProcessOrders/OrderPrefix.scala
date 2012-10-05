@@ -13,16 +13,16 @@ object OrderPrefix extends Enumeration {
 	
 	//PREFIX
 	val
-	//must
+	/*must*/
 	_kind,
 	_main,
 	_result,
 	
-	//optional
+	/*optional*/
 	__delay,
 	__timeout,
 	
-	//finally
+	/*finally*/
 	__finallyTimeout,
 	
 	PREFIX_NOTFOUND
