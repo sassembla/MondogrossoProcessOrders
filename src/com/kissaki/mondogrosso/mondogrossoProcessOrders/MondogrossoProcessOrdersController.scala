@@ -239,11 +239,12 @@ class ProcessContext(contextIdentity : String, contextSrc : ContextSource) exten
 	/**
 	 * 存在する有効なWorkerに直近のContext内でのOrderの終了通知を投げる
 	 */
-	def notifyFinishedOrderInfoToAllWorker(finishedOrderIdentity : String) = {
+	def notifyFinishedOrderInfoToAllWorker(finishedOrderIdentity : String, allfinishedOrderIdentities : List[String]) = {
 		for (processName <- runningProcessList) {
 //			println("notify the end of processName	" + processName+"	/	"+identity)
 			messenger.callWithAsync(processName, Messages.MESSAGE_FINISHEDORDER_NOTIFY.toString, messenger.tagValues(
-				new TagValue("finishedOrderIdentity", finishedOrderIdentity)))
+				new TagValue("finishedOrderIdentity", finishedOrderIdentity),
+				new TagValue("allfinishedOrderIdentities", allfinishedOrderIdentities)))
 		}
 	}
 
@@ -266,7 +267,7 @@ class ProcessContext(contextIdentity : String, contextSrc : ContextSource) exten
 		val exec = Messages.get(execSrc)
 
 		currentStatus.head match {
-			case ContextStatus.STATUS_NOTREADY => println("何も")
+			case ContextStatus.STATUS_NOTREADY => println("何もしない")
 
 			case ContextStatus.STATUS_READY => println("runContext should")
 
@@ -315,7 +316,7 @@ class ProcessContext(contextIdentity : String, contextSrc : ContextSource) exten
 				 * PushKVO。
 				 * WorkerからみればPassiveKVO。
 				 */
-				notifyFinishedOrderInfoToAllWorker(currentFinishedOrderIdentity)
+				notifyFinishedOrderInfoToAllWorker(currentFinishedOrderIdentity, currentContext.keys.toList)
 			}
 
 			/*

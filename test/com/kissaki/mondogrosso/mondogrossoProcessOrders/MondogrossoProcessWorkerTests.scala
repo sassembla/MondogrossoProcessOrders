@@ -492,7 +492,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 					"a",
 					OrderPrefix._result.toString))
 
-				latestWork.localContext.get(OrderPrefix._result.toString).getOrElse("...empty") must be_==("no _kind _main keys found in WorkInformation(A,Map(a -> b),null)")
+				latestWork.localContext.get(OrderPrefix._result.toString).getOrElse("...empty") must be_==("no _kind _main keys found in WorkInformation(A,Map(a -> b),List())")
 			}
 
 			"_main,_typeという最低限のパラメータが足りない 実行前エラー __timeoutあり" in {
@@ -515,7 +515,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 					"a",
 					OrderPrefix._result.toString))
 
-				latestWork.localContext.get(OrderPrefix._result.toString).getOrElse("...empty") must be_==("no _kind _main keys found in WorkInformation(A,Map(a -> b, __timeout -> 1),null)")
+				latestWork.localContext.get(OrderPrefix._result.toString).getOrElse("...empty") must be_==("no _kind _main keys found in WorkInformation(A,Map(a -> b, __timeout -> 1),List())")
 
 			}
 
@@ -815,7 +815,8 @@ class MondogrossoProcessWorkerTests extends Specification {
 				worker.currentStatus.head must be_==(WorkerStatus.STATUS_SPLIT_WAIT)
 				
 				dummyParent.messenger.call(workerId, Messages.MESSAGE_FINISHEDORDER_NOTIFY.toString, 
-						dummyParent.messenger.tagValues(new TagValue("finishedOrderIdentity", "WAIT")))
+						dummyParent.messenger.tagValues(new TagValue("finishedOrderIdentity", "WAIT"),
+								new TagValue("allfinishedOrderIdentities", List("WAIT"))))
 				
 				//WorkerはSTATUS_DONEになっているはず		
 				worker.currentStatus.head must be_==(WorkerStatus.STATUS_DONE)
@@ -856,7 +857,9 @@ class MondogrossoProcessWorkerTests extends Specification {
 				worker.currentStatus.head must be_==(WorkerStatus.STATUS_AFTER_WAIT)
 				
 				dummyParent.messenger.call(workerId, Messages.MESSAGE_FINISHEDORDER_NOTIFY.toString, 
-						dummyParent.messenger.tagValues(new TagValue("finishedOrderIdentity", "B")))
+						dummyParent.messenger.tagValues(
+								new TagValue("finishedOrderIdentity", "B"),
+								new TagValue("allfinishedOrderIdentities", List("B"))))
 				
 				//WorkerはSTATUS_DONEになっているはず		
 				worker.currentStatus.head must be_==(WorkerStatus.STATUS_DONE)
@@ -890,14 +893,16 @@ class MondogrossoProcessWorkerTests extends Specification {
 				
 				//B
 				dummyParent.messenger.call(workerId, Messages.MESSAGE_FINISHEDORDER_NOTIFY.toString, 
-						dummyParent.messenger.tagValues(new TagValue("finishedOrderIdentity", "B")))
+						dummyParent.messenger.tagValues(new TagValue("finishedOrderIdentity", "B"),
+								new TagValue("allfinishedOrderIdentities", List("B"))))
 				
 				//WorkerはまだSTATUS_AFTER_WAITに入っているはず
 				worker.currentStatus.head must be_==(WorkerStatus.STATUS_AFTER_WAIT)
 				
 				//C
 				dummyParent.messenger.call(workerId, Messages.MESSAGE_FINISHEDORDER_NOTIFY.toString, 
-						dummyParent.messenger.tagValues(new TagValue("finishedOrderIdentity", "C")))
+						dummyParent.messenger.tagValues(new TagValue("finishedOrderIdentity", "C"),
+								new TagValue("allfinishedOrderIdentities", List("B","C"))))
 				
 				//WorkerはSTATUS_DONEになっているはず	
 				worker.currentStatus.head must be_==(WorkerStatus.STATUS_DONE)
@@ -918,7 +923,8 @@ class MondogrossoProcessWorkerTests extends Specification {
 				
 				//Bが終わった事が伝わる
 				dummyParent.messenger.call(workerId, Messages.MESSAGE_FINISHEDORDER_NOTIFY.toString, 
-						dummyParent.messenger.tagValues(new TagValue("finishedOrderIdentity", "B")))
+						dummyParent.messenger.tagValues(new TagValue("finishedOrderIdentity", "B"),
+								new TagValue("allfinishedOrderIdentities", List("B"))))
 				
 				//この状態で開始
 				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
@@ -950,11 +956,13 @@ class MondogrossoProcessWorkerTests extends Specification {
 				
 				//Bが終わった事が伝わる
 				dummyParent.messenger.call(workerId, Messages.MESSAGE_FINISHEDORDER_NOTIFY.toString, 
-						dummyParent.messenger.tagValues(new TagValue("finishedOrderIdentity", "B")))
+						dummyParent.messenger.tagValues(new TagValue("finishedOrderIdentity", "B"),
+								new TagValue("allfinishedOrderIdentities", List("B"))))
 						
 				//Cが終わった事が伝わる
 				dummyParent.messenger.call(workerId, Messages.MESSAGE_FINISHEDORDER_NOTIFY.toString, 
-						dummyParent.messenger.tagValues(new TagValue("finishedOrderIdentity", "C")))
+						dummyParent.messenger.tagValues(new TagValue("finishedOrderIdentity", "C"),
+								new TagValue("allfinishedOrderIdentities", List("B","C"))))
 				
 				//この状態で開始
 				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
@@ -986,7 +994,8 @@ class MondogrossoProcessWorkerTests extends Specification {
 				
 				//Bが終わった事が伝わる
 				dummyParent.messenger.call(workerId, Messages.MESSAGE_FINISHEDORDER_NOTIFY.toString, 
-						dummyParent.messenger.tagValues(new TagValue("finishedOrderIdentity", "B")))
+						dummyParent.messenger.tagValues(new TagValue("finishedOrderIdentity", "B"),
+								new TagValue("allfinishedOrderIdentities", List("B"))))
 						
 				
 				//この状態で開始
@@ -1006,7 +1015,8 @@ class MondogrossoProcessWorkerTests extends Specification {
 							
 				//Cが終わった事が伝わる
 				dummyParent.messenger.call(workerId, Messages.MESSAGE_FINISHEDORDER_NOTIFY.toString, 
-						dummyParent.messenger.tagValues(new TagValue("finishedOrderIdentity", "C")))
+						dummyParent.messenger.tagValues(new TagValue("finishedOrderIdentity", "C"),
+								new TagValue("allfinishedOrderIdentities", List("B","C"))))
 				
 				//WorkerはSTATUS_DONEになっているはず		
 				worker.currentStatus.head must be_==(WorkerStatus.STATUS_DONE)
