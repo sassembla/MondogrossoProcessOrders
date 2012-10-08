@@ -206,13 +206,14 @@ class ProcessContext(contextIdentity : String, contextSrc : ContextSource) exten
 	 * Workerに対して新しいOrderを割当、起動する
 	 */
 	def dispachWorkerToNextOrder(process : Process, index : Int) = {
+		println("index	"+index)
 		//開始すべきIdentityを取得する
 		val currentOrderIdentity = process.orderIdentityList(index)
 		val afterWaitIds = process.orderAdditional(currentOrderIdentity).waitIdentitiesList
 		val actualRuntimeContext = generateRuntimeContext(process, currentOrderIdentity)
 		
 		println("actualRuntimeContext	"+actualRuntimeContext)
-		
+		println("currentOrderIdentity2	"+currentOrderIdentity)
 		//実行中Ordersにセット
 		doingOrderIdentities += currentOrderIdentity
 		
@@ -381,11 +382,20 @@ class ProcessContext(contextIdentity : String, contextSrc : ContextSource) exten
 				//終了したOrderの属するProcessを検索、次のOrderを探す
 				contextSrc.current.processList.withFilter(_.identity.equals(processIdentity)).foreach { process =>
 					//終了したOrderのIndexを出し、次があれば実行する。
-					val currentOrderIdentityIndex = process.orderIdentityList.length - (process.orderIdentityList.indexOf(finishedOrderIdentity) + 1) 
+					val currentOrderIdentityIndex = (process.orderIdentityList.indexOf(finishedOrderIdentity) + 1)
+					println("process.orderIdentityList	"+process.orderIdentityList)
+					println("index	"+process.orderIdentityList.indexOf(finishedOrderIdentity))
+					println("finishedOrderIdentity	"+process.orderIdentityList.indexOf(finishedOrderIdentity))
+					
 					
 					currentOrderIdentityIndex match {
+						//次のOrderを実行
+						case number if (number < process.orderIdentityList.length) => {
+							dispachWorkerToNextOrder(process, number)
+						}
+						
 						//先ほど完了したのがこのProcessのラスト
-						case 0 => {
+						case last => {
 							//runningProcessListリストからdoneProcessListへとprocessを移す
 							runningProcessList -= processIdentity
 							doneProcessList += processIdentity
@@ -399,13 +409,9 @@ class ProcessContext(contextIdentity : String, contextSrc : ContextSource) exten
 								messenger.callMyself(Messages.MESSAGE_FINALLY.toString, null)
 							}
 						}
-						
-						//次のOrderを実行
-						case notZero => {
-							dispachWorkerToNextOrder(process, notZero)
-						}
 					}
-					//実行Index+1
+					
+					//みかけの実行Index+1
 					currentOrderIndex += 1
 				}
 			}

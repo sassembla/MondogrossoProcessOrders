@@ -53,7 +53,11 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 			 */
 			case WorkerStatus.STATUS_EMPTY => {
 				Messages.get(execSrc) match {
-					case Messages.MESSAGE_START => procStart(tagValues)
+					case Messages.MESSAGE_START => {
+						println("START	tagValues	"+tagValues)
+						procStart(tagValues)
+						println("START	tagValues	over")
+					}
 					case other => 
 				}
 			}
@@ -98,7 +102,11 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 
 			case WorkerStatus.STATUS_DONE => {
 				Messages.get(execSrc) match {
-					case Messages.MESSAGE_START => procStart(tagValues)
+					case Messages.MESSAGE_START => {
+						println("DONE	tagValues	"+tagValues)
+						procStart(tagValues)
+						println("DONE	tagValues	over")
+					}
 					case other => 
 				}
 			}
@@ -110,7 +118,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 		}
 
 		/*
-		 * いつでも発生する可能性のあるイベント
+		 * いつでも発生する可能性のある外部からのイベント
 		 */
 		Messages.get(execSrc) match {
 			//afterWaitを解除する可能性がある、終了ORDERの通知
@@ -178,7 +186,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 	 */
 	def procStart(tagValues : Array[TagValue]) = {
 		val orderIdentity = (messenger.get("identity", tagValues)).asInstanceOf[String]
-		val processSplitIds = (messenger.get("processSplitIds", tagValues)).asInstanceOf[List[String]]
+		val processSplitIds = (messenger.get("processSplitIds", tagValues)).asInstanceOf[List[OrderIdentity]]
 		val afterWaitIds = (messenger.get("afterWaitIds", tagValues)).asInstanceOf[List[String]]
 		val orderContext = (messenger.get("context", tagValues)).asInstanceOf[scala.collection.Map[String, String]]
 
@@ -208,9 +216,11 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 			}
 			case _ => { //processSplitの待ちIdentityが存在する
 				WorkerStatus.STATUS_SPLIT_WAIT +=: currentStatus
-
+				
 				//idを追加する
-				processSplitIds.foreach { id => processSplitWaitOrderIdentitiesList += id }
+				processSplitIds.foreach { id =>
+					processSplitWaitOrderIdentitiesList += id.myId 
+				}
 			}
 		}
 	}

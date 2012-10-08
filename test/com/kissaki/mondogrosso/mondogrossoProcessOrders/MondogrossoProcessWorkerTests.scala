@@ -781,7 +781,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
 					dummyParent.messenger.tagValues(
 						new TagValue("identity", "A"),
-						new TagValue("processSplitIds",List("WAIT")),
+						new TagValue("processSplitIds",List(OrderIdentity("WAIT"))),
 						new TagValue("afterWaitIds", List()),
 						new TagValue("context", Map(
 							OrderPrefix._kind.toString -> "jar",
@@ -804,7 +804,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
 					dummyParent.messenger.tagValues(
 						new TagValue("identity", "A"),
-						new TagValue("processSplitIds",List("WAIT")),
+						new TagValue("processSplitIds",List(OrderIdentity("WAIT"))),
 						new TagValue("afterWaitIds", List()),
 						new TagValue("context", Map(
 							OrderPrefix._kind.toString -> "sh",
