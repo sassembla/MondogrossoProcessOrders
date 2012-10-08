@@ -278,7 +278,7 @@ class MondogrossoProcessParser(id : String, input : String, jsonSource : String)
 	 * A(A2:a2:a, B:b:c)<D
 	 */
 	def order : Parser[Order] = (identity ~ (orderInputs | "") ~ (waitOrdersOrNot | "")) ^^ { default =>
-		println("order	" + default)
+		// println("order	" + default)
 
 		default match {
 			//フルセット
@@ -310,10 +310,9 @@ class MondogrossoProcessParser(id : String, input : String, jsonSource : String)
 	}
 
 	def processSplitHeaders : Parser[List[OrderIdentity]] = (("(" ~ identity ~ rep(waitIdentity2nd) ~")") | "")^^ {default =>
-		println("processSplitHeaders	"+default)
+		// println("processSplitHeaders	"+default)
 		default match {
 			case ("("  ~ (the1st : OrderIdentity) ~ (the2nd : List[OrderIdentity]) ~ ")") => {
-				println("hereComes")
 				List(the1st) ++ the2nd
 			}
 			case _ => List()
@@ -325,7 +324,7 @@ class MondogrossoProcessParser(id : String, input : String, jsonSource : String)
 	 * オーダーの集合
 	 */
 	def orders : Parser[Orders] = (processSplitHeaders | "")~order ~ (rep(secondaryOrder) | "") ^^ { default =>
-		println("orders	" + default)
+		// println("orders	" + default)
 
 		default match {
 			//複数 processSplitHeader付き

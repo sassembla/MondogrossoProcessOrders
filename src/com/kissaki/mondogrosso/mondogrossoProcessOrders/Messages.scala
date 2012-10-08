@@ -14,20 +14,8 @@ object Messages extends Enumeration {
 	MESSAGE_FINISHEDORDER_NOTIFY,
 	MESSAGE_ERROR,
 	
-	MESSAGE_EXEC_READY_TIMEOUT,
-	MESSAGE_EXEC_READY_RUN,
-	
-	MESSAGE_EXEC_ASYNC,
-	
-	MESSAGE_WAITER_EXEC_TIMEOUT_READY,
-	
-	MESSAGE_EXEC_TIMEOUT_READY,
-	MESSAGE_EXEC_TIMEOUT_RUN,
-	
-	MESSAGE_EXEC_UNLOCK_AFTERWAIT,
 	
 	MESSAGE_TIMEOUT,
-	MESSAGE_EXEC_DONE,
 	MESSAGE_DONE,
 	
 	MESSAGE_OVER,
@@ -40,12 +28,8 @@ object Messages extends Enumeration {
 	
 	def get(in:String):Value = {
 		values.find(in == _.toString) match {
-			case None => {
-				MESSAGE_NOTFOUND
-			}
-			case Some(v) => {
-				v
-			}
+			case None => MESSAGE_NOTFOUND
+			case Some(v) => v
 		}
 	} 
 }

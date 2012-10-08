@@ -1,7 +1,6 @@
 package com.kissaki.mondogrosso.mondogrossoProcessOrders
 
 import scala.collection.mutable.ListBuffer
-import scala.sys.process.{ Process ⇒ scalaProcess }
 import com.kissaki.Messenger
 import com.kissaki.TagValue
 import com.kissaki.MessengerProtocol
@@ -10,6 +9,8 @@ import java.util.UUID
 import java.util.Timer
 import java.util.TimerTask
 import java.util.concurrent.TimeUnit
+import  scala.sys.process.stringSeqToProcess
+import scala.sys.process.ProcessLogger
 
 
 case class WorkInformation(orderIdentity : String, localContext : scala.collection.Map[String, String], afterWaitIds : List[String])
@@ -53,8 +54,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 			case WorkerStatus.STATUS_EMPTY => {
 				Messages.get(execSrc) match {
 					case Messages.MESSAGE_START => procStart(tagValues)
-
-					case other => print("STATUS_EMPTY	other	" + other)
+					case other => 
 				}
 			}
 
@@ -62,10 +62,10 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 			 * 準備状態、同期/非同期実行　or 待ち　を行う。
 			 */
 			case WorkerStatus.STATUS_READY => {
-				Messages.get(execSrc) match {
-					case Messages.MESSAGE_EXEC_READY_TIMEOUT => procReadyTimeout(tagValues)
-					case Messages.MESSAGE_EXEC_READY_RUN => procReadyRun(tagValues)
-					case other => print("STATUS_READY	other	" + other)
+				WorkerExecs.get(execSrc) match {
+					case WorkerExecs.EXEC_READY_TIMEOUT => procReadyTimeout(tagValues)
+					case WorkerExecs.EXEC_READY_RUN => procReadyRun(tagValues)
+					case other => 
 				}
 			}
 
@@ -73,29 +73,34 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 				Messages.get(execSrc) match {
 					//通知が来た
 					case Messages.MESSAGE_FINISHEDORDER_NOTIFY => procRestart(tagValues)
-					case Messages.MESSAGE_EXEC_READY_RUN => procReadyRun(tagValues)
-					case other => print("STATUS_READY	other	" + other)
+					case other => 
 				}
-
+				WorkerExecs.get(execSrc) match {
+					case WorkerExecs.EXEC_READY_RUN => procReadyRun(tagValues)
+					case other =>
+				}
 			}
 
 			case WorkerStatus.STATUS_AFTER_WAIT => {
-				Messages.get(execSrc) match {
-					case Messages.MESSAGE_EXEC_UNLOCK_AFTERWAIT => procUnlock(tagValues)
-					case other => print("STATUS_AFTER_WAIT	other	" + other)
+				WorkerExecs.get(execSrc) match {
+					case WorkerExecs.EXEC_UNLOCK_AFTERWAIT => procUnlock(tagValues)
+					case other => 
 				}
 			}
 
 			case WorkerStatus.STATUS_DOING => {
-				Messages.get(execSrc) match {
-					case Messages.MESSAGE_EXEC_DONE => procDone(tagValues)
-
-					case other => print("STATUS_DOING	other	" + other)
+				
+				WorkerExecs.get(execSrc) match {
+					case WorkerExecs.EXEC_DONE => procDone(tagValues)
+					case _ =>
 				}
 			}
 
 			case WorkerStatus.STATUS_DONE => {
-				print("STATUS_DONE	exec	" + execSrc)
+				Messages.get(execSrc) match {
+					case Messages.MESSAGE_START => procStart(tagValues)
+					case other => 
+				}
 			}
 			case WorkerStatus.STATUS_ERROR => {
 				println("エラーが起こったようです")
@@ -111,18 +116,22 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 			//afterWaitを解除する可能性がある、終了ORDERの通知
 			case Messages.MESSAGE_FINISHEDORDER_NOTIFY => unlock_AfterWait(tagValues)
 
+			//終了命令
+			case Messages.MESSAGE_OVER => messenger.close
+
+			case _ =>
+		}
+		
+		/*
+		 * いつでも発生する可能性のある処理
+		 */
+		WorkerExecs.get(execSrc) match {
 			//非同期動作の設定
-			case Messages.MESSAGE_EXEC_ASYNC => procStartAsync(tagValues)
+			case WorkerExecs.EXEC_ASYNC => procStartAsync(tagValues)
 
 			//タイムアウトの設定
-			case Messages.MESSAGE_EXEC_TIMEOUT_READY => procTimeoutReady(tagValues)
-
-			//終了命令
-			case Messages.MESSAGE_OVER => {
-				//messengerを閉じる
-				messenger.close
-			}
-
+			case WorkerExecs.EXEC_TIMEOUT_READY => procTimeoutReady(tagValues)
+			
 			case _ =>
 		}
 	}
@@ -139,7 +148,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 		//currentFinishedOrdersListに既存の完了済みOrderIdを移し替える
 		allfinishedOrderIdentities.foreach(id => currentFinishedOrdersList += id)
 
-		messenger.callMyself(Messages.MESSAGE_EXEC_UNLOCK_AFTERWAIT.toString, tagValues)
+		messenger.callMyself(WorkerExecs.EXEC_UNLOCK_AFTERWAIT.toString, tagValues)
 	}
 
 	/**
@@ -192,7 +201,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 		//splitでの分岐
 		processSplitIds.size match {
 			case 0 => {
-				messenger.callMyself(Messages.MESSAGE_EXEC_READY_TIMEOUT.toString, messenger.tagValues(
+				messenger.callMyself(WorkerExecs.EXEC_READY_TIMEOUT.toString, messenger.tagValues(
 					new TagValue("orderIdentity", orderIdentity),
 					new TagValue("orderContext", orderContext),
 					new TagValue("currentAddedOrderInfo", currentAddedOrderInfo)))
@@ -221,7 +230,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 			val orderContext = currentAddedOrderInfo.localContext
 
 			//WAITからのRUNを行う
-			messenger.callMyself(Messages.MESSAGE_EXEC_READY_RUN.toString, messenger.tagValues(
+			messenger.callMyself(WorkerExecs.EXEC_READY_RUN.toString, messenger.tagValues(
 				new TagValue("orderIdentity", orderIdentity),
 				new TagValue("orderContext", orderContext),
 				new TagValue("currentAddedOrderInfo", currentAddedOrderInfo)))
@@ -242,11 +251,11 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 			case Some(v) => setTimeout(currentAddedOrderInfo)
 
 			//値がセットされてない
-			case None => println("タイムリミットのセットが無い")
+			case None => //println("タイムリミットのセットが無い")
 		}
 
 		//セットが終わったのでRUNを実行
-		messenger.callMyself(Messages.MESSAGE_EXEC_READY_RUN.toString, tagValues)
+		messenger.callMyself(WorkerExecs.EXEC_READY_RUN.toString, tagValues)
 	}
 
 	/**
@@ -269,7 +278,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 						new TagValue("orderIdentity", orderIdentity)))
 
 				//自分自身を非同期で実行する
-				messenger.callMyselfWithAsync(Messages.MESSAGE_EXEC_ASYNC.toString, messenger.tagValues(new TagValue("asyncContextWorkInfo", currentAddedOrderInfo)))
+				messenger.callMyselfWithAsync(WorkerExecs.EXEC_ASYNC.toString, messenger.tagValues(new TagValue("asyncContextWorkInfo", currentAddedOrderInfo)))
 			}
 			case false => {
 				//動作開始の通知
@@ -351,7 +360,6 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 	def procDone(tagValues : Array[TagValue]) = {
 		val result = messenger.get("result", tagValues).asInstanceOf[String]
 		val info = messenger.get("info", tagValues).asInstanceOf[WorkInformation]
-		val process = messenger.get("process", tagValues).asInstanceOf[scala.sys.process.ProcessBuilder]
 
 		//結果のコンテキストを作成する
 		val eventualContext = info.localContext ++ Map(OrderPrefix._result.toString -> result)
@@ -365,8 +373,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 				new TagValue("identity", identity),
 				new TagValue("orderIdentity", info.orderIdentity),
 				new TagValue("eventualContext", eventualContext)))
-		println("from worker, process is	" + identity + " make request! to parent " + messenger.getParentName + "	/currentWorkInformationHistory.head.afterWaitIds	" + currentWorkInformationHistory.head.afterWaitIds)
-
+		
 		//この時点で既にafterWaitを突破できる可能性があるので、チェック
 		tryUnlockAfterWait(info)
 	}
@@ -376,8 +383,8 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 	 */
 	def tryUnlockAfterWait(info : WorkInformation) {
 		currentWorkInformationHistory.head.afterWaitIds.size match {
+			//afterWait無し
 			case 0 => {
-				println("afterWait無し")
 				messenger.callParentWithAsync(Messages.MESSAGE_REQUEST.toString,
 					messenger.tagValues(
 						new TagValue("workerIdentity", identity),
@@ -385,6 +392,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 
 				WorkerStatus.STATUS_DONE +=: currentStatus
 			}
+			//afterWaitが存在している
 			case many => {
 				val currentAfterWaits = currentWorkInformationHistory.head.afterWaitIds
 
@@ -428,7 +436,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 			case Some(v) => {
 				try {
 					val delay = v.toInt
-					messenger.callMyselfWithAsync(Messages.MESSAGE_EXEC_TIMEOUT_READY.toString,
+					messenger.callMyselfWithAsync(WorkerExecs.EXEC_TIMEOUT_READY.toString,
 						messenger.tagValues(
 							new TagValue("timeoutContext", timeoutContext),
 							new TagValue("delay", delay)))
@@ -451,73 +459,63 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 		//予約語以外
 		val currentKeys = OrderPrefix.getXORWithKeyword(info.localContext.keys.toSet)
 		val kindKey = info.localContext(OrderPrefix._kind.toString)
+		
+		//対応する種類に関して、実行を行う
 		WorkKinds.get(kindKey) match {
 
 			/*
 			 * jar実行
 			 */
 			case WorkKinds.jar => {
-				val inputKeyValuePair = for (key <- currentKeys) yield {
+				//キーと値をシークエンスに纏める
+				val inputKeyValuePairs = for (key <- currentKeys) yield {
 					val value = info.localContext.get(key) match {
 						case Some(v) => v
 						case None => ""
 					}
-					key + OrderPrefix.RUN_PREFIX_WHITESPACE + value
+					Seq(key, value)
 				}
-
-				val reduced = inputKeyValuePair match {
-					case v if (v.isEmpty) => ""
-					case default => {
-						inputKeyValuePair.reduceLeft {
-							(total, add) => total + OrderPrefix.RUN_PREFIX_WHITESPACE + add
-						}
+				val inputKeyValueSeq = if (inputKeyValuePairs.isEmpty) {
+					Seq()
+				} else {
+					inputKeyValuePairs.reduce {
+						(total, toAdd) => total ++ toAdd
 					}
 				}
-
-				val stableCommand = OrderPrefix.RUN_PREFIX_JAVA + OrderPrefix.RUN_PREFIX_WHITESPACE +
-					OrderPrefix.RUN_PREFIX_JAR + OrderPrefix.RUN_PREFIX_WHITESPACE +
-					OrderPrefix.RUN_PREFIX_CURRENTDIR + info.localContext(OrderPrefix._main.toString) +
-					OrderPrefix.RUN_PREFIX_DOTJAR + OrderPrefix.RUN_PREFIX_WHITESPACE +
-					reduced
-
-				//process生成
-				val process = scalaProcess(stableCommand)
-
+				
+				val stableCommand = Seq(OrderPrefix.RUN_PREFIX_JAVA,
+					OrderPrefix.RUN_PREFIX_JAR,
+					OrderPrefix.RUN_PREFIX_CURRENTDIR + info.localContext(OrderPrefix._main.toString) + OrderPrefix.RUN_PREFIX_DOTJAR) ++ inputKeyValueSeq
+					
+				println("stableCommand	"+stableCommand)
 				//実行
-				runProcess(info, process)
+				runProcess(info, stableCommand)
 			}
 
 			/*
 			 * process実行
 			 */
 			case WorkKinds.sh => {
-				val inputKeyValuePair = for (key <- currentKeys) yield {
+				//キーと値をシークエンスに纏める
+				val inputKeyValuePairs = for (key <- currentKeys) yield {
 					val value = info.localContext.get(key) match {
 						case Some(v) => v
 						case None => ""
 					}
-					key + OrderPrefix.RUN_PREFIX_WHITESPACE + value
+					Seq(key, value)
 				}
-
-				val reduced = inputKeyValuePair match {
-					case v if (v.isEmpty) => ""
-
-					case default => {
-						inputKeyValuePair.reduceLeft {
-							(total, add) => total + OrderPrefix.RUN_PREFIX_WHITESPACE + add
-						}
+				
+				val inputKeyValueSeq = if (inputKeyValuePairs.isEmpty) {
+					Seq()
+				} else {
+					inputKeyValuePairs.reduce {
+						(total, toAdd) => total ++ toAdd
 					}
 				}
-
-				val stableCommand = info.localContext(OrderPrefix._main.toString) + OrderPrefix.RUN_PREFIX_WHITESPACE + reduced
-
-				//						println("shell stableCommand	" + stableCommand)
-
-				//プロセス生成
-				val process = scalaProcess(stableCommand)
-
+				val stableCommand = info.localContext(OrderPrefix._main.toString).split(OrderPrefix.RUN_PREFIX_WHITESPACE).toSeq ++ inputKeyValueSeq
+				
 				//実行
-				runProcess(info, process)
+				runProcess(info, stableCommand)
 			}
 
 			//未知の_kind
@@ -527,22 +525,46 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 		}
 	}
 
+		    
+	
 	/**
 	 * プロセスの実行
 	 *
 	 * 成功するか、実行時エラーか
 	 */
-	def runProcess(info : WorkInformation, process : scala.sys.process.ProcessBuilder) = {
+	def runProcess(info : WorkInformation, processSrc : Seq[String]) = {
+		val out = new StringBuilder
+		val err = new StringBuilder
+
 		try {
-			val result = process.!!
-			messenger.callMyself(Messages.MESSAGE_EXEC_DONE.toString,
+			println("processSrc	"+processSrc)	
+			val logger = ProcessLogger(
+			    (o: String) => {
+			    	if (out.isEmpty) out.append(o)
+			    	else out.append("\n"+o)
+			    },
+			    (e: String) => {
+			    	if (err.isEmpty) err.append(e)
+			    	else err.append("\n"+e)
+			    }
+			)
+			    
+			val runResult = processSrc ! logger
+			
+			val result = out.toString
+			println("result	"+result+"	/out	"+out.toString+"	/err	"+err)
+			
+			messenger.callMyself(WorkerExecs.EXEC_DONE.toString,
 				messenger.tagValues(
 					new TagValue("result", result),
-					new TagValue("info", info),
-					new TagValue("process", process)))
+					new TagValue("info", info)))
 		} catch {
 			//実行後エラー
-			case e : Exception => errorNotice(info, e.toString)
+			
+			case e : Exception => {
+				println("e	"+e)
+				errorNotice(info, e.toString)
+			}
 			case other => println("unknown error on " + this)
 		}
 	}
@@ -551,6 +573,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 	 * Error時の統一的な処理
 	 */
 	def errorNotice(info : WorkInformation, eStr : String) = {
+		println("エラーが出た	"+eStr	+"	/info	"+info)
 		WorkerStatus.STATUS_ERROR +=: currentStatus
 
 		//error結果のコンテキストを作成する

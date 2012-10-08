@@ -696,7 +696,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 					"-i",
 					OrderPrefix._result.toString))
 
-				latestWork.localContext(OrderPrefix._result.toString) must be_==("over:hereComes\n")
+				latestWork.localContext(OrderPrefix._result.toString) must be_==("over:hereComes")
 			}
 
 			"Workerで非同期なJavaを実行" in {
@@ -728,7 +728,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 					"-i",
 					OrderPrefix._result.toString))
 
-				latestWork.localContext(OrderPrefix._result.toString) must be_==("over:hereComes\n")
+				latestWork.localContext(OrderPrefix._result.toString) must be_==("over:hereComes")
 			}
 
 			"Workerで非同期なJavaを実行2" in {
@@ -828,7 +828,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 					OrderPrefix._main.toString,
 					OrderPrefix._result.toString))
 
-				latestWork.localContext(OrderPrefix._result.toString) must be_==("some\n")
+				latestWork.localContext(OrderPrefix._result.toString) must be_==("some")
 			}
 		}
 	}
@@ -871,7 +871,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 					OrderPrefix._main.toString,
 					OrderPrefix._result.toString))
 
-				latestWork.localContext(OrderPrefix._result.toString) must be_==("some\n")
+				latestWork.localContext(OrderPrefix._result.toString) must be_==("some")
 			}
 			
 			"waitに入ってからFinishedが来る　複数のWait" in {
@@ -914,7 +914,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 					OrderPrefix._main.toString,
 					OrderPrefix._result.toString))
 
-				latestWork.localContext(OrderPrefix._result.toString) must be_==("some\n")
+				latestWork.localContext(OrderPrefix._result.toString) must be_==("some")
 			}
 			
 			"waitに入る前にFinishedが来る" in {
@@ -947,7 +947,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 					OrderPrefix._main.toString,
 					OrderPrefix._result.toString))
 
-				latestWork.localContext(OrderPrefix._result.toString) must be_==("some\n")
+				latestWork.localContext(OrderPrefix._result.toString) must be_==("some")
 			}
 			
 			"waitに入る前にFinishedが来る 複数" in {
@@ -985,7 +985,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 					OrderPrefix._main.toString,
 					OrderPrefix._result.toString))
 
-				latestWork.localContext(OrderPrefix._result.toString) must be_==("some\n")
+				latestWork.localContext(OrderPrefix._result.toString) must be_==("some")
 			}
 			
 			"waitに入る前、入った後にFinishedが来る 複数" in {
@@ -1028,7 +1028,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 					OrderPrefix._main.toString,
 					OrderPrefix._result.toString))
 
-				latestWork.localContext(OrderPrefix._result.toString) must be_==("some\n")
+				latestWork.localContext(OrderPrefix._result.toString) must be_==("some")
 			}
 		}
 	}
