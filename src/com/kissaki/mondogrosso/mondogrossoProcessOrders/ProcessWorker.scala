@@ -20,6 +20,7 @@ case class WorkInformation(orderIdentity : String, localContext : scala.collecti
  * Messagingで親(Context)との通信を行う
  */
 class ProcessWorker(identity : String, masterName : String) extends MessengerProtocol {
+	println("ProcessWorker	identity	"+identity + "	/masterName	"+masterName)
 	val messenger = new Messenger(this, identity)
 	messenger.inputParent(masterName)
 
@@ -49,16 +50,22 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 		currentStatus.head match {
 
 			/**
-			 * 開始が来るのを待っている、初期化済み状態
+			 * 開始が来るのを待っている、初期化待ち状態
 			 */
 			case WorkerStatus.STATUS_EMPTY => {
+				WorkerExecs.get(execSrc) match {
+					case WorkerExecs.EXEC_SETUP => procSetUp(tagValues)
+					case other =>
+				}
+			}	
+			
+			/**
+			 * 初期化済みからの開始
+			 */
+			case WorkerStatus.STATUS_SETUP => {
 				Messages.get(execSrc) match {
-					case Messages.MESSAGE_START => {
-						println("START	tagValues	"+tagValues)
-						procStart(tagValues)
-						println("START	tagValues	over")
-					}
-					case other => 
+					case Messages.MESSAGE_START => procStart(tagValues)
+					case other =>
 				}
 			}
 
@@ -75,9 +82,9 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 
 			case WorkerStatus.STATUS_SPLIT_WAIT => {
 				Messages.get(execSrc) match {
-					//通知が来た
+					//processSplitを解除する可能性がある、終了ORDERの通知
 					case Messages.MESSAGE_FINISHEDORDER_NOTIFY => procRestart(tagValues)
-					case other => 
+					case other =>
 				}
 				WorkerExecs.get(execSrc) match {
 					case WorkerExecs.EXEC_READY_RUN => procReadyRun(tagValues)
@@ -96,20 +103,17 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 				
 				WorkerExecs.get(execSrc) match {
 					case WorkerExecs.EXEC_DONE => procDone(tagValues)
-					case _ =>
+					case other => 
 				}
 			}
 
 			case WorkerStatus.STATUS_DONE => {
-				Messages.get(execSrc) match {
-					case Messages.MESSAGE_START => {
-						println("DONE	tagValues	"+tagValues)
-						procStart(tagValues)
-						println("DONE	tagValues	over")
-					}
+				WorkerExecs.get(execSrc) match {
+					case WorkerExecs.EXEC_SETUP => procSetUp(tagValues)
 					case other => 
 				}
 			}
+			
 			case WorkerStatus.STATUS_ERROR => {
 				println("エラーが起こったようです")
 			}
@@ -121,6 +125,11 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 		 * いつでも発生する可能性のある外部からのイベント
 		 */
 		Messages.get(execSrc) match {
+			case Messages.MESSAGE_SETUP => messenger.callMyself(WorkerExecs.EXEC_SETUP.toString, tagValues)
+			
+//			//processSplitを解除する可能性がある、終了ORDERの通知
+//			case Messages.MESSAGE_FINISHEDORDER_NOTIFY => procRestart(tagValues)
+//			
 			//afterWaitを解除する可能性がある、終了ORDERの通知
 			case Messages.MESSAGE_FINISHEDORDER_NOTIFY => unlock_AfterWait(tagValues)
 
@@ -182,9 +191,9 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 	}
 
 	/**
-	 *  EMPTY/READYからの開始
+	 *  EMPTY/READYからの準備
 	 */
-	def procStart(tagValues : Array[TagValue]) = {
+	def procSetUp(tagValues : Array[TagValue]) = {
 		val orderIdentity = (messenger.get("identity", tagValues)).asInstanceOf[String]
 		val processSplitIds = (messenger.get("processSplitIds", tagValues)).asInstanceOf[List[OrderIdentity]]
 		val afterWaitIds = (messenger.get("afterWaitIds", tagValues)).asInstanceOf[List[String]]
@@ -200,41 +209,56 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 		//currentWorkInformationHistoryのheadに、最新のInfoを加算する
 		currentAddedOrderInfo +=: currentWorkInformationHistory
 
-		//準備状態に入る
-		WorkerStatus.STATUS_READY +=: currentStatus
-
 		//バリデーション
-		validateKeys(currentAddedOrderInfo)
-
-		//splitでの分岐
-		processSplitIds.size match {
-			case 0 => {
-				messenger.callMyself(WorkerExecs.EXEC_READY_TIMEOUT.toString, messenger.tagValues(
-					new TagValue("orderIdentity", orderIdentity),
-					new TagValue("orderContext", orderContext),
-					new TagValue("currentAddedOrderInfo", currentAddedOrderInfo)))
-			}
-			case _ => { //processSplitの待ちIdentityが存在する
-				WorkerStatus.STATUS_SPLIT_WAIT +=: currentStatus
-				
-				//idを追加する
-				processSplitIds.foreach { id =>
-					processSplitWaitOrderIdentitiesList += id.myId 
+		if (validateKeys(currentAddedOrderInfo)) {
+	
+			//splitでの分岐
+			processSplitIds.size match {
+				case 0 => {
+					WorkerStatus.STATUS_SETUP +=: currentStatus
+				}
+				case _ => { //processSplitの待ちIdentityが存在する
+					WorkerStatus.STATUS_SPLIT_WAIT +=: currentStatus
+					
+					//idを追加する
+					processSplitIds.foreach { id =>
+						processSplitWaitOrderIdentitiesList += id.myId 
+					}
 				}
 			}
-		}
+		}		
+		//実行は次の命令を待ってから
 	}
 
+	/**
+	 * 実行
+	 */
+	def procStart (tagValues : Array[TagValue]) = {
+		val orderIdentity = (messenger.get("identity", tagValues)).asInstanceOf[String]
+		val processSplitIds = (messenger.get("processSplitIds", tagValues)).asInstanceOf[List[OrderIdentity]]
+		val afterWaitIds = (messenger.get("afterWaitIds", tagValues)).asInstanceOf[List[String]]
+		val orderContext = (messenger.get("context", tagValues)).asInstanceOf[scala.collection.Map[String, String]]
+
+		val currentAddedOrderInfo = new WorkInformation(orderIdentity, orderContext, afterWaitIds)
+		
+		WorkerStatus.STATUS_READY +=: currentStatus
+		
+		messenger.callMyself(WorkerExecs.EXEC_READY_TIMEOUT.toString, messenger.tagValues(
+			new TagValue("orderIdentity", orderIdentity),
+			new TagValue("orderContext", orderContext),
+			new TagValue("currentAddedOrderInfo", currentAddedOrderInfo)))
+	}
+	
 	/**
 	 * SPLIT_WAITで行う動作
 	 */
 	def procRestart(tagValues : Array[TagValue]) = {
 		val finishedOrderIdentity = messenger.get("finishedOrderIdentity", tagValues).asInstanceOf[String]
-		processSplitWaitOrderIdentitiesList -= finishedOrderIdentity //終わった奴に内包されてる、でもいいな、、でもミーニング増やすと面倒だし、一つだけなのでこの形を選ぶ。
-
+		processSplitWaitOrderIdentitiesList -= finishedOrderIdentity
+		
 		//ProcessSplitが空になった
 		if (processSplitWaitOrderIdentitiesList.isEmpty) {
-
+			println("のこりzero ラストは	finishedOrderIdentity	"+finishedOrderIdentity)
 			val currentAddedOrderInfo = currentWorkInformationHistory.head
 			val orderIdentity = currentAddedOrderInfo.orderIdentity
 			val orderContext = currentAddedOrderInfo.localContext
@@ -244,6 +268,8 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 				new TagValue("orderIdentity", orderIdentity),
 				new TagValue("orderContext", orderContext),
 				new TagValue("currentAddedOrderInfo", currentAddedOrderInfo)))
+		} else {
+			println("まだある	finishedOrderIdentity	"+processSplitWaitOrderIdentitiesList)
 		}
 	}
 
@@ -252,6 +278,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 	 * タイムアウトの設定
 	 */
 	def procReadyTimeout(tagValues : Array[TagValue]) = {
+		println("procReadyTimeout ide	"+identity)
 		val orderIdentity = messenger.get("orderIdentity", tagValues).asInstanceOf[String]
 		val orderContext = (messenger.get("orderContext", tagValues)).asInstanceOf[scala.collection.Map[String, String]]
 		val currentAddedOrderInfo = messenger.get("currentAddedOrderInfo", tagValues).asInstanceOf[WorkInformation]
@@ -273,6 +300,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 	 * TIMEOUT後
 	 */
 	def procReadyRun(tagValues : Array[TagValue]) = {
+		println("procReadyRun	identity	"+identity)
 		val orderIdentity = messenger.get("orderIdentity", tagValues).asInstanceOf[String]
 		val orderContext = (messenger.get("orderContext", tagValues)).asInstanceOf[scala.collection.Map[String, String]]
 		val currentAddedOrderInfo = messenger.get("currentAddedOrderInfo", tagValues).asInstanceOf[WorkInformation]
@@ -417,8 +445,9 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 				}
 				
 				result match {
+					//ロックが存在しない
 					case true => {
-						//println("currentFinishedOrdersList	" + currentFinishedOrdersList.toList + "	に対して、アンロック条件が既に満たされている	" + currentWorkInformationHistory.head.afterWaitIds)
+//						println("リクエストする。　currentFinishedOrdersList	" + currentFinishedOrdersList.toList + "	に対して、アンロック条件が既に満たされている	" + currentWorkInformationHistory.head.afterWaitIds)
 						//親に、次のOrderをリクエスト
 						messenger.callParentWithAsync(Messages.MESSAGE_REQUEST.toString,
 							messenger.tagValues(
@@ -429,7 +458,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 					}
 
 					case false => {
-						//println("currentFinishedOrdersList	" + currentFinishedOrdersList.toList + "	に対して、ロックがまだある	" + currentWorkInformationHistory.head.afterWaitIds)
+//						println("currentFinishedOrdersList	" + currentFinishedOrdersList.toList + "	に対して、ロックがまだある	" + currentWorkInformationHistory.head.afterWaitIds)
 						WorkerStatus.STATUS_AFTER_WAIT +=: currentStatus
 					}
 				}

@@ -6,6 +6,7 @@ object WorkerExecs extends Enumeration {
 	
 	//EXECS
 	val EXEC_READY_TIMEOUT,
+	EXEC_SETUP,
 	EXEC_READY_RUN,
 	
 	EXEC_ASYNC,

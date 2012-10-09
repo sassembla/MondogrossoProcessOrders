@@ -6,6 +6,7 @@ object WorkerStatus extends Enumeration {
 	
 	//MESSAGES
 	val STATUS_EMPTY,
+	STATUS_SETUP,
 	STATUS_READY,
 	STATUS_SPLIT_WAIT,
 	STATUS_AFTER_WAIT,

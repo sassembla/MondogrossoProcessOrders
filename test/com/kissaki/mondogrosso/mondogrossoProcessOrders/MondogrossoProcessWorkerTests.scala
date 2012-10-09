@@ -7,6 +7,7 @@ import scala.collection.immutable.ListMap
 import scala.sys.process._
 import java.util.UUID
 import com.kissaki.TagValue
+import scala.collection.mutable.ListBuffer
 
 @RunWith(classOf[JUnitRunner])
 class MondogrossoProcessWorkerTests extends Specification {
@@ -62,14 +63,17 @@ class MondogrossoProcessWorkerTests extends Specification {
 			"Workerを同期で実行後、実行完了したのでDone状態" in {
 				val workerId = UUID.randomUUID().toString
 				val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
-				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
-					dummyParent.messenger.tagValues(
-						new TagValue("identity", "A"),
-						new TagValue("processSplitIds",List()),
-						new TagValue("afterWaitIds", List()),
-						new TagValue("context", Map(
-							OrderPrefix._kind.toString -> "sh",
-							OrderPrefix._main.toString -> "ls -l"))))
+				
+				Seq(Messages.MESSAGE_SETUP.toString,Messages.MESSAGE_START.toString).foreach {exec =>
+					dummyParent.messenger.call(workerId, exec,
+						dummyParent.messenger.tagValues(
+							new TagValue("identity", "A"),
+							new TagValue("processSplitIds",List()),
+							new TagValue("afterWaitIds", List()),
+							new TagValue("context", Map(
+								OrderPrefix._kind.toString -> "sh",
+								OrderPrefix._main.toString -> "ls -l"))))
+				}
 
 				//実行が同期的に行われ、ステータスがDONEになる
 				worker.currentStatus.head must be_==(WorkerStatus.STATUS_DONE)
@@ -78,15 +82,18 @@ class MondogrossoProcessWorkerTests extends Specification {
 			"Workerを同期で実行後、実行完了したので親にそのログが残る" in {
 				val workerId = UUID.randomUUID().toString
 				val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
-				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
-					dummyParent.messenger.tagValues(
-						new TagValue("identity", "A"),
-						new TagValue("processSplitIds",List()),
-						new TagValue("afterWaitIds", List()),
-						new TagValue("context", Map(
-							OrderPrefix._kind.toString -> "sh",
-							OrderPrefix._main.toString -> "ls -l"))))
-
+				
+				Seq(Messages.MESSAGE_SETUP.toString,Messages.MESSAGE_START.toString).foreach {exec =>
+					dummyParent.messenger.call(workerId, exec,
+						dummyParent.messenger.tagValues(
+							new TagValue("identity", "A"),
+							new TagValue("processSplitIds",List()),
+							new TagValue("afterWaitIds", List()),
+							new TagValue("context", Map(
+								OrderPrefix._kind.toString -> "sh",
+								OrderPrefix._main.toString -> "ls -l"))))
+				}
+				
 				val latestWork = worker.getLatestWorkInformation
 
 				val currentFinishedWorkerIdentity = worker.workerIdentity
@@ -99,15 +106,17 @@ class MondogrossoProcessWorkerTests extends Specification {
 			"Workerを同期で実行後、実行完了したので、次のOrderをリクエスト" in {
 				val workerId = UUID.randomUUID().toString
 				val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
-				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
-					dummyParent.messenger.tagValues(
-						new TagValue("identity", "A"),
-						new TagValue("processSplitIds",List()),
-						new TagValue("afterWaitIds", List()),
-						new TagValue("context", Map(
-							OrderPrefix._kind.toString -> "sh",
-							OrderPrefix._main.toString -> "ls -l"))))
-
+				Seq(Messages.MESSAGE_SETUP.toString,Messages.MESSAGE_START.toString).foreach {exec =>
+					dummyParent.messenger.call(workerId, exec,
+						dummyParent.messenger.tagValues(
+							new TagValue("identity", "A"),
+							new TagValue("processSplitIds",List()),
+							new TagValue("afterWaitIds", List()),
+							new TagValue("context", Map(
+								OrderPrefix._kind.toString -> "sh",
+								OrderPrefix._main.toString -> "ls -l"))))
+				}
+				
 				//非同期なので、待ち
 				while (!worker.currentStatus.head.equals(WorkerStatus.STATUS_DONE)) {
 					Thread.sleep(100)
@@ -135,20 +144,23 @@ class MondogrossoProcessWorkerTests extends Specification {
 			"Workerを非同期で実行" in {
 				val workerId = UUID.randomUUID().toString
 				val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
-				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
-					dummyParent.messenger.tagValues(
-						new TagValue("identity", "A"),
-						new TagValue("processSplitIds",List()),
-						new TagValue("afterWaitIds", List()),
-						new TagValue("context", Map(
-							OrderPrefix._kind.toString -> "sh",
-							OrderPrefix._main.toString -> "ls -l",
-							OrderPrefix.__delay.toString -> "1000"))))
-
+				
+				Seq(Messages.MESSAGE_SETUP.toString,Messages.MESSAGE_START.toString).foreach {exec =>
+					dummyParent.messenger.call(workerId, exec,
+						dummyParent.messenger.tagValues(
+							new TagValue("identity", "A"),
+							new TagValue("processSplitIds",List()),
+							new TagValue("afterWaitIds", List()),
+							new TagValue("context", Map(
+								OrderPrefix._kind.toString -> "sh",
+								OrderPrefix._main.toString -> "ls -l",
+								OrderPrefix.__delay.toString -> "1000"))))
+				}
+				
 				//非同期に待つ　この間に、非同期実行され、完了が親に届いているはず
 				while (!worker.currentStatus.head.equals(WorkerStatus.STATUS_DONE)) {
 					Thread.sleep(100)
-					println("waiting,,,"+this)
+					println("waiting,,,Workerを非同期で実行	"+this)
 				}
 
 				val latestWork = worker.getLatestWorkInformation
@@ -171,16 +183,18 @@ class MondogrossoProcessWorkerTests extends Specification {
 			"非同期のパラメータに数字以外を使用" in {
 				val workerId = UUID.randomUUID().toString
 				val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
-				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
-					dummyParent.messenger.tagValues(
-						new TagValue("identity", "A"),
-						new TagValue("processSplitIds",List()),
-						new TagValue("afterWaitIds", List()),
-						new TagValue("context", Map(
-							OrderPrefix._kind.toString -> "sh",
-							OrderPrefix._main.toString -> "ls -l",
-							OrderPrefix.__delay.toString -> "wrong expression of number"))))
-
+				Seq(Messages.MESSAGE_SETUP.toString,Messages.MESSAGE_START.toString).foreach {exec =>
+					dummyParent.messenger.call(workerId, exec,
+						dummyParent.messenger.tagValues(
+							new TagValue("identity", "A"),
+							new TagValue("processSplitIds",List()),
+							new TagValue("afterWaitIds", List()),
+							new TagValue("context", Map(
+								OrderPrefix._kind.toString -> "sh",
+								OrderPrefix._main.toString -> "ls -l",
+								OrderPrefix.__delay.toString -> "wrong expression of number"))))
+				}
+				
 				//非同期のセット自体が非同期なので、待ち
 				while (!worker.currentStatus.head.equals(WorkerStatus.STATUS_ERROR)) {
 					Thread.sleep(100)
@@ -207,15 +221,17 @@ class MondogrossoProcessWorkerTests extends Specification {
 			"非同期のパラメータに-数字を使用" in {
 				val workerId = UUID.randomUUID().toString
 				val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
-				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
-					dummyParent.messenger.tagValues(
-						new TagValue("identity", "A"),
-						new TagValue("processSplitIds",List()),
-						new TagValue("afterWaitIds", List()),
-						new TagValue("context", Map(
-							OrderPrefix._kind.toString -> "sh",
-							OrderPrefix._main.toString -> "ls -l",
-							OrderPrefix.__delay.toString -> "-1000"))))
+				Seq(Messages.MESSAGE_SETUP.toString,Messages.MESSAGE_START.toString).foreach {exec =>
+					dummyParent.messenger.call(workerId, exec,
+						dummyParent.messenger.tagValues(
+							new TagValue("identity", "A"),
+							new TagValue("processSplitIds",List()),
+							new TagValue("afterWaitIds", List()),
+							new TagValue("context", Map(
+								OrderPrefix._kind.toString -> "sh",
+								OrderPrefix._main.toString -> "ls -l",
+								OrderPrefix.__delay.toString -> "-1000"))))
+				}
 
 				//非同期のセット自体が非同期なので、待ち
 				while (!worker.currentStatus.head.equals(WorkerStatus.STATUS_ERROR)) {
@@ -252,18 +268,20 @@ class MondogrossoProcessWorkerTests extends Specification {
 			"Workerを同期で実行、タイムアウト" in {
 				val workerId = UUID.randomUUID().toString
 				val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
-				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
-					dummyParent.messenger.tagValues(
-						new TagValue("identity", "A"),
-						new TagValue("processSplitIds",List()),
-						new TagValue("afterWaitIds", List()),
-						new TagValue("context", Map(
-							OrderPrefix._kind.toString -> "jar",
-							OrderPrefix._main.toString -> "TestProject",
-							"-i" -> "hereComes",
-							"-t" -> "1000", //1秒かかる処理なので、確実にタイムアウトになる
-							OrderPrefix.__timeout.toString -> "100")))) //0.1秒でtimeout
-
+				Seq(Messages.MESSAGE_SETUP.toString,Messages.MESSAGE_START.toString).foreach {exec =>
+					dummyParent.messenger.call(workerId, exec,
+						dummyParent.messenger.tagValues(
+							new TagValue("identity", "A"),
+							new TagValue("processSplitIds",List()),
+							new TagValue("afterWaitIds", List()),
+							new TagValue("context", Map(
+								OrderPrefix._kind.toString -> "jar",
+								OrderPrefix._main.toString -> "TestProject",
+								"-i" -> "hereComes",
+								"-t" -> "1000", //1秒かかる処理なので、確実にタイムアウトになる
+								OrderPrefix.__timeout.toString -> "100")))) //0.1秒でtimeout
+				}
+				
 				//非同期に待つ　この間に、タイムアウトは親に届いているはず
 				while (!worker.currentStatus.head.equals(WorkerStatus.STATUS_TIMEOUT)) {
 					Thread.sleep(100)
@@ -292,18 +310,21 @@ class MondogrossoProcessWorkerTests extends Specification {
 			"Workerを同期で実行、実際に時間のかかる処理でタイムアウト" in {
 				val workerId = UUID.randomUUID().toString
 				val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
-				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
-					dummyParent.messenger.tagValues(
-						new TagValue("identity", "A"),
-						new TagValue("processSplitIds",List()),
-						new TagValue("afterWaitIds", List()),
-						new TagValue("context", Map(
-							OrderPrefix._kind.toString -> "jar",
-							OrderPrefix._main.toString -> "TestProject",
-							"-i" -> "hereComes",
-							"-t" -> "1500", //1.5秒かかる処理なので、確実にタイムアウトになる
-							OrderPrefix.__timeout.toString -> "1000"))))
-
+				
+				Seq(Messages.MESSAGE_SETUP.toString,Messages.MESSAGE_START.toString).foreach {exec =>
+					dummyParent.messenger.call(workerId, exec,
+						dummyParent.messenger.tagValues(
+							new TagValue("identity", "A"),
+							new TagValue("processSplitIds",List()),
+							new TagValue("afterWaitIds", List()),
+							new TagValue("context", Map(
+								OrderPrefix._kind.toString -> "jar",
+								OrderPrefix._main.toString -> "TestProject",
+								"-i" -> "hereComes",
+								"-t" -> "1500", //1.5秒かかる処理なので、確実にタイムアウトになる
+								OrderPrefix.__timeout.toString -> "1000"))))
+				}
+				
 				//実行が同期的に行われ、実行されたあとの情報が残る
 				worker.currentStatus.head must be_==(WorkerStatus.STATUS_TIMEOUT)
 
@@ -320,19 +341,22 @@ class MondogrossoProcessWorkerTests extends Specification {
 			}
 
 			"Workerを非同期で実行、タイムアウト delayがtimeoutより十分大きい" in {
-				val workerId = UUID.randomUUID().toString
+				val workerId = "Workerを非同期で実行、タイムアウト delayがtimeoutより十分大きい"//UUID.randomUUID().toString
 				val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
-				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
-					dummyParent.messenger.tagValues(
-						new TagValue("identity", "A"),
-						new TagValue("processSplitIds",List()),
-						new TagValue("afterWaitIds", List()),
-						new TagValue("context", Map(
-							OrderPrefix._kind.toString -> "sh",
-							OrderPrefix._main.toString -> "ls -l",
-							OrderPrefix.__delay.toString -> "10000",
-							OrderPrefix.__timeout.toString -> "100"))))
-
+				
+				Seq(Messages.MESSAGE_SETUP.toString,Messages.MESSAGE_START.toString).foreach {exec =>
+					dummyParent.messenger.call(workerId, exec,
+						dummyParent.messenger.tagValues(
+							new TagValue("identity", "A"),
+							new TagValue("processSplitIds",List()),
+							new TagValue("afterWaitIds", List()),
+							new TagValue("context", Map(
+								OrderPrefix._kind.toString -> "sh",
+								OrderPrefix._main.toString -> "ls -l",
+								OrderPrefix.__delay.toString -> "10000",
+								OrderPrefix.__timeout.toString -> "100"))))
+				}
+				
 				while (!worker.currentStatus.head.equals(WorkerStatus.STATUS_TIMEOUT)) {
 					Thread.sleep(100)
 					println("waiting,,,Workerを非同期で実行、タイムアウト delayがtimeoutより十分大きい	"+this)
@@ -352,17 +376,19 @@ class MondogrossoProcessWorkerTests extends Specification {
 			"Workerを非同期で実行、タイムアウト delayがtimeoutより若干大きい = 追い付く可能性" in {
 				val workerId = UUID.randomUUID().toString
 				val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
-				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
-					dummyParent.messenger.tagValues(
-						new TagValue("identity", "A"),
-						new TagValue("processSplitIds",List()),
-						new TagValue("afterWaitIds", List()),
-						new TagValue("context", Map(
-							OrderPrefix._kind.toString -> "sh",
-							OrderPrefix._main.toString -> "ls -l",
-							OrderPrefix.__delay.toString -> "300",
-							OrderPrefix.__timeout.toString -> "100"))))
-
+				Seq(Messages.MESSAGE_SETUP.toString,Messages.MESSAGE_START.toString).foreach {exec =>
+					dummyParent.messenger.call(workerId, exec,
+						dummyParent.messenger.tagValues(
+							new TagValue("identity", "A"),
+							new TagValue("processSplitIds",List()),
+							new TagValue("afterWaitIds", List()),
+							new TagValue("context", Map(
+								OrderPrefix._kind.toString -> "sh",
+								OrderPrefix._main.toString -> "ls -l",
+								OrderPrefix.__delay.toString -> "300",
+								OrderPrefix.__timeout.toString -> "100"))))
+				}
+				
 				//非同期に待つ
 				while (!worker.currentStatus.head.equals(WorkerStatus.STATUS_TIMEOUT)) {
 					Thread.sleep(100)
@@ -391,16 +417,19 @@ class MondogrossoProcessWorkerTests extends Specification {
 			"同期でのタイムアウトのキャンセル" in {
 				val workerId = UUID.randomUUID().toString
 				val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
-				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
-					dummyParent.messenger.tagValues(
-						new TagValue("identity", "A"),
-						new TagValue("processSplitIds",List()),
-						new TagValue("afterWaitIds", List()),
-						new TagValue("context", Map(
-							OrderPrefix._kind.toString -> "sh",
-							OrderPrefix._main.toString -> "ls -l",
-							OrderPrefix.__timeout.toString -> "1000"))))
-
+				
+				Seq(Messages.MESSAGE_SETUP.toString,Messages.MESSAGE_START.toString).foreach {exec =>
+					dummyParent.messenger.call(workerId, exec,
+						dummyParent.messenger.tagValues(
+							new TagValue("identity", "A"),
+							new TagValue("processSplitIds",List()),
+							new TagValue("afterWaitIds", List()),
+							new TagValue("context", Map(
+								OrderPrefix._kind.toString -> "sh",
+								OrderPrefix._main.toString -> "ls -l",
+								OrderPrefix.__timeout.toString -> "1000"))))
+				}
+				
 				//キャンセル
 
 				//無駄なハズ
@@ -410,33 +439,38 @@ class MondogrossoProcessWorkerTests extends Specification {
 			"非同期でのタイムアウトのキャンセル" in {
 				val workerId = UUID.randomUUID().toString
 				val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
-				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
-					dummyParent.messenger.tagValues(
-						new TagValue("identity", "A"),
-						new TagValue("processSplitIds",List()),
-						new TagValue("afterWaitIds", List()),
-						new TagValue("context", Map(
-							OrderPrefix._kind.toString -> "sh",
-							OrderPrefix._main.toString -> "ls -l",
-							OrderPrefix.__delay.toString -> "0",
-							OrderPrefix.__timeout.toString -> "1000"))))
-
+				
+				Seq(Messages.MESSAGE_SETUP.toString,Messages.MESSAGE_START.toString).foreach {exec =>
+					dummyParent.messenger.call(workerId, exec,
+						dummyParent.messenger.tagValues(
+							new TagValue("identity", "A"),
+							new TagValue("processSplitIds",List()),
+							new TagValue("afterWaitIds", List()),
+							new TagValue("context", Map(
+								OrderPrefix._kind.toString -> "sh",
+								OrderPrefix._main.toString -> "ls -l",
+								OrderPrefix.__delay.toString -> "0",
+								OrderPrefix.__timeout.toString -> "1000"))))
+				}
 				"not yet applied" must be_==("")
 			}
 
 			"非同期のキャンセル" in {
 				val workerId = UUID.randomUUID().toString
 				val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
-				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
-					dummyParent.messenger.tagValues(
-						new TagValue("identity", "A"),
-						new TagValue("processSplitIds",List()),
-						new TagValue("afterWaitIds", List()),
-						new TagValue("context", Map(
-							OrderPrefix._kind.toString -> "sh",
-							OrderPrefix._main.toString -> "ls -l",
-							OrderPrefix.__delay.toString -> "1000"))))
-
+				
+				Seq(Messages.MESSAGE_SETUP.toString,Messages.MESSAGE_START.toString).foreach {exec =>
+					dummyParent.messenger.call(workerId, exec,
+						dummyParent.messenger.tagValues(
+							new TagValue("identity", "A"),
+							new TagValue("processSplitIds",List()),
+							new TagValue("afterWaitIds", List()),
+							new TagValue("context", Map(
+								OrderPrefix._kind.toString -> "sh",
+								OrderPrefix._main.toString -> "ls -l",
+								OrderPrefix.__delay.toString -> "1000"))))
+				}
+				
 				"not yet applied" must be_==("")
 			}
 		}
@@ -451,16 +485,19 @@ class MondogrossoProcessWorkerTests extends Specification {
 			"__timeoutの値がセットされていない、実行前エラー" in {
 				val workerId = UUID.randomUUID().toString
 				val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
-				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
-					dummyParent.messenger.tagValues(
-						new TagValue("identity", "A"),
-						new TagValue("processSplitIds",List()),
-						new TagValue("afterWaitIds", List()),
-						new TagValue("context", Map(
-							OrderPrefix._kind.toString -> "sh",
-							OrderPrefix._main.toString -> "ls -l",
-							OrderPrefix.__timeout.toString -> "")))) //値の指定忘れ
-
+				
+				Seq(Messages.MESSAGE_SETUP.toString,Messages.MESSAGE_START.toString).foreach {exec =>
+					dummyParent.messenger.call(workerId, exec,
+						dummyParent.messenger.tagValues(
+							new TagValue("identity", "A"),
+							new TagValue("processSplitIds",List()),
+							new TagValue("afterWaitIds", List()),
+							new TagValue("context", Map(
+								OrderPrefix._kind.toString -> "sh",
+								OrderPrefix._main.toString -> "ls -l",
+								OrderPrefix.__timeout.toString -> "")))) //値の指定忘れ
+				}
+				
 				//この時点でエラー
 				worker.currentStatus.head must be_==(WorkerStatus.STATUS_ERROR)
 
@@ -474,16 +511,19 @@ class MondogrossoProcessWorkerTests extends Specification {
 				latestWork.localContext.get(OrderPrefix._result.toString).getOrElse("...empty") must be_==("java.lang.NumberFormatException: For input string: \"\"")
 			}
 
-			"_main,_typeという最低限のパラメータが足りない 実行前エラー __timeoutなし" in {
+			"_main,_kindという最低限のパラメータが足りない 実行前エラー __timeoutなし" in {
 				val workerId = UUID.randomUUID().toString
 				val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
-				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
-					dummyParent.messenger.tagValues(
-						new TagValue("identity", "A"),
-						new TagValue("processSplitIds",List()),
-						new TagValue("afterWaitIds", List()),
-						new TagValue("context", Map("a" -> "b")))) //must値の指定忘れ
-
+				
+				Seq(Messages.MESSAGE_SETUP.toString).foreach {exec =>
+					dummyParent.messenger.call(workerId, exec,
+						dummyParent.messenger.tagValues(
+							new TagValue("identity", "A"),
+							new TagValue("processSplitIds",List()),
+							new TagValue("afterWaitIds", List()),
+							new TagValue("context", Map("a" -> "b")))) //must値の指定忘れ
+				}
+				
 				//この時点でエラー
 				worker.currentStatus.head must be_==(WorkerStatus.STATUS_ERROR)
 
@@ -495,17 +535,20 @@ class MondogrossoProcessWorkerTests extends Specification {
 				latestWork.localContext.get(OrderPrefix._result.toString).getOrElse("...empty") must be_==("no _kind _main keys found in WorkInformation(A,Map(a -> b),List())")
 			}
 
-			"_main,_typeという最低限のパラメータが足りない 実行前エラー __timeoutあり" in {
+			"_main,_kindという最低限のパラメータが足りない 実行前エラー __timeoutあり" in {
 				val workerId = UUID.randomUUID().toString
 				val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
-				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
-					dummyParent.messenger.tagValues(
-						new TagValue("identity", "A"), //必須な_main、_kind値の指定忘れ
-						new TagValue("processSplitIds",List()),
-						new TagValue("afterWaitIds", List()),
-						new TagValue("context", Map("a" -> "b",
-							OrderPrefix.__timeout.toString -> "1"))))
-
+				
+				Seq(Messages.MESSAGE_SETUP.toString).foreach {exec =>
+					dummyParent.messenger.call(workerId, exec,
+						dummyParent.messenger.tagValues(
+							new TagValue("identity", "A"), //必須な_main、_kind値の指定忘れ
+							new TagValue("processSplitIds",List()),
+							new TagValue("afterWaitIds", List()),
+							new TagValue("context", Map("a" -> "b",
+								OrderPrefix.__timeout.toString -> "1"))))
+				}
+				
 				//この時点でエラー
 				worker.currentStatus.head must be_==(WorkerStatus.STATUS_ERROR)
 
@@ -522,15 +565,18 @@ class MondogrossoProcessWorkerTests extends Specification {
 			"未知のtypeが送られてきた 実行前エラー" in {
 				val workerId = UUID.randomUUID().toString
 				val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
-				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
-					dummyParent.messenger.tagValues(
-						new TagValue("identity", "A"),
-						new TagValue("processSplitIds",List()),
-						new TagValue("afterWaitIds", List()),
-						new TagValue("context", Map(
-							OrderPrefix._kind.toString -> "undefined type!",
-							OrderPrefix._main.toString -> "ls -l"))))
-
+				
+				Seq(Messages.MESSAGE_SETUP.toString,Messages.MESSAGE_START.toString).foreach {exec =>
+					dummyParent.messenger.call(workerId, exec,
+						dummyParent.messenger.tagValues(
+							new TagValue("identity", "A"),
+							new TagValue("processSplitIds",List()),
+							new TagValue("afterWaitIds", List()),
+							new TagValue("context", Map(
+								OrderPrefix._kind.toString -> "undefined type!",
+								OrderPrefix._main.toString -> "ls -l"))))
+				}
+				
 				//この時点でエラー
 				worker.currentStatus.head must be_==(WorkerStatus.STATUS_ERROR)
 
@@ -546,15 +592,18 @@ class MondogrossoProcessWorkerTests extends Specification {
 			"Workerを同期で実行、実行時エラー" in {
 				val workerId = UUID.randomUUID().toString
 				val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
-				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
-					dummyParent.messenger.tagValues(
-						new TagValue("identity", "A"),
-						new TagValue("processSplitIds",List()),
-						new TagValue("afterWaitIds", List()),
-						new TagValue("context", Map(
-							OrderPrefix._kind.toString -> "sh",
-							OrderPrefix._main.toString -> "dfghjklls -l")))) //存在しないコマンドで実行エラー
-
+				
+				Seq(Messages.MESSAGE_SETUP.toString,Messages.MESSAGE_START.toString).foreach {exec =>
+					dummyParent.messenger.call(workerId, exec,
+						dummyParent.messenger.tagValues(
+							new TagValue("identity", "A"),
+							new TagValue("processSplitIds",List()),
+							new TagValue("afterWaitIds", List()),
+							new TagValue("context", Map(
+								OrderPrefix._kind.toString -> "sh",
+								OrderPrefix._main.toString -> "dfghjklls -l")))) //存在しないコマンドで実行エラー
+				}
+				
 				//実行が同期的に行われ、実行されたあとの情報が残る
 				worker.currentStatus.head must be_==(WorkerStatus.STATUS_ERROR)
 
@@ -570,15 +619,18 @@ class MondogrossoProcessWorkerTests extends Specification {
 			"Workerを非同期で実行、実行時エラー" in {
 				val workerId = UUID.randomUUID().toString
 				val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
-				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
-					dummyParent.messenger.tagValues(
-						new TagValue("identity", "A"),
-						new TagValue("processSplitIds",List()),
-						new TagValue("afterWaitIds", List()),
-						new TagValue("context", Map(
-							OrderPrefix._kind.toString -> "sh",
-							OrderPrefix._main.toString -> "dfghjklls -l")))) //存在しないコマンドで非同期下のエラー
-
+				
+				Seq(Messages.MESSAGE_SETUP.toString,Messages.MESSAGE_START.toString).foreach {exec =>
+					dummyParent.messenger.call(workerId, exec,
+						dummyParent.messenger.tagValues(
+							new TagValue("identity", "A"),
+							new TagValue("processSplitIds",List()),
+							new TagValue("afterWaitIds", List()),
+							new TagValue("context", Map(
+								OrderPrefix._kind.toString -> "sh",
+								OrderPrefix._main.toString -> "dfghjklls -l")))) //存在しないコマンドで非同期下のエラー
+				}
+				
 				//実行が同期的に行われ、実行されたあとの情報が残る
 				worker.currentStatus.head must be_==(WorkerStatus.STATUS_ERROR)
 
@@ -602,15 +654,18 @@ class MondogrossoProcessWorkerTests extends Specification {
 			"Workerでshellを実行" in {
 				val workerId = UUID.randomUUID().toString
 				val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
-				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
-					dummyParent.messenger.tagValues(
-						new TagValue("identity", "A"),
-						new TagValue("processSplitIds",List()),
-						new TagValue("afterWaitIds", List()),
-						new TagValue("context", Map(
-							OrderPrefix._kind.toString -> "sh",
-							OrderPrefix._main.toString -> "ls -l"))))
-
+				
+				Seq(Messages.MESSAGE_SETUP.toString,Messages.MESSAGE_START.toString).foreach {exec =>
+					dummyParent.messenger.call(workerId, exec,
+						dummyParent.messenger.tagValues(
+							new TagValue("identity", "A"),
+							new TagValue("processSplitIds",List()),
+							new TagValue("afterWaitIds", List()),
+							new TagValue("context", Map(
+								OrderPrefix._kind.toString -> "sh",
+								OrderPrefix._main.toString -> "ls -l"))))
+				}
+				
 				//ls -lを実行した結果が残っているはず
 				val latestWork = worker.getLatestWorkInformation
 				latestWork.localContext.keys must be_==(Set(
@@ -624,16 +679,19 @@ class MondogrossoProcessWorkerTests extends Specification {
 			"Workerでshellを実行2" in {
 				val workerId = UUID.randomUUID().toString
 				val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
-				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
-					dummyParent.messenger.tagValues(
-						new TagValue("identity", "A"),
-						new TagValue("processSplitIds",List()),
-						new TagValue("afterWaitIds", List()),
-						new TagValue("context", Map(
-							OrderPrefix._kind.toString -> "sh",
-							OrderPrefix._main.toString -> "open",
-							"-a" -> "Safari.app /Applications/eclipseScala/scalaworkspace/MondogrossoProcessOrders/build/reports/tests/com.kissaki.mondogrosso.mondogrossoProcessOrders.MondogrossoProcessOrdersControllerTests.html"))))
-
+				
+				Seq(Messages.MESSAGE_SETUP.toString,Messages.MESSAGE_START.toString).foreach {exec =>
+					dummyParent.messenger.call(workerId, exec,
+						dummyParent.messenger.tagValues(
+							new TagValue("identity", "A"),
+							new TagValue("processSplitIds",List()),
+							new TagValue("afterWaitIds", List()),
+							new TagValue("context", Map(
+								OrderPrefix._kind.toString -> "sh",
+								OrderPrefix._main.toString -> "open",
+								"-a" -> "Safari.app /Applications/eclipseScala/scalaworkspace/MondogrossoProcessOrders/build/reports/tests/com.kissaki.mondogrosso.mondogrossoProcessOrders.MondogrossoProcessOrdersControllerTests.html"))))
+				}
+				
 				//ls -lを実行した結果が残っているはず
 				val latestWork = worker.getLatestWorkInformation
 				latestWork.localContext.keys must be_==(Set(
@@ -648,16 +706,18 @@ class MondogrossoProcessWorkerTests extends Specification {
 			"Workerで非同期のshellを実行" in {
 				val workerId = UUID.randomUUID().toString
 				val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
-				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
-					dummyParent.messenger.tagValues(
-						new TagValue("identity", "A"),
-						new TagValue("processSplitIds",List()),
-						new TagValue("afterWaitIds", List()),
-						new TagValue("context", Map(
-							OrderPrefix._kind.toString -> "sh",
-							OrderPrefix._main.toString -> "ls -l",
-							OrderPrefix.__delay.toString -> "100"))))
-
+				Seq(Messages.MESSAGE_SETUP.toString,Messages.MESSAGE_START.toString).foreach {exec =>
+					dummyParent.messenger.call(workerId, exec,
+						dummyParent.messenger.tagValues(
+							new TagValue("identity", "A"),
+							new TagValue("processSplitIds",List()),
+							new TagValue("afterWaitIds", List()),
+							new TagValue("context", Map(
+								OrderPrefix._kind.toString -> "sh",
+								OrderPrefix._main.toString -> "ls -l",
+								OrderPrefix.__delay.toString -> "100"))))
+				}
+				
 				//非同期に待つ
 				while (!worker.currentStatus.head.equals(WorkerStatus.STATUS_DONE)) {
 					Thread.sleep(100)
@@ -678,15 +738,18 @@ class MondogrossoProcessWorkerTests extends Specification {
 			"WorkerでJavaを実行" in {
 				val workerId = UUID.randomUUID().toString
 				val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
-				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
-					dummyParent.messenger.tagValues(
-						new TagValue("identity", "A"),
-						new TagValue("processSplitIds",List()),
-						new TagValue("afterWaitIds", List()),
-						new TagValue("context", Map(
-							OrderPrefix._kind.toString -> "jar",
-							OrderPrefix._main.toString -> "TestProject",
-							"-i" -> "hereComes"))))
+				
+				Seq(Messages.MESSAGE_SETUP.toString,Messages.MESSAGE_START.toString).foreach {exec =>
+					dummyParent.messenger.call(workerId, exec,
+						dummyParent.messenger.tagValues(
+							new TagValue("identity", "A"),
+							new TagValue("processSplitIds",List()),
+							new TagValue("afterWaitIds", List()),
+							new TagValue("context", Map(
+								OrderPrefix._kind.toString -> "jar",
+								OrderPrefix._main.toString -> "TestProject",
+								"-i" -> "hereComes"))))
+				}
 
 				//java -jar TestProject.jar -i herecomes を実行した結果が残っているはず
 				val latestWork = worker.getLatestWorkInformation
@@ -702,17 +765,20 @@ class MondogrossoProcessWorkerTests extends Specification {
 			"Workerで非同期なJavaを実行" in {
 				val workerId = UUID.randomUUID().toString
 				val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
-				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
-					dummyParent.messenger.tagValues(
-						new TagValue("identity", "A"),
-						new TagValue("processSplitIds",List()),
-						new TagValue("afterWaitIds", List()),
-						new TagValue("context", Map(
-							OrderPrefix._kind.toString -> "jar",
-							OrderPrefix._main.toString -> "TestProject",
-							OrderPrefix.__delay.toString -> "1",
-							"-i" -> "hereComes"))))
-
+				
+				Seq(Messages.MESSAGE_SETUP.toString,Messages.MESSAGE_START.toString).foreach {exec =>
+					dummyParent.messenger.call(workerId, exec,
+						dummyParent.messenger.tagValues(
+							new TagValue("identity", "A"),
+							new TagValue("processSplitIds",List()),
+							new TagValue("afterWaitIds", List()),
+							new TagValue("context", Map(
+								OrderPrefix._kind.toString -> "jar",
+								OrderPrefix._main.toString -> "TestProject",
+								OrderPrefix.__delay.toString -> "1",
+								"-i" -> "hereComes"))))
+				}
+				
 				//非同期に待つ
 				while (!worker.currentStatus.head.equals(WorkerStatus.STATUS_DONE)) {
 					Thread.sleep(100)
@@ -734,18 +800,21 @@ class MondogrossoProcessWorkerTests extends Specification {
 			"Workerで非同期なJavaを実行2" in {
 				val workerId = UUID.randomUUID().toString
 				val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
-				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
-					dummyParent.messenger.tagValues(
-						new TagValue("identity", "A"),
-						new TagValue("processSplitIds",List()),
-						new TagValue("afterWaitIds", List()),
-						new TagValue("context", Map(
-							OrderPrefix._kind.toString -> "jar",
-							OrderPrefix._main.toString -> "TestProject",
-							OrderPrefix.__delay.toString -> "1",
-							"-i" -> "hereComes",
-							"-t" -> "1000" //1秒後に答えが出る、そういうJar
-							))))
+				
+				Seq(Messages.MESSAGE_SETUP.toString,Messages.MESSAGE_START.toString).foreach {exec =>
+					dummyParent.messenger.call(workerId, exec,
+						dummyParent.messenger.tagValues(
+							new TagValue("identity", "A"),
+							new TagValue("processSplitIds",List()),
+							new TagValue("afterWaitIds", List()),
+							new TagValue("context", Map(
+								OrderPrefix._kind.toString -> "jar",
+								OrderPrefix._main.toString -> "TestProject",
+								OrderPrefix.__delay.toString -> "1",
+								"-i" -> "hereComes",
+								"-t" -> "1000" //1秒後に答えが出る、そういうJar
+								))))
+				}
 
 				//非同期に待つ
 				while (!worker.currentStatus.head.equals(WorkerStatus.STATUS_DONE)) {
@@ -770,26 +839,28 @@ class MondogrossoProcessWorkerTests extends Specification {
 
 	//Worker processSplit Wait
 	if (true) {
-		"Worker Order実行　Wait付き" should {
+		"Worker Order実行　processSplit付き" should {
 			//擬似的に親を生成する
 			val dummyParent = new DummyParent()
 
-			"Workerにwaitが存在するOrderを渡し、待たせる" in {
+			"processSplit	Workerにwaitが存在するOrderを渡し、待たせる" in {
 				val workerId = UUID.randomUUID().toString
 				val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
 				
-				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
-					dummyParent.messenger.tagValues(
-						new TagValue("identity", "A"),
-						new TagValue("processSplitIds",List(OrderIdentity("WAIT"))),
-						new TagValue("afterWaitIds", List()),
-						new TagValue("context", Map(
-							OrderPrefix._kind.toString -> "jar",
-							OrderPrefix._main.toString -> "TestProject",
-							OrderPrefix.__delay.toString -> "0",
-							"-i" -> "hereComes",
-							"-t" -> "1000" //1秒後に答えが出る、そういうJar
-							))))
+				Seq(Messages.MESSAGE_SETUP.toString,Messages.MESSAGE_START.toString).foreach {exec =>
+					dummyParent.messenger.call(workerId, exec,
+						dummyParent.messenger.tagValues(
+							new TagValue("identity", "A"),
+							new TagValue("processSplitIds",List(OrderIdentity("WAIT"))),
+							new TagValue("afterWaitIds", List()),
+							new TagValue("context", Map(
+								OrderPrefix._kind.toString -> "jar",
+								OrderPrefix._main.toString -> "TestProject",
+								OrderPrefix.__delay.toString -> "0",
+								"-i" -> "hereComes",
+								"-t" -> "1000" //1秒後に答えが出る、そういうJar
+								))))
+				}
 
 				//WorkerはSTATUS_SPLIT_WAITに入っているはず
 				worker.currentStatus.head must be_==(WorkerStatus.STATUS_SPLIT_WAIT)
@@ -797,19 +868,21 @@ class MondogrossoProcessWorkerTests extends Specification {
 				val latestWork = worker.getLatestWorkInformation
 			}
 			
-			"待ちが完了するシチュエーション" in {
+			"processSplit 待ちが完了するシチュエーション" in {
 				val workerId = UUID.randomUUID().toString
 				val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
 				
-				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
-					dummyParent.messenger.tagValues(
-						new TagValue("identity", "A"),
-						new TagValue("processSplitIds",List(OrderIdentity("WAIT"))),
-						new TagValue("afterWaitIds", List()),
-						new TagValue("context", Map(
-							OrderPrefix._kind.toString -> "sh",
-							OrderPrefix._main.toString -> "echo some"
-							))))
+				Seq(Messages.MESSAGE_SETUP.toString,Messages.MESSAGE_START.toString).foreach {exec =>
+					dummyParent.messenger.call(workerId, exec,
+						dummyParent.messenger.tagValues(
+							new TagValue("identity", "A"),
+							new TagValue("processSplitIds",List(OrderIdentity("WAIT"))),
+							new TagValue("afterWaitIds", List()),
+							new TagValue("context", Map(
+								OrderPrefix._kind.toString -> "sh",
+								OrderPrefix._main.toString -> "echo some"
+								))))
+				}
 				
 				//WorkerはSTATUS_SPLIT_WAITに入っているはず
 				worker.currentStatus.head must be_==(WorkerStatus.STATUS_SPLIT_WAIT)
@@ -830,6 +903,54 @@ class MondogrossoProcessWorkerTests extends Specification {
 
 				latestWork.localContext(OrderPrefix._result.toString) must be_==("some")
 			}
+			
+			"processSplit 複数の待ちが同時に完了するシチュエーション(あまり意味が無いが参考までに)" in {
+				
+				val workerList:ListBuffer[ProcessWorker] = ListBuffer()
+				
+				//A,B,C
+				val s = Seq("A","B","C").foreach {orderIdentity => 
+					val workerId = UUID.randomUUID().toString
+					val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
+					
+					Seq(Messages.MESSAGE_SETUP.toString,Messages.MESSAGE_START.toString).foreach {exec =>
+						dummyParent.messenger.call(workerId, exec,
+							dummyParent.messenger.tagValues(
+								new TagValue("identity", orderIdentity),
+								new TagValue("processSplitIds",List(OrderIdentity("WAIT"))),
+								new TagValue("afterWaitIds", List()),
+								new TagValue("context", Map(
+									OrderPrefix._kind.toString -> "sh",
+									OrderPrefix._main.toString -> "echo some"
+									))))
+					}
+					
+					workerList += worker
+				}
+				
+				//実行完了のサインを送る
+				workerList.foreach {worker =>
+					dummyParent.messenger.call(worker.workerIdentity, Messages.MESSAGE_FINISHEDORDER_NOTIFY.toString, 
+							dummyParent.messenger.tagValues(new TagValue("finishedOrderIdentity", "WAIT"),
+									new TagValue("allfinishedOrderIdentities", List("WAIT"))))
+				}
+				
+				//各WorkerはSTATUS_DONEになっているはず
+				workerList.foreach {worker =>
+					worker.currentStatus.head must be_==(WorkerStatus.STATUS_DONE)
+				}
+				
+				//各実行が完了している
+				workerList.foreach {worker =>
+					val latestWork = worker.getLatestWorkInformation
+					latestWork.localContext.keys must be_==(Set(
+						OrderPrefix._kind.toString,
+						OrderPrefix._main.toString,
+						OrderPrefix._result.toString))
+	
+					latestWork.localContext(OrderPrefix._result.toString) must be_==("some")
+				}
+			}
 		}
 	}
 	
@@ -842,16 +963,17 @@ class MondogrossoProcessWorkerTests extends Specification {
 			"waitに入ってからFinishedが来る" in {
 				val workerId = UUID.randomUUID().toString
 				val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
-				
-				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
-					dummyParent.messenger.tagValues(
-						new TagValue("identity", "A"),
-						new TagValue("processSplitIds",List()),
-						new TagValue("afterWaitIds", List("B")),
-						new TagValue("context", Map(
-							OrderPrefix._kind.toString -> "sh",
-							OrderPrefix._main.toString -> "echo some"
-							))))
+				Seq(Messages.MESSAGE_SETUP.toString,Messages.MESSAGE_START.toString).foreach {exec =>
+					dummyParent.messenger.call(workerId, exec,
+						dummyParent.messenger.tagValues(
+							new TagValue("identity", "A"),
+							new TagValue("processSplitIds",List()),
+							new TagValue("afterWaitIds", List("B")),
+							new TagValue("context", Map(
+								OrderPrefix._kind.toString -> "sh",
+								OrderPrefix._main.toString -> "echo some"
+								))))
+				}
 				
 				//WorkerはSTATUS_AFTER_WAITに入っているはず
 				worker.currentStatus.head must be_==(WorkerStatus.STATUS_AFTER_WAIT)
@@ -878,15 +1000,17 @@ class MondogrossoProcessWorkerTests extends Specification {
 				val workerId = UUID.randomUUID().toString
 				val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
 				
-				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
-					dummyParent.messenger.tagValues(
-						new TagValue("identity", "A"),
-						new TagValue("processSplitIds",List()),
-						new TagValue("afterWaitIds", List("B","C")),
-						new TagValue("context", Map(
-							OrderPrefix._kind.toString -> "sh",
-							OrderPrefix._main.toString -> "echo some"
-							))))
+				Seq(Messages.MESSAGE_SETUP.toString,Messages.MESSAGE_START.toString).foreach {exec =>
+					dummyParent.messenger.call(workerId, exec,
+						dummyParent.messenger.tagValues(
+							new TagValue("identity", "A"),
+							new TagValue("processSplitIds",List()),
+							new TagValue("afterWaitIds", List("B","C")),
+							new TagValue("context", Map(
+								OrderPrefix._kind.toString -> "sh",
+								OrderPrefix._main.toString -> "echo some"
+								))))
+				}
 				
 				//WorkerはSTATUS_AFTER_WAITに入っているはず
 				worker.currentStatus.head must be_==(WorkerStatus.STATUS_AFTER_WAIT)
@@ -927,15 +1051,17 @@ class MondogrossoProcessWorkerTests extends Specification {
 								new TagValue("allfinishedOrderIdentities", List("B"))))
 				
 				//この状態で開始
-				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
-					dummyParent.messenger.tagValues(
-						new TagValue("identity", "A"),
-						new TagValue("processSplitIds",List()),
-						new TagValue("afterWaitIds", List("B")),
-						new TagValue("context", Map(
-							OrderPrefix._kind.toString -> "sh",
-							OrderPrefix._main.toString -> "echo some"
-							))))
+				Seq(Messages.MESSAGE_SETUP.toString,Messages.MESSAGE_START.toString).foreach {exec =>
+					dummyParent.messenger.call(workerId, exec,
+						dummyParent.messenger.tagValues(
+							new TagValue("identity", "A"),
+							new TagValue("processSplitIds",List()),
+							new TagValue("afterWaitIds", List("B")),
+							new TagValue("context", Map(
+								OrderPrefix._kind.toString -> "sh",
+								OrderPrefix._main.toString -> "echo some"
+								))))
+				}
 				
 				//WorkerはSTATUS_DONEになっているはず		
 				worker.currentStatus.head must be_==(WorkerStatus.STATUS_DONE)
@@ -965,15 +1091,17 @@ class MondogrossoProcessWorkerTests extends Specification {
 								new TagValue("allfinishedOrderIdentities", List("B","C"))))
 				
 				//この状態で開始
-				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
-					dummyParent.messenger.tagValues(
-						new TagValue("identity", "A"),
-						new TagValue("processSplitIds",List()),
-						new TagValue("afterWaitIds", List("B", "C")),
-						new TagValue("context", Map(
-							OrderPrefix._kind.toString -> "sh",
-							OrderPrefix._main.toString -> "echo some"
-							))))
+				Seq(Messages.MESSAGE_SETUP.toString,Messages.MESSAGE_START.toString).foreach {exec =>
+					dummyParent.messenger.call(workerId, exec,
+						dummyParent.messenger.tagValues(
+							new TagValue("identity", "A"),
+							new TagValue("processSplitIds",List()),
+							new TagValue("afterWaitIds", List("B", "C")),
+							new TagValue("context", Map(
+								OrderPrefix._kind.toString -> "sh",
+								OrderPrefix._main.toString -> "echo some"
+								))))
+				}
 				
 				//WorkerはSTATUS_DONEになっているはず		
 				worker.currentStatus.head must be_==(WorkerStatus.STATUS_DONE)
@@ -999,15 +1127,17 @@ class MondogrossoProcessWorkerTests extends Specification {
 						
 				
 				//この状態で開始
-				dummyParent.messenger.call(workerId, Messages.MESSAGE_START.toString,
-					dummyParent.messenger.tagValues(
-						new TagValue("identity", "A"),
-						new TagValue("processSplitIds",List()),
-						new TagValue("afterWaitIds", List("B", "C")),
-						new TagValue("context", Map(
-							OrderPrefix._kind.toString -> "sh",
-							OrderPrefix._main.toString -> "echo some"
-							))))
+				Seq(Messages.MESSAGE_SETUP.toString,Messages.MESSAGE_START.toString).foreach {exec =>
+					dummyParent.messenger.call(workerId, exec,
+						dummyParent.messenger.tagValues(
+							new TagValue("identity", "A"),
+							new TagValue("processSplitIds",List()),
+							new TagValue("afterWaitIds", List("B", "C")),
+							new TagValue("context", Map(
+								OrderPrefix._kind.toString -> "sh",
+								OrderPrefix._main.toString -> "echo some"
+								))))
+				}
 				
 				//WorkerはまだSTATUS_AFTER_WAITに入っているはず
 				worker.currentStatus.head must be_==(WorkerStatus.STATUS_AFTER_WAIT)

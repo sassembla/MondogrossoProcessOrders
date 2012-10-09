@@ -107,14 +107,19 @@ class ProcessContext(contextIdentity : String, contextSrc : ContextSource) exten
 	 */
 	def runContext = {
 		ContextStatus.STATUS_RUNNING +=: currentStatus
-
-		//初期状態での、finallyの予約時間起動
-		setContextTimeout
-
-		//プロセスごとにWorkerを起動
+		
+		//プロセスごとにWorkerをセット、開始命令が送れるように整える
 		contextSrc.current.processList.foreach { process =>
 			dispachNewWorkerToProcess(process)
 		}
+		
+		println("スタート時点でリストは	"+runningProcessList)
+		
+		//初期状態での、finallyの予約時間起動
+		setContextTimeout
+		
+		//着火
+		startProcess(contextSrc.current.processList(0))
 	}
 
 	/**
@@ -168,9 +173,9 @@ class ProcessContext(contextIdentity : String, contextSrc : ContextSource) exten
 	 * プロセスに対して新規にWorkerを割当、起動する
 	 */
 	def dispachNewWorkerToProcess(process : Process) = {
-		//新しいProcessを登録する
+		//リストに追加
 		runningProcessList += process.identity
-
+		
 		//Workerを作成
 		new ProcessWorker(process.identity, contextIdentity)
 
@@ -194,12 +199,34 @@ class ProcessContext(contextIdentity : String, contextSrc : ContextSource) exten
 		//実行中Ordersにセット
 		doingOrderIdentities += currentOrderIdentity
 
+		messenger.call(process.identity, Messages.MESSAGE_SETUP.toString, messenger.tagValues(
+			new TagValue("identity", currentOrderIdentity),
+			new TagValue("processSplitIds", processSplitIds),
+			new TagValue("afterWaitIds", afterWaitIds),
+			new TagValue("context", actualRuntimeContext)))
+	}
+	
+	/**
+	 * 準備完了したWorkerを起動する
+	 */
+	def startProcess(process : Process) {
+		//開始すべきIdentityを取得する(ここでは決めうちで0)
+		val currentOrderIdentity = process.orderIdentityList(0)
+
+		//process開始WaitId
+		val processSplitIds = process.processSplitHeaders
+		
+		//order完了後WaitId
+		val afterWaitIds = process.orderAdditional(currentOrderIdentity).waitIdentitiesList
+
+		//Initialコンテキスト + 既存コンテキスト(既存コンテキストで上塗り)
+		val actualRuntimeContext = generateRuntimeContext(process, currentOrderIdentity)
+
 		messenger.call(process.identity, Messages.MESSAGE_START.toString, messenger.tagValues(
 			new TagValue("identity", currentOrderIdentity),
 			new TagValue("processSplitIds", processSplitIds),
 			new TagValue("afterWaitIds", afterWaitIds),
 			new TagValue("context", actualRuntimeContext)))
-
 	}
 
 	/**
@@ -348,9 +375,9 @@ class ProcessContext(contextIdentity : String, contextSrc : ContextSource) exten
 				val currentFinishedOrderIdentity = messenger.get("orderIdentity", tagValues).asInstanceOf[String]
 				val currentFinishedEventualContext = messenger.get("eventualContext", tagValues).asInstanceOf[scala.collection.mutable.Map[String, String]]
 
-				//				println("currentFinishedWorkerIdentity	" + currentFinishedWorkerIdentity)
-				//				println("currentFinishedOrderIdentity	" + currentFinishedOrderIdentity)
-				//				println("currentFinishedEventualContext	" + currentFinishedEventualContext)
+				println("currentFinishedWorkerIdentity	" + currentFinishedWorkerIdentity)
+				println("currentFinishedOrderIdentity	" + currentFinishedOrderIdentity)
+				println("currentFinishedEventualContext	" + currentFinishedEventualContext)
 				
 				//eventualを、currentContextに上書きする
 				val appendedContext = (currentFinishedOrderIdentity -> currentFinishedEventualContext)
@@ -403,6 +430,7 @@ class ProcessContext(contextIdentity : String, contextSrc : ContextSource) exten
 							//Workerを停める
 							messenger.call(processIdentity, Messages.MESSAGE_OVER.toString, null)
 
+							println("この時点でリストは	"+runningProcessList)
 							//runningProcessListが空だったらfinallyを実行
 							if (runningProcessList.isEmpty) {
 								ContextStatus.STATUS_FINALLY +=: currentStatus
@@ -454,7 +482,6 @@ class ProcessContext(contextIdentity : String, contextSrc : ContextSource) exten
 	def procFinally(exec : Messages.Value, tagValues : Array[TagValue]) = {
 		exec match {
 			case Messages.MESSAGE_FINALLY => currentContext.get(finallyOrderIdentity).foreach {
-				println("MESSAGE_FINALLYにきてる	" + identity)
 				finallyContext => runFinally(finallyContext)
 			}
 

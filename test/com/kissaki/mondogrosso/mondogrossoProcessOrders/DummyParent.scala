@@ -35,6 +35,9 @@ class DummyParent extends MessengerProtocol {
 						val erroredWorkerIdentity = messenger.get("erroredWorkerIdentity", tagValues).asInstanceOf[String]
 						val erroredOrderIdentity = messenger.get("erroredOrderIdentity", tagValues).asInstanceOf[String]
 						
+						println("MESSAGE_ERROR	finishedOrderIdentity	"+erroredOrderIdentity	+"	/processIdentity	"+erroredWorkerIdentity)
+						
+						
 						//messengerのログに追加
 						messenger.addLog(erroredWorkerIdentity+erroredOrderIdentity)
 					}
@@ -42,13 +45,18 @@ class DummyParent extends MessengerProtocol {
 						val timeoutedWorkerIdentity = messenger.get("timeoutedWorkerIdentity", tagValues).asInstanceOf[String]
 						val timeoutedOrderIdentity = messenger.get("timeoutedOrderIdentity", tagValues).asInstanceOf[String]
 						
+						println("MESSAGE_TIMEOUT	finishedOrderIdentity	"+timeoutedOrderIdentity	+"	/processIdentity	"+timeoutedWorkerIdentity)
+						
+						
 						//messengerのログに追加
 						messenger.addLog(timeoutedWorkerIdentity+timeoutedOrderIdentity)
 					}
 					case Messages.MESSAGE_DONE => {
 						val currentFinishedWorkerIdentity = messenger.get("identity", tagValues).asInstanceOf[String]
 						val currentFinishedOrderIdentity = messenger.get("orderIdentity", tagValues).asInstanceOf[String]
-
+						
+						println("MESSAGE_DONE	finishedOrderIdentity	"+currentFinishedOrderIdentity	+"	/processIdentity	"+currentFinishedWorkerIdentity)
+						
 						//messengerのログに追加
 						messenger.addLog(currentFinishedWorkerIdentity+currentFinishedOrderIdentity)
 					}
@@ -56,6 +64,7 @@ class DummyParent extends MessengerProtocol {
 						val processIdentity = messenger.get("workerIdentity", tagValues).asInstanceOf[String]
 						val finishedOrderIdentity = messenger.get("finishedOrderIdentity", tagValues).asInstanceOf[String]
 					
+						println("MESSAGE_REQUEST	finishedOrderIdentity	"+finishedOrderIdentity	+"	/processIdentity	"+processIdentity)
 						//messengerのログに追加
 						messenger.addLog(processIdentity+finishedOrderIdentity)
 					}
