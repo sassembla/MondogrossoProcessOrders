@@ -532,7 +532,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 			}
 
 			/*
-			 * process実行
+			 * shell-process実行
 			 */
 			case WorkKinds.sh => {
 				//キーと値をシークエンスに纏める

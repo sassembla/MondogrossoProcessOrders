@@ -72,7 +72,7 @@ jar {
 group = 'com.kissaki.mondogrosso'
 archivesBaseName = 'MondogrossoProcessOrders' 
 version = '0.1.0-SNAPSHOT'
-
+g
 uploadArchives {
 	repositories {
 		mavenDeployer {
