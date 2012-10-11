@@ -80,19 +80,19 @@ class MondogrossoProcessContext(contextIdentity : String, contextSrc : ContextSo
 
 	//準備完了
 	ContextStatus.STATUS_READY +=: currentStatus
-	comments += comment(new Date, "CONTEXT:	"+identity+"	ready.")
+	comments += commentFormat(new Date, "ready.")
 	
 	/**
 	 * コメント作成
 	 */
-	def comment(date:Date, comment:String) = date.toString + "	" +comment
+	def commentFormat(date:Date, comment:String) = date.toString + "	" +comment+"	CONTEXT:	"+identity
 	
 	/**
 	 * このコンテキストの現在のindexからの実行開始
 	 */
 	def runContext = {
 		ContextStatus.STATUS_RUNNING +=: currentStatus
-		comments += comment(new Date, "CONTEXT:	"+contextIdentity+"	start.")
+		comments += commentFormat(new Date, "start.")
 		
 		//プロセスごとにWorkerをセット、開始命令が送れるように整える
 		contextSrc.current.processList.foreach { process =>
@@ -179,7 +179,7 @@ class MondogrossoProcessContext(contextIdentity : String, contextSrc : ContextSo
 	def contextErrorProc(erroredContext : scala.collection.mutable.Map[String, scala.collection.mutable.Map[String, String]], error : String) = {
 		println("エラーが発生	" + erroredContext + "	/error	" + error)
 		ContextStatus.STATUS_ERROR +=: currentStatus
-		comments += comment(new Date, "CONTEXT:	"+identity+"	Error:	"+error+"	@	"+erroredContext)
+		comments += commentFormat(new Date, "Error:	"+error+"	@	"+erroredContext)
 	}
 
 	/**
@@ -212,6 +212,7 @@ class MondogrossoProcessContext(contextIdentity : String, contextSrc : ContextSo
 		//実行中Ordersにセット
 		doingOrderIdentities += currentOrderIdentity
 
+		comments += commentFormat(new Date, "PROCESS:	"+process.identity+"	setUp 1st Order:"+currentOrderIdentity)
 		messenger.call(process.identity, Messages.MESSAGE_SETUP.toString, messenger.tagValues(
 			new TagValue("identity", currentOrderIdentity),
 			new TagValue("processSplitIds", processSplitIds),
@@ -234,7 +235,8 @@ class MondogrossoProcessContext(contextIdentity : String, contextSrc : ContextSo
 
 		//Initialコンテキスト + 既存コンテキスト(既存コンテキストで上塗り)
 		val actualRuntimeContext = generateRuntimeContext(process, currentOrderIdentity)
-
+		
+		comments += commentFormat(new Date, "PROCESS:	"+process.identity+"	start 1st Order:"+currentOrderIdentity)
 		messenger.call(process.identity, Messages.MESSAGE_START.toString, messenger.tagValues(
 			new TagValue("identity", currentOrderIdentity),
 			new TagValue("processSplitIds", processSplitIds),
@@ -257,12 +259,14 @@ class MondogrossoProcessContext(contextIdentity : String, contextSrc : ContextSo
 		//実行中Ordersにセット
 		doingOrderIdentities += currentOrderIdentity
 		
+		comments += commentFormat(new Date, "PROCESS:	"+process.identity+"	setUp Order:"+currentOrderIdentity)
 		messenger.call(process.identity, Messages.MESSAGE_SETUP.toString, messenger.tagValues(
 			new TagValue("identity", currentOrderIdentity),
 			new TagValue("processSplitIds", List()),
 			new TagValue("afterWaitIds", afterWaitIds),
 			new TagValue("context", actualRuntimeContext)))
 			
+		comments += commentFormat(new Date, "PROCESS:	"+process.identity+"	start Order:"+currentOrderIdentity)
 		messenger.call(process.identity, Messages.MESSAGE_START.toString, messenger.tagValues(
 			new TagValue("identity", currentOrderIdentity),
 			new TagValue("processSplitIds", List()),
@@ -340,12 +344,14 @@ class MondogrossoProcessContext(contextIdentity : String, contextSrc : ContextSo
 	 * FinallyOrderを開始する
 	 */
 	def runFinally(finallyContext : scala.collection.mutable.Map[String, String]) = {
+		comments += commentFormat(new Date, "setUp FinallyOrder:"+finallyOrderIdentity)
 		messenger.call(finallyProcessIdentity, Messages.MESSAGE_SETUP.toString, messenger.tagValues(
 			new TagValue("identity", finallyOrderIdentity),
 			new TagValue("processSplitIds", List()),
 			new TagValue("afterWaitIds", List()),
 			new TagValue("context", finallyContext)))
 			
+		comments += commentFormat(new Date, "start FinallyOrder:"+finallyOrderIdentity)
 		messenger.call(finallyProcessIdentity, Messages.MESSAGE_START.toString, messenger.tagValues(
 			new TagValue("identity", finallyOrderIdentity),
 			new TagValue("processSplitIds", List()),
@@ -362,7 +368,7 @@ class MondogrossoProcessContext(contextIdentity : String, contextSrc : ContextSo
 			//waiterからのdelay時にまだRunningだったら
 			case ContextExecs.EXEC_TIMEOUT_RUN => {
 				ContextStatus.STATUS_TIMEOUT +=: currentStatus
-				comments += comment(new Date, "Timeout break out.	"+identity)
+				comments += commentFormat(new Date, "Timeout break out.	"+identity)
 				
 				currentContext.get(finallyOrderIdentity).foreach { finallyContext => runFinally(finallyContext) }
 			}
@@ -370,8 +376,18 @@ class MondogrossoProcessContext(contextIdentity : String, contextSrc : ContextSo
 		}
 
 		Messages.get(execSrc) match {
-			case Messages.MESSAGE_SYNCRONOUSLY_STARTED => println("currentOrderIndex	started	" + currentOrderIndex + "	/tagValues	" + tagValues)
-			case Messages.MESSAGE_ASYNCRONOUSLY_STARTED => println("currentOrderIndex	async started	" + currentOrderIndex + "	/tagValues	" + tagValues)
+			case Messages.MESSAGE_SYNCRONOUSLY_STARTED => {
+				val workerIdentity = messenger.get("workerIdentity", tagValues).asInstanceOf[String]
+				val orderIdentity = messenger.get("orderIdentity", tagValues).asInstanceOf[String]
+//				println("currentOrderIndex	started	" + currentOrderIndex + "	/tagValues	" + tagValues)
+				comments += commentFormat(new Date, "PROCESS:	"+workerIdentity+"	started Order:"+orderIdentity)
+			}
+			case Messages.MESSAGE_ASYNCRONOUSLY_STARTED => {
+				val workerIdentity = messenger.get("workerIdentity", tagValues).asInstanceOf[String]
+				val orderIdentity = messenger.get("orderIdentity", tagValues).asInstanceOf[String]
+//				println("currentOrderIndex	async started	" + currentOrderIndex + "	/tagValues	" + tagValues)
+				comments += commentFormat(new Date, "PROCESS:	"+workerIdentity+"	started asynchronous Order:"+orderIdentity)
+			}
 
 			case Messages.MESSAGE_DONE => {
 				val currentFinishedWorkerIdentity = messenger.get("identity", tagValues).asInstanceOf[String]
@@ -385,7 +401,7 @@ class MondogrossoProcessContext(contextIdentity : String, contextSrc : ContextSo
 				//eventualを、currentContextに上書きする
 				val appendedContext = (currentFinishedOrderIdentity -> currentFinishedEventualContext)
 				currentContext += appendedContext
-				comments += comment(new Date, "CONTEXT:	"+identity+"	PROCESS:	"+currentFinishedWorkerIdentity+"	's Order	"+ currentFinishedOrderIdentity +" was done!")
+				comments += commentFormat(new Date, "PROCESS:	"+currentFinishedWorkerIdentity+"	Order:"+ currentFinishedOrderIdentity +" was done!")
 				
 				//動作中リストから除外
 				doingOrderIdentities -= currentFinishedOrderIdentity
@@ -418,7 +434,7 @@ class MondogrossoProcessContext(contextIdentity : String, contextSrc : ContextSo
 					println("index	"+process.orderIdentityList.indexOf(finishedOrderIdentity))
 					println("finishedOrderIdentity	"+process.orderIdentityList.indexOf(finishedOrderIdentity))
 					
-					comments += comment(new Date, "CONTEXT:	"+identity+"	was requested the next Order of	"+ finishedOrderIdentity +" by PROCESS:	"+processIdentity)
+					comments += commentFormat(new Date, "PROCESS:	"+processIdentity + "	requested the next Order of	"+ finishedOrderIdentity)
 					
 					currentOrderIdentityIndex match {
 						//次のOrderを実行
@@ -437,12 +453,12 @@ class MondogrossoProcessContext(contextIdentity : String, contextSrc : ContextSo
 							messenger.call(processIdentity, Messages.MESSAGE_OVER.toString, null)
 							
 							println("この時点でリストは	"+runningProcessList)
-							comments += comment(new Date, "CONTEXT:	"+identity	+"	PROCESS:	"+processIdentity+"	's all Order was done!")
+							comments += commentFormat(new Date, "PROCESS:	"+processIdentity+"	All Orders done!")
 							
 							//runningProcessListが空だったらfinallyを実行
 							if (runningProcessList.isEmpty) {
 								ContextStatus.STATUS_FINALLY +=: currentStatus
-								comments += comment(new Date, "CONTEXT:	"+identity+"	PROCESS:	"+processIdentity+"	's FinallyOrder	"+finallyOrderIdentity+"	start.")
+								comments += commentFormat(new Date, "PROCESS:	"+processIdentity+"	FinallyOrder:"+finallyOrderIdentity+"	start.")
 								
 								messenger.callMyself(Messages.MESSAGE_FINALLY.toString, null)
 							}
@@ -479,7 +495,7 @@ class MondogrossoProcessContext(contextIdentity : String, contextSrc : ContextSo
 					
 					currentContext += appendedContext
 					ContextStatus.STATUS_TIMEOUTED +=: currentStatus
-					comments += comment(new Date, "Timeout Order	"+currentFinishedOrderIdentity+"	was finished.	"+identity)
+					comments += commentFormat(new Date, "Timeout Order:"+currentFinishedOrderIdentity+"	was finished.	"+identity)
 				}
 			}
 
@@ -515,7 +531,7 @@ class MondogrossoProcessContext(contextIdentity : String, contextSrc : ContextSo
 					doneOrderIdentities += currentFinishedOrderIdentity
 					
 					ContextStatus.STATUS_DONE +=: currentStatus
-					comments += comment(new Date, "CONTEXT:	"+identity+"	finished!")
+					comments += commentFormat(new Date, "finished!")
 				}
 			}
 
