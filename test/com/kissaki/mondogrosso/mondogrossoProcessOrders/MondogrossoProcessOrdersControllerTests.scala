@@ -67,20 +67,21 @@ class MondogrossoProcessOrdersControllerTests extends Specification /*with Timeo
 					"Z": 
 						{
 							"_kind": "sh",
-							"_main": "open /Applications/eclipseScala/scalaworkspace/MondogrossoProcessOrders/build/reports/tests/index.html"
+							"_main": "open /Applications/eclipseScala/scalaworkspace/MondogrossoProcessOrders/build/reports/tests/index.html",
+							"__finallyTimeout":"10000"
 						}
 					}"""
 
 	//OrderController	
 	if (true) {
 		"OrderController" should {
-			
+
 			/*
 			 * コンテキスト周りのテスト
 			 */
 			"Contextを実行開始、成功結果を受け取る" in {
 				val orderCont = new MondogrossoProcessOrdersController
-				
+
 				val id = UUID.randomUUID().toString
 				val input = "A>B>C(A:a:c)<E+(B)D(A:a2:d1,A:a3:d2)>E!Z"
 				val json = standardJSON
@@ -103,22 +104,94 @@ class MondogrossoProcessOrdersControllerTests extends Specification /*with Timeo
 					Thread.sleep(100)
 					println("Contextを実行開始、すべて同期でくまれているので、一瞬で完了するはず	" + currentContext.currentStatus)
 				}
-				
-				println("Contextを実行開始、すべて同期でくまれているので、一瞬で完了するはず	"+orderCont.contexts(0).currentContext)
-				orderCont.contexts(0).currentContext.keys must be_==(Set("A","B","C","E","D","Z"))
-				
+
+				println("Contextを実行開始、すべて同期でくまれているので、一瞬で完了するはず	" + orderCont.contexts(0).currentContext)
+				orderCont.contexts(0).currentContext.keys must be_==(Set("A", "B", "C", "E", "D", "Z"))
+
 				//結果を受け取る
 				val contextResult = orderCont.contexts(0).result
-				println("contextResult	"+contextResult)
-				
+
 				//結果は成功
 				contextResult.status must be_==(ContextStatus.STATUS_DONE)
-				
+
 				//コメントを一覧で取得
-				println("comments	"+contextResult.commentsStack)
+				println("comments	" + contextResult.commentsStack)
+			}
+
+			"Contextを実行開始 Eのロックが解かれないので、達成不可能なオーダー順。　タイムアウトで失敗 結果を受け取る" in {
+				val orderCont = new MondogrossoProcessOrdersController
+
+				val id = UUID.randomUUID().toString
+				val input = "A>B>C(A:a:c)<E>E+(B)D(A:a2:d1,A:a3:d2)!Z"
+				val json = standardJSON
+
+				val parser = new MondogrossoProcessParser(id, input, json)
+				val parseResult = parser.parseProcess
+
+				val identity = UUID.randomUUID().toString
+				val s = orderCont.attachProcess(identity, parseResult)
+
+				//contextを生成
+				val currentContext = orderCont.contexts(0)
+				//現在実行中のOrder、内容がまだ無い
+				orderCont.contexts(0).doingOrderIdentities.length must be_==(0)
+
+				//起動
+				orderCont.runAllContext
+
+				while (!currentContext.currentStatus.head.equals(ContextStatus.STATUS_TIMEOUTED)) {
+					Thread.sleep(100)
+					println("Contextを実行開始、失敗結果を受け取る	" + currentContext.currentStatus)
+				}
+
+				//結果を受け取る
+				val contextResult = orderCont.contexts(0).result
+
+				//結果は失敗
+				contextResult.status must be_==(ContextStatus.STATUS_TIMEOUTED)
+
+				//コメントを一覧で取得
+				println("timeout	comments	" + contextResult.commentsStack)
+
+			}
+
+			"Contextを実行開始 不正確な値引き継ぎエラーが出る。　エラー結果を受け取る" in {
+				val orderCont = new MondogrossoProcessOrdersController
+
+				val id = UUID.randomUUID().toString
+				val input = "A>B>C(A:a:c)+(B)D(Error:a2:d1,A:a3:d2)!Z"
+				val json = standardJSON
+
+				val parser = new MondogrossoProcessParser(id, input, json)
+				val parseResult = parser.parseProcess
+
+				val identity = UUID.randomUUID().toString
+				val s = orderCont.attachProcess(identity, parseResult)
+
+				//contextを生成
+				val currentContext = orderCont.contexts(0)
+				//現在実行中のOrder、内容がまだ無い
+				orderCont.contexts(0).doingOrderIdentities.length must be_==(0)
+
+				//起動
+				orderCont.runAllContext
+
+				while (!currentContext.currentStatus.head.equals(ContextStatus.STATUS_ERROR)) {
+					Thread.sleep(100)
+					println("Contextを実行開始 エラーが出る。　エラー結果を受け取る	" + currentContext.currentStatus)
+				}
+
+				//結果を受け取る
+				val contextResult = orderCont.contexts(0).result
+
+				//結果は失敗
+				contextResult.status must be_==(ContextStatus.STATUS_TIMEOUTED)
+
+				//コメントを一覧で取得
+				println("error	comments	" + contextResult.commentsStack)
+
 			}
 		}
 	}
-	
-	
+
 }
