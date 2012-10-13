@@ -185,7 +185,7 @@ class MondogrossoProcessOrdersControllerTests extends Specification /*with Timeo
 				val contextResult = orderCont.contexts(0).result
 
 				//結果は失敗
-				contextResult.status must be_==(ContextStatus.STATUS_TIMEOUTED)
+				contextResult.status must be_==(ContextStatus.STATUS_ERROR)
 
 				//コメントを一覧で取得
 				println("error	comments	" + contextResult.commentsStack)

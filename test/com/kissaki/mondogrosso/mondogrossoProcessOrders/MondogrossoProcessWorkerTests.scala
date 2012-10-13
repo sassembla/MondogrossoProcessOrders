@@ -891,6 +891,22 @@ class MondogrossoProcessWorkerTests extends Specification {
 						dummyParent.messenger.tagValues(new TagValue("finishedOrderIdentity", "WAIT"),
 								new TagValue("allfinishedOrderIdentities", List("WAIT"))))
 				
+				//WorkerはSTATUS_SPLIT_READYになっているはず		
+				worker.currentStatus.head must be_==(WorkerStatus.STATUS_SPLIT_READY)
+				
+				//再度同じOrderを送る、今度はprocessSplitにならずに実行されるはず
+				Seq(Messages.MESSAGE_SETUP.toString,Messages.MESSAGE_START.toString).foreach {exec =>
+					dummyParent.messenger.call(workerId, exec,
+						dummyParent.messenger.tagValues(
+							new TagValue("identity", "A"),
+							new TagValue("processSplitIds",List(OrderIdentity("WAIT"))),
+							new TagValue("afterWaitIds", List()),
+							new TagValue("context", Map(
+								OrderPrefix._kind.toString -> "sh",
+								OrderPrefix._main.toString -> "echo some"
+								))))
+				}
+				
 				//WorkerはSTATUS_DONEになっているはず		
 				worker.currentStatus.head must be_==(WorkerStatus.STATUS_DONE)
 				
@@ -902,54 +918,6 @@ class MondogrossoProcessWorkerTests extends Specification {
 					OrderPrefix._result.toString))
 
 				latestWork.localContext(OrderPrefix._result.toString) must be_==("some")
-			}
-			
-			"processSplit 複数の待ちが同時に完了するシチュエーション(あまり意味が無いが参考までに)" in {
-				
-				val workerList:ListBuffer[ProcessWorker] = ListBuffer()
-				
-				//A,B,C
-				val s = Seq("A","B","C").foreach {orderIdentity => 
-					val workerId = UUID.randomUUID().toString
-					val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
-					
-					Seq(Messages.MESSAGE_SETUP.toString,Messages.MESSAGE_START.toString).foreach {exec =>
-						dummyParent.messenger.call(workerId, exec,
-							dummyParent.messenger.tagValues(
-								new TagValue("identity", orderIdentity),
-								new TagValue("processSplitIds",List(OrderIdentity("WAIT"))),
-								new TagValue("afterWaitIds", List()),
-								new TagValue("context", Map(
-									OrderPrefix._kind.toString -> "sh",
-									OrderPrefix._main.toString -> "echo some"
-									))))
-					}
-					
-					workerList += worker
-				}
-				
-				//実行完了のサインを送る
-				workerList.foreach {worker =>
-					dummyParent.messenger.call(worker.workerIdentity, Messages.MESSAGE_FINISHEDORDER_NOTIFY.toString, 
-							dummyParent.messenger.tagValues(new TagValue("finishedOrderIdentity", "WAIT"),
-									new TagValue("allfinishedOrderIdentities", List("WAIT"))))
-				}
-				
-				//各WorkerはSTATUS_DONEになっているはず
-				workerList.foreach {worker =>
-					worker.currentStatus.head must be_==(WorkerStatus.STATUS_DONE)
-				}
-				
-				//各実行が完了している
-				workerList.foreach {worker =>
-					val latestWork = worker.getLatestWorkInformation
-					latestWork.localContext.keys must be_==(Set(
-						OrderPrefix._kind.toString,
-						OrderPrefix._main.toString,
-						OrderPrefix._result.toString))
-	
-					latestWork.localContext(OrderPrefix._result.toString) must be_==("some")
-				}
 			}
 		}
 	}
