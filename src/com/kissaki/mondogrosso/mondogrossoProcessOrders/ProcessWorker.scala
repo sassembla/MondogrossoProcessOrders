@@ -49,7 +49,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 
 		currentStatus.head match {
 
-			/**
+			/*
 			 * 開始が来るのを待っている、初期化待ち状態
 			 */
 			case WorkerStatus.STATUS_EMPTY => {
@@ -57,9 +57,9 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 					case WorkerExecs.EXEC_SETUP => procSetUp(tagValues)
 					case other =>
 				}
-			}	
+			}
 			
-			/**
+			/*
 			 * 初期化済みからの開始
 			 */
 			case WorkerStatus.STATUS_SETUP => {
@@ -69,7 +69,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 				}
 			}
 
-			/**
+			/*
 			 * 準備状態、同期/非同期実行　or 待ち　を行う。
 			 */
 			case WorkerStatus.STATUS_READY => {
@@ -80,17 +80,27 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 				}
 			}
 
+			/*
+			 * 他Orderの完了待ちからのProcess開始待ち状態
+			 */
 			case WorkerStatus.STATUS_SPLIT_WAIT => {
 				Messages.get(execSrc) match {
 					//processSplitを解除する可能性がある、終了ORDERの通知
 					case Messages.MESSAGE_FINISHEDORDER_NOTIFY => procRestart(tagValues)
 					case other =>
 				}
+			}
+			
+			/*
+			 * 他Orderの完了待ちからのProcess開始状態
+			 */
+			case WorkerStatus.STATUS_SPLIT_READY => {
 				WorkerExecs.get(execSrc) match {
-					case WorkerExecs.EXEC_READY_RUN => procReadyRun(tagValues)
+					case WorkerExecs.EXEC_SETUP => procSetUpFromSplit(tagValues)
 					case other =>
 				}
 			}
+			
 
 			case WorkerStatus.STATUS_AFTER_WAIT => {
 				WorkerExecs.get(execSrc) match {
@@ -199,6 +209,8 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 		val afterWaitIds = (messenger.get("afterWaitIds", tagValues)).asInstanceOf[List[String]]
 		val orderContext = (messenger.get("context", tagValues)).asInstanceOf[scala.collection.Map[String, String]]
 
+		println(identity+"	setup時は	orderContext"+orderContext)
+		
 		Option(messenger.get("identity", tagValues)) match {
 			case Some(v) => v.asInstanceOf[String]
 			case None =>
@@ -229,6 +241,34 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 		}		
 		//実行は次の命令を待ってから
 	}
+	
+	
+	/**
+	 * Split待ちが完了したProcessへの準備を行う
+	 */
+	def procSetUpFromSplit(tagValues : Array[TagValue]) = {
+		val orderIdentity = (messenger.get("identity", tagValues)).asInstanceOf[String]
+		val processSplitIds = (messenger.get("processSplitIds", tagValues)).asInstanceOf[List[OrderIdentity]]
+		val afterWaitIds = (messenger.get("afterWaitIds", tagValues)).asInstanceOf[List[String]]
+		val orderContext = (messenger.get("context", tagValues)).asInstanceOf[scala.collection.Map[String, String]]
+
+		println(identity+"	setup時は	orderContext"+orderContext)
+		
+		Option(messenger.get("identity", tagValues)) match {
+			case Some(v) => v.asInstanceOf[String]
+			case None =>
+		}
+
+		val currentAddedOrderInfo = new WorkInformation(orderIdentity, orderContext, afterWaitIds)
+
+		//currentWorkInformationHistoryのheadに、最新のInfoを加算する
+		currentAddedOrderInfo +=: currentWorkInformationHistory
+
+		//バリデーション
+		if (validateKeys(currentAddedOrderInfo)) WorkerStatus.STATUS_SETUP +=: currentStatus
+	
+		//実行は次の命令を待ってから
+	}
 
 	/**
 	 * 実行
@@ -239,8 +279,8 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 		val afterWaitIds = (messenger.get("afterWaitIds", tagValues)).asInstanceOf[List[String]]
 		val orderContext = (messenger.get("context", tagValues)).asInstanceOf[scala.collection.Map[String, String]]
 
+		println("procStart	"+orderContext)
 		val currentAddedOrderInfo = new WorkInformation(orderIdentity, orderContext, afterWaitIds)
-		
 		WorkerStatus.STATUS_READY +=: currentStatus
 		
 		messenger.callMyself(WorkerExecs.EXEC_READY_TIMEOUT.toString, messenger.tagValues(
@@ -254,20 +294,22 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 	 */
 	def procRestart(tagValues : Array[TagValue]) = {
 		val finishedOrderIdentity = messenger.get("finishedOrderIdentity", tagValues).asInstanceOf[String]
+
 		processSplitWaitOrderIdentitiesList -= finishedOrderIdentity
 		
 		//ProcessSplitが空になった
 		if (processSplitWaitOrderIdentitiesList.isEmpty) {
-			println("processSplitWaitOrderIdentitiesList 解除　by	 finishedOrderIdentity:"+finishedOrderIdentity)
-			val currentAddedOrderInfo = currentWorkInformationHistory.head
-			val orderIdentity = currentAddedOrderInfo.orderIdentity
-			val orderContext = currentAddedOrderInfo.localContext
-
-			//WAITからのRUNを行う
-			messenger.callMyself(WorkerExecs.EXEC_READY_RUN.toString, messenger.tagValues(
-				new TagValue("orderIdentity", orderIdentity),
-				new TagValue("orderContext", orderContext),
-				new TagValue("currentAddedOrderInfo", currentAddedOrderInfo)))
+			WorkerStatus.STATUS_SPLIT_READY +=: currentStatus
+			
+			//Masterへの開始リクエストを行う
+			val nextOrder = currentWorkInformationHistory.head.orderIdentity
+			
+			messenger.callParent(Messages.MESSAGE_REQUEST_SPECIFY.toString,
+					messenger.tagValues(
+							new TagValue("workerIdentity", identity),
+							new TagValue("requestOrderIdentity",nextOrder)
+							))
+			
 		} else {
 			println("processSplitWaitOrderIdentitiesList まだある	finishedOrderIdentity	"+processSplitWaitOrderIdentitiesList)
 		}
@@ -306,7 +348,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 		val currentAddedOrderInfo = messenger.get("currentAddedOrderInfo", tagValues).asInstanceOf[WorkInformation]
 
 		/*----------実行----------*/
-
+		println("ここかなー	currentAddedOrderInfo	"+currentAddedOrderInfo)
 		//非同期	/	同期
 		orderContext.contains(OrderPrefix.__delay.toString) match {
 			case true => {
@@ -401,7 +443,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 
 		//結果のコンテキストを作成する
 		val eventualContext = info.localContext ++ Map(OrderPrefix._result.toString -> result)
-
+		println("order	"+info.orderIdentity+"	/eventualContext	"+eventualContext)
 		//結果を残す
 		new WorkInformation(info.orderIdentity, eventualContext, info.afterWaitIds) +=: currentWorkInformationHistory
 

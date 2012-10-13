@@ -100,13 +100,13 @@ class MondogrossoProcessOrdersControllerTests extends Specification /*with Timeo
 				//起動
 				orderCont.runAllContext
 
-				while (!currentContext.currentStatus.head.equals(ContextStatus.STATUS_DONE)) {
+				while (!currentContext.status.head.equals(ContextStatus.STATUS_DONE)) {
 					Thread.sleep(100)
-					println("Contextを実行開始、すべて同期でくまれているので、一瞬で完了するはず	" + currentContext.currentStatus)
+					println("Contextを実行開始、すべて同期でくまれているので、一瞬で完了するはず	" + currentContext.status)
 				}
 
-				println("Contextを実行開始、すべて同期でくまれているので、一瞬で完了するはず	" + orderCont.contexts(0).currentContext)
-				orderCont.contexts(0).currentContext.keys must be_==(Set("A", "B", "C", "E", "D", "Z"))
+				println("Contextを実行開始、すべて同期でくまれているので、一瞬で完了するはず	" + orderCont.contexts(0).contextKeyValues)
+				orderCont.contexts(0).contextKeyValues.keys must be_==(Set("A", "B", "C", "E", "D", "Z"))
 
 				//結果を受け取る
 				val contextResult = orderCont.contexts(0).result
@@ -139,9 +139,9 @@ class MondogrossoProcessOrdersControllerTests extends Specification /*with Timeo
 				//起動
 				orderCont.runAllContext
 
-				while (!currentContext.currentStatus.head.equals(ContextStatus.STATUS_TIMEOUTED)) {
+				while (!currentContext.status.head.equals(ContextStatus.STATUS_TIMEOUTED)) {
 					Thread.sleep(100)
-					println("Contextを実行開始、失敗結果を受け取る	" + currentContext.currentStatus)
+					println("Contextを実行開始、失敗結果を受け取る	" + currentContext.status)
 				}
 
 				//結果を受け取る
@@ -176,9 +176,9 @@ class MondogrossoProcessOrdersControllerTests extends Specification /*with Timeo
 				//起動
 				orderCont.runAllContext
 
-				while (!currentContext.currentStatus.head.equals(ContextStatus.STATUS_ERROR)) {
+				while (!currentContext.status.head.equals(ContextStatus.STATUS_ERROR)) {
 					Thread.sleep(100)
-					println("Contextを実行開始 エラーが出る。　エラー結果を受け取る	" + currentContext.currentStatus)
+					println("Contextを実行開始 エラーが出る。　エラー結果を受け取る	" + currentContext.status)
 				}
 
 				//結果を受け取る
