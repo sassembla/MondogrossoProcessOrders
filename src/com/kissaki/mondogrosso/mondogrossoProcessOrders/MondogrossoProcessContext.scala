@@ -17,7 +17,7 @@ import java.util.Date
 //結果格納クラス
 case class ContextResult(status : ContextStatus.Value, currentContext : scala.collection.mutable.Map[String, scala.collection.mutable.Map[String, String]], commentsStack : String)
 
-class MondogrossoProcessContext(contextIdentity : String, contextSrc : ContextSource) extends MessengerProtocol {
+class MondogrossoProcessContext(contextIdentity : String, contextSrc : ContextSource, masterName:String) extends MessengerProtocol {
 	println(contextIdentity + "	contextIdentity	/	this	" + this)
 
 	val MARK_DONE = "MARK_DONE"
@@ -27,6 +27,8 @@ class MondogrossoProcessContext(contextIdentity : String, contextSrc : ContextSo
 
 	//メッセージング送信/受信
 	val messenger = new Messenger(this, contextIdentity)
+	messenger.inputParent(masterName)
+	
 
 	/*プロセスリスト*/
 

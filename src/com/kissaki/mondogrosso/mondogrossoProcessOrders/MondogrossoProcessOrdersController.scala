@@ -17,8 +17,16 @@ import java.util.concurrent.TimeUnit
  *
  * プロセスごとのコンテキストを持つ。
  */
-class MondogrossoProcessOrdersController {
+class MondogrossoProcessOrdersController extends MessengerProtocol{
 
+	val controllerUuid = UUID.randomUUID().toString
+	
+	val messenger = new Messenger(this, controllerUuid)
+	def name = messenger.getName
+
+	def receiver(exec:String, tagValues:Array[TagValue]) = {
+	}
+	
 	//それぞれのProcessの実行がされるコンテキスト
 	val contexts : ListBuffer[MondogrossoProcessContext] = ListBuffer()
 
@@ -26,7 +34,7 @@ class MondogrossoProcessOrdersController {
 	 * 新しいプロセスをアタッチする
 	 */
 	def attachProcess(identity : String, contextSrc : ContextSource) = {
-		contexts += new MondogrossoProcessContext(identity, contextSrc)
+		contexts += new MondogrossoProcessContext(identity, contextSrc, controllerUuid)
 	}
 
 	/**
