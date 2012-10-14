@@ -11,20 +11,21 @@ import java.util.Date
 /**
  * コンテキスト
  *
- * 各Orderを実行する、Workerメッセージングのコアになる。
+ * 各Orderを実行する、Worker
+ メッセージングの末端になる。
  */
 
 //結果格納クラス
-case class ContextResult(status : ContextStatus.Value, currentContext : scala.collection.mutable.Map[String, scala.collection.mutable.Map[String, String]], commentsStack : String)
+case class ContextResult(contextIdentity : String, status : ContextStatus.Value, currentContext : scala.collection.mutable.Map[String, scala.collection.mutable.Map[String, String]], commentsStack : String)
 
 class MondogrossoProcessContext(contextIdentity : String, contextSrc : ContextSource, masterName:String) extends MessengerProtocol {
-	println(contextIdentity + "	contextIdentity	/	this	" + this)
-
-	val MARK_DONE = "MARK_DONE"
+//	println(contextIdentity + "	contextIdentity	/	this	" + this)
 
 	//状態
-	var status : ListBuffer[ContextStatus.Value] = ListBuffer(ContextStatus.STATUS_NOTREADY)
-
+	val status : ListBuffer[ContextStatus.Value] = ListBuffer(ContextStatus.STATUS_NOTREADY)
+	def currentStatus = status.head
+	
+	
 	//メッセージング送信/受信
 	val messenger = new Messenger(this, contextIdentity)
 	messenger.inputParent(masterName)
@@ -46,9 +47,7 @@ class MondogrossoProcessContext(contextIdentity : String, contextSrc : ContextSo
 	//実行完了したOrderのリスト
 	val doneOrderIdentities : ListBuffer[String] = ListBuffer()
 
-	//現在実行しているIndex(全体を並べたときをもとにした順、実行順とは異なり、個数)
-	var currentOrderIndex = 0
-
+	
 	//初期コンテキスト
 	val initialContext = contextSrc.initialParam
 
@@ -58,16 +57,18 @@ class MondogrossoProcessContext(contextIdentity : String, contextSrc : ContextSo
 	//コメント
 	val comments : ListBuffer[String] = ListBuffer()
 
-	/*
-	 * 評価される瞬間に決定する、コンテキストの結果
+	/**
+	 * commentsを末尾から読み、改行をくわえる
+	 * stackTraceもどきを作成
 	 */
-	lazy val result = {
-		val linedComments = comments.reduceRight {
-			(total, toAdd) => total ++ ("\n" + toAdd)
-		}
-
-		ContextResult(status.head, contextKeyValues, linedComments)
+	def linedComments = comments.reduceRight {
+		(total, toAdd) => total ++ ("\n" + toAdd)
 	}
+	
+	/*
+	 * コンテキストの結果を返す
+	 */
+	def currentContextResult = ContextResult(contextIdentity, currentStatus, contextKeyValues, linedComments)
 
 	//現在のコンテキストのIdを返す
 	def identity = contextIdentity
@@ -85,6 +86,15 @@ class MondogrossoProcessContext(contextIdentity : String, contextSrc : ContextSo
 	ContextStatus.STATUS_READY +=: status
 	comments += commentFormat(new Date, "ready.")
 
+	//マスターに準備完了を通達
+	messenger.callParent(ContextMessages.MESSAGE_READY.toString, messenger.tagValues(
+				new TagValue("contextIdentity", identity),
+				new TagValue("contextOrderIndex", doneOrderIdentities.length),
+				new TagValue("contextOrderTotal", contextSrc.totalOrderCount),
+				new TagValue("contextProcessIndex", doneProcessList.length),
+				new TagValue("contextProcessTotal", contextSrc.totalProcessNum)
+				))
+				
 	/**
 	 * コメント作成
 	 */
@@ -102,11 +112,20 @@ class MondogrossoProcessContext(contextIdentity : String, contextSrc : ContextSo
 			dispachNewWorkerToProcess(process)
 		}
 
-		println("スタート時点でリストは	" + runningProcessList)
+		messenger.callParent(ContextMessages.MESSAGE_START.toString, messenger.tagValues(
+				new TagValue("contextIdentity", identity),
+				new TagValue("contextOrderIndex", doneOrderIdentities.length),
+				new TagValue("contextOrderTotal", contextSrc.totalOrderCount),
+				new TagValue("contextProcessIndex", doneProcessList.length),
+				new TagValue("contextProcessTotal", contextSrc.totalProcessNum)
+				))
+
+				
+//		println("スタート時点でリストは	" + runningProcessList)
 
 		//初期状態での、finallyの予約時間起動
 		setContextTimeout
-
+		
 		//着火
 		startProcess(contextSrc.current.processList(0))
 	}
@@ -115,24 +134,23 @@ class MondogrossoProcessContext(contextIdentity : String, contextSrc : ContextSo
 	 * レシーバ
 	 */
 	def receiver(execSrc : String, tagValues : Array[TagValue]) = {
+		currentStatus match {
+			case ContextStatus.STATUS_NOTREADY => 
 
-		val exec = Messages.get(execSrc)
-
-		status.head match {
-			case ContextStatus.STATUS_NOTREADY => println("何もしない")
-
-			case ContextStatus.STATUS_READY => println("runContext should")
+			case ContextStatus.STATUS_READY => 
 
 			case ContextStatus.STATUS_RUNNING => procRunning(execSrc, tagValues)
 
-			case ContextStatus.STATUS_TIMEOUT => procTimeout(exec, tagValues)
-			case ContextStatus.STATUS_TIMEOUTED => println("STATUS_TIMEOUTED	exec	" + exec + "	/	" + identity)
+			case ContextStatus.STATUS_TIMEOUT => procTimeout(WorkerMessages.get(execSrc), tagValues)
+			case ContextStatus.STATUS_TIMEOUTED => 
 
-			case ContextStatus.STATUS_FINALLY => procFinally(exec, tagValues)
+			case ContextStatus.STATUS_FINALLY => procFinally(WorkerMessages.get(execSrc), tagValues)
 
-			case ContextStatus.STATUS_DONE => println("everything over at this context" + identity + "	/status	" + status)
+			case ContextStatus.STATUS_DONE => 
 
-			case ContextStatus.STATUS_ERROR => //println("This Context:"+identity +"	is failed with Error:"+ currentContext)
+			case ContextStatus.STATUS_ERROR => 
+				
+			case other => println("other	"+other)
 		}
 	}
 
@@ -219,7 +237,7 @@ class MondogrossoProcessContext(contextIdentity : String, contextSrc : ContextSo
 		doingOrderIdentities += currentOrderIdentity
 
 		comments += commentFormat(new Date, "PROCESS:" + process.identity + "	setUp 1st Order:" + currentOrderIdentity)
-		messenger.call(process.identity, Messages.MESSAGE_SETUP.toString, messenger.tagValues(
+		messenger.call(process.identity, WorkerMessages.MESSAGE_SETUP.toString, messenger.tagValues(
 			new TagValue("identity", currentOrderIdentity),
 			new TagValue("processSplitIds", processSplitIds),
 			new TagValue("afterWaitIds", afterWaitIds),
@@ -244,7 +262,7 @@ class MondogrossoProcessContext(contextIdentity : String, contextSrc : ContextSo
 
 		comments += commentFormat(new Date, "PROCESS:" + process.identity + "	start 1st Order:" + currentOrderIdentity)
 		
-		messenger.call(process.identity, Messages.MESSAGE_START.toString, messenger.tagValues(
+		messenger.call(process.identity, WorkerMessages.MESSAGE_START.toString, messenger.tagValues(
 			new TagValue("identity", currentOrderIdentity),
 			new TagValue("processSplitIds", processSplitIds),
 			new TagValue("afterWaitIds", afterWaitIds),
@@ -266,7 +284,7 @@ class MondogrossoProcessContext(contextIdentity : String, contextSrc : ContextSo
 		doingOrderIdentities += currentOrderIdentity
 
 		comments += commentFormat(new Date, "PROCESS:" + process.identity + "	setUp Order:" + currentOrderIdentity)
-		messenger.call(process.identity, Messages.MESSAGE_SETUP.toString, messenger.tagValues(
+		messenger.call(process.identity, WorkerMessages.MESSAGE_SETUP.toString, messenger.tagValues(
 			new TagValue("identity", currentOrderIdentity),
 			new TagValue("processSplitIds", List()),
 			new TagValue("afterWaitIds", afterWaitIds),
@@ -274,7 +292,7 @@ class MondogrossoProcessContext(contextIdentity : String, contextSrc : ContextSo
 		
 		comments += commentFormat(new Date, "PROCESS:" + process.identity + "	start Order:" + currentOrderIdentity)
 		
-		messenger.call(process.identity, Messages.MESSAGE_START.toString, messenger.tagValues(
+		messenger.call(process.identity, WorkerMessages.MESSAGE_START.toString, messenger.tagValues(
 			new TagValue("identity", currentOrderIdentity),
 			new TagValue("processSplitIds", List()),
 			new TagValue("afterWaitIds", afterWaitIds),
@@ -420,12 +438,21 @@ class MondogrossoProcessContext(contextIdentity : String, contextSrc : ContextSo
 	 */
 	def notifyFinishedOrderInfoToAllWorker(finishedOrderIdentity : String, allfinishedOrderIdentities : List[String]) = {
 		for (processName <- runningProcessList) {
-			println("notify the end of processName	" + processName + "	/	" + identity)
-			messenger.callWithAsync(processName, Messages.MESSAGE_FINISHEDORDER_NOTIFY.toString, messenger.tagValues(
+//			println("notify the end of processName	" + processName + "	/	" + identity)
+			messenger.callWithAsync(processName, WorkerMessages.MESSAGE_FINISHEDORDER_NOTIFY.toString, messenger.tagValues(
 				new TagValue("finishedOrderIdentity", finishedOrderIdentity),
 				new TagValue("allfinishedOrderIdentities", allfinishedOrderIdentities)
 			))
 		}
+		
+		//masterに進捗を通知
+		messenger.callParent(ContextMessages.MESSAGE_PROCEEDED.toString, messenger.tagValues(
+				new TagValue("contextIdentity", identity),
+				new TagValue("contextOrderIndex", doneOrderIdentities.length),
+				new TagValue("contextOrderTotal", contextSrc.totalOrderCount),
+				new TagValue("contextProcessIndex", doneProcessList.length),
+				new TagValue("contextProcessTotal", contextSrc.totalProcessNum)
+				))
 	}
 
 	/**
@@ -433,7 +460,7 @@ class MondogrossoProcessContext(contextIdentity : String, contextSrc : ContextSo
 	 */
 	def runFinally(finallyContext : scala.collection.mutable.Map[String, String]) = {
 		comments += commentFormat(new Date, "FinallyOrder:" + finallyOrderIdentity + "	setUp.")
-		messenger.call(finallyProcessIdentity, Messages.MESSAGE_SETUP.toString, messenger.tagValues(
+		messenger.call(finallyProcessIdentity, WorkerMessages.MESSAGE_SETUP.toString, messenger.tagValues(
 			new TagValue("identity", finallyOrderIdentity),
 			new TagValue("processSplitIds", List()),
 			new TagValue("afterWaitIds", List()),
@@ -441,7 +468,7 @@ class MondogrossoProcessContext(contextIdentity : String, contextSrc : ContextSo
 
 		comments += commentFormat(new Date, "FinallyOrder:" + finallyOrderIdentity + "	start.")
 		
-		messenger.call(finallyProcessIdentity, Messages.MESSAGE_START.toString, messenger.tagValues(
+		messenger.call(finallyProcessIdentity, WorkerMessages.MESSAGE_START.toString, messenger.tagValues(
 			new TagValue("identity", finallyOrderIdentity),
 			new TagValue("processSplitIds", List()),
 			new TagValue("afterWaitIds", List()),
@@ -455,7 +482,7 @@ class MondogrossoProcessContext(contextIdentity : String, contextSrc : ContextSo
 		ContextExecs.get(execSrc) match {
 			//waiterからのdelay時にまだRunningだったら
 			case ContextExecs.EXEC_TIMEOUT_RUN => {
-				println("EXEC_TIMEOUT_RUNが発生")
+//				println("EXEC_TIMEOUT_RUNが発生")
 				ContextStatus.STATUS_TIMEOUT +=: status
 				comments += commentFormat(new Date, "Timeout break out.	" + identity)
 
@@ -464,24 +491,24 @@ class MondogrossoProcessContext(contextIdentity : String, contextSrc : ContextSo
 			case other =>
 		}
 
-		Messages.get(execSrc) match {
-			case Messages.MESSAGE_SYNCRONOUSLY_STARTED => {
+		WorkerMessages.get(execSrc) match {
+			case WorkerMessages.MESSAGE_SYNCRONOUSLY_STARTED => {
 				val workerIdentity = messenger.get("workerIdentity", tagValues).asInstanceOf[String]
 				val orderIdentity = messenger.get("orderIdentity", tagValues).asInstanceOf[String]
 				comments += commentFormat(new Date, "PROCESS:" + workerIdentity + "	started Order:" + orderIdentity)
 			}
-			case Messages.MESSAGE_ASYNCRONOUSLY_STARTED => {
+			case WorkerMessages.MESSAGE_ASYNCRONOUSLY_STARTED => {
 				val workerIdentity = messenger.get("workerIdentity", tagValues).asInstanceOf[String]
 				val orderIdentity = messenger.get("orderIdentity", tagValues).asInstanceOf[String]
 				comments += commentFormat(new Date, "PROCESS:" + workerIdentity + "	started asynchronous Order:" + orderIdentity)
 			}
 
-			case Messages.MESSAGE_DONE => {
+			case WorkerMessages.MESSAGE_DONE => {
 				
 				val currentFinishedWorkerIdentity = messenger.get("identity", tagValues).asInstanceOf[String]
 				val currentFinishedOrderIdentity = messenger.get("orderIdentity", tagValues).asInstanceOf[String]
 				val currentFinishedEventualContext = messenger.get("eventualContext", tagValues).asInstanceOf[scala.collection.mutable.Map[String, String]]
-println("結果はここ	"+currentFinishedOrderIdentity + "	/currentFinishedEventualContext	"+currentFinishedEventualContext)
+//				println("結果はここ	"+currentFinishedOrderIdentity + "	/currentFinishedEventualContext	"+currentFinishedEventualContext)
 
 				println("currentFinishedWorkerIdentity	" + currentFinishedWorkerIdentity)
 				println("currentFinishedOrderIdentity	" + currentFinishedOrderIdentity)
@@ -492,7 +519,6 @@ println("結果はここ	"+currentFinishedOrderIdentity + "	/currentFinishedEven
 				contextKeyValues += appendedContext
 				comments += commentFormat(new Date, "PROCESS:" + currentFinishedWorkerIdentity + "	Order:" + currentFinishedOrderIdentity + " was done!")
 
-				println("で、contextKeyValues	"+contextKeyValues)
 				//動作中リストから除外
 				doingOrderIdentities -= currentFinishedOrderIdentity
 				//動作済みリストに追記
@@ -512,7 +538,7 @@ println("結果はここ	"+currentFinishedOrderIdentity + "	/currentFinishedEven
 			 * そのWorkerへの次のOrderが無ければ、対象Workerを停止する
 			 * 全Workerが停止されたら、Context自体のfinallyを実行する
 			 */
-			case Messages.MESSAGE_REQUEST => {
+			case WorkerMessages.MESSAGE_REQUEST => {
 				val processIdentity = messenger.get("workerIdentity", tagValues).asInstanceOf[String]
 				val finishedOrderIdentity = messenger.get("finishedOrderIdentity", tagValues).asInstanceOf[String]
 
@@ -540,31 +566,27 @@ println("結果はここ	"+currentFinishedOrderIdentity + "	/currentFinishedEven
 							doneProcessList += processIdentity
 
 							//Workerを停める
-							messenger.call(processIdentity, Messages.MESSAGE_OVER.toString, null)
+							messenger.call(processIdentity, WorkerMessages.MESSAGE_OVER.toString, null)
 
 							//							println("この時点でリストは	"+runningProcessList)
 							comments += commentFormat(new Date, "PROCESS:" + processIdentity + "	All Orders done!")
 
 							//runningProcessListが空だったらfinallyを実行
 							if (runningProcessList.isEmpty) {
-								runningProcessList += MARK_DONE
 								ContextStatus.STATUS_FINALLY +=: status
 								comments += commentFormat(new Date, "FinallyOrder:" + finallyOrderIdentity + "	ready.")
 
-								messenger.callMyself(Messages.MESSAGE_FINALLY.toString, null)
+								messenger.callMyself(WorkerMessages.MESSAGE_FINALLY.toString, null)
 							}
 						}
 					}
-
-					//みかけの実行Index+1
-					currentOrderIndex += 1
 				}
 			}
 			
 			/**
 			 * 特定のOrderIdentityのリクエスト
 			 */
-			case  Messages.MESSAGE_REQUEST_SPECIFY => {
+			case  WorkerMessages.MESSAGE_REQUEST_SPECIFY => {
 				val processIdentity = messenger.get("workerIdentity", tagValues).asInstanceOf[String]
 				contextSrc.current.processList.withFilter(_.identity.equals(processIdentity)).foreach { process =>
 					dispachNextOrderToWorker(process, 0)
@@ -574,7 +596,7 @@ println("結果はここ	"+currentFinishedOrderIdentity + "	/currentFinishedEven
 			/*
 			 * Orderからのエラー
 			 */
-			case Messages.MESSAGE_ERROR => {
+			case WorkerMessages.MESSAGE_ERROR => {
 				ContextStatus.STATUS_ERROR +=: status
 
 				val erroredWorkerIdentity = messenger.get("erroredWorkerIdentity", tagValues).asInstanceOf[String]
@@ -593,12 +615,12 @@ println("結果はここ	"+currentFinishedOrderIdentity + "	/currentFinishedEven
 	 *
 	 * 現段階のContextでのfinallyが実行される
 	 */
-	def procTimeout(exec : Messages.Value, tagValues : Array[TagValue]) = {
+	def procTimeout(exec : WorkerMessages.Value, tagValues : Array[TagValue]) = {
 		exec match {
-			case Messages.MESSAGE_SYNCRONOUSLY_STARTED =>
-			case Messages.MESSAGE_ASYNCRONOUSLY_STARTED =>
+			case WorkerMessages.MESSAGE_SYNCRONOUSLY_STARTED =>
+			case WorkerMessages.MESSAGE_ASYNCRONOUSLY_STARTED =>
 
-			case Messages.MESSAGE_DONE => {
+			case WorkerMessages.MESSAGE_DONE => {
 
 				val currentFinishedWorkerIdentity = messenger.get("identity", tagValues).asInstanceOf[String]
 				val currentFinishedOrderIdentity = messenger.get("orderIdentity", tagValues).asInstanceOf[String]
@@ -611,6 +633,11 @@ println("結果はここ	"+currentFinishedOrderIdentity + "	/currentFinishedEven
 					contextKeyValues += appendedContext
 					ContextStatus.STATUS_TIMEOUTED +=: status
 					comments += commentFormat(new Date, "Timeout Order:" + currentFinishedOrderIdentity + "	was finished.	" + identity)
+					
+					//masterにタイムアウトを通知
+					messenger.callParent(ContextMessages.MESSAGE_TIMEOUT.toString, messenger.tagValues(
+							new TagValue("contextIdentity", identity),
+							new TagValue("contextResult", currentContextResult)))
 				}
 			}
 
@@ -621,22 +648,22 @@ println("結果はここ	"+currentFinishedOrderIdentity + "	/currentFinishedEven
 	/**
 	 * Finallyが通常実行された際の動作
 	 */
-	def procFinally(exec : Messages.Value, tagValues : Array[TagValue]) = {
+	def procFinally(exec : WorkerMessages.Value, tagValues : Array[TagValue]) = {
 		exec match {
-			case Messages.MESSAGE_FINALLY => contextKeyValues.get(finallyOrderIdentity).foreach {
+			case WorkerMessages.MESSAGE_FINALLY => contextKeyValues.get(finallyOrderIdentity).foreach {
 				finallyContext => runFinally(finallyContext)
 			}
 
-			case Messages.MESSAGE_SYNCRONOUSLY_STARTED => {
+			case WorkerMessages.MESSAGE_SYNCRONOUSLY_STARTED => {
 				val orderIdentity = messenger.get("orderIdentity", tagValues).asInstanceOf[String]
 				comments += commentFormat(new Date, "FinallyOrder:" + orderIdentity + "	started.")
 			}
-			case Messages.MESSAGE_ASYNCRONOUSLY_STARTED => {
+			case WorkerMessages.MESSAGE_ASYNCRONOUSLY_STARTED => {
 				val orderIdentity = messenger.get("orderIdentity", tagValues).asInstanceOf[String]
 				comments += commentFormat(new Date, "FinallyOrder:	" + orderIdentity + "	started asynchronously")
 			}
 
-			case Messages.MESSAGE_DONE => {
+			case WorkerMessages.MESSAGE_DONE => {
 				val currentFinishedWorkerIdentity = messenger.get("identity", tagValues).asInstanceOf[String]
 				val currentFinishedOrderIdentity = messenger.get("orderIdentity", tagValues).asInstanceOf[String]
 				val currentFinishedEventualContext = messenger.get("eventualContext", tagValues).asInstanceOf[scala.collection.mutable.Map[String, String]]
@@ -651,12 +678,29 @@ println("結果はここ	"+currentFinishedOrderIdentity + "	/currentFinishedEven
 					//動作済みリストに追記
 					doneOrderIdentities += currentFinishedOrderIdentity
 
+					//最終結果をcurrentContextResultに上書き
+					println("before	"+contextKeyValues)
+					contextKeyValues ++ currentFinishedEventualContext
+					println("after	"+contextKeyValues)
+					
 					ContextStatus.STATUS_DONE +=: status
 					comments += commentFormat(new Date, "finished!")
+					
+					
+					val contextResultString = contextResultToString(currentContextResult)
+					
+					//masterに完了を通知
+					messenger.callParent(ContextMessages.MESSAGE_DONE.toString, messenger.tagValues(
+							new TagValue("contextIdentity", identity),
+							new TagValue("contextResultString", contextResultString)))
 				}
 			}
 
 			case _ => println("nothing todo in STATUS_FINALLY	-exec	" + exec)
 		}
+	}
+	
+	def contextResultToString (contextResult:ContextResult) = {
+		"testResult"
 	}
 }

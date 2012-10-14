@@ -2,7 +2,7 @@ package com.kissaki.mondogrosso.mondogrossoProcessOrders
 
 object ContextExecs extends Enumeration {
 	
-	type Execs = Value
+	type ContextExecs = Value
 	
 	//EXECS
 	val EXEC_TIMEOUT_RUN,
