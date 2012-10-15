@@ -128,6 +128,7 @@ class MondogrossoProcessContext(contextIdentity : String, contextSrc : ContextSo
 		
 		//着火
 		startProcess(contextSrc.current.processList(0))
+		identity
 	}
 
 	/**

@@ -75,7 +75,7 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
 	/*
 	 * OrderControllerへの単体Contextの投入	
 	 */
-	if (false) {
+	if (true) {
 		"OrderController" should {
 
 			/*
@@ -101,17 +101,16 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
 					println("wait	Contextを実行開始、成功結果を受け取る")
 				}
 				
-				//特定のContextの結果だけを得る
-				println("contextCont	"+contextCont.currentResultsOfContext(identity))
-				contextCont.currentResultsOfContext(identity).length must be_==(1)
-				
 				//結果がDONE
 				contextCont.currentResultsOfContext(identity)(0).status must be_==(ContextStatus.STATUS_DONE)
 			}
 		}	
 	}
 
-	if (false) {
+	/*
+	コンテキスト周りの実行テスト
+	*/
+	if (true) {
 
 		"OrderController コンテキスト実行周りのテスト" should {
 			"Contextを実行開始、各Contextが成功結果を受け取る" in {
@@ -165,29 +164,23 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
 				val identity = UUID.randomUUID().toString
 				val s = contextCont.attachProcessOrders(identity, parseResult)
 
-				//contextを生成
-				val currentContext = contextCont.activeContexts(0)
-				//現在実行中のOrder、内容がまだ無い
-				contextCont.activeContexts(0).doingOrderIdentities.length must be_==(0)
-
 				//起動
 				contextCont.runAllContext
 
-				while (!currentContext.status.head.equals(ContextStatus.STATUS_TIMEOUTED)) {
+				while (!contextCont.currentStatus.equals(ContextContStatus.STATUS_EMPTY)) {
 					Thread.sleep(100)
-					println("Contextを実行開始、失敗結果を受け取る	" + currentContext.status)
+					println("wait	Context C1,C2を同時に開始")
 				}
-
+				
 				//結果を受け取る
-				val contextResult = contextCont.activeContexts(0).currentContextResult
+				val contextResult = contextCont.doneContexts(0).currentContextResult
 
 				//結果は失敗
 				contextResult.status must be_==(ContextStatus.STATUS_TIMEOUTED)
 
 				//コメントを一覧で取得
 				println("timeout	comments	" + contextResult.commentsStack)
-
-			}
+			}				
 
 			"Contextを実行開始 不正確な値引き継ぎエラーが出る。　エラー結果を受け取る" in {
 				val contextCont = new MondogrossoContextController
@@ -222,7 +215,6 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
 
 				//コメントを一覧で取得
 				println("error	comments	" + contextResult.commentsStack)
-
 			}
 		}
 	}
@@ -230,7 +222,7 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
 	/*
 	 * OrderControllerへの複数Contextの同時投入	
 	 */
-	if (false) {
+	if (true) {
 		"複数のContextを同時に開始" should {
 			"Context C1,C2を同時に開始" in {
 				val contextCont = new MondogrossoContextController
@@ -263,6 +255,37 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
 		}
 	}
 	
+	if (true) {
+		"ContextのAttach,Run時に対象Contextのユーザー定義名をセットする/ゲットする" should {
+			"attach時、指定した名前と同様の名前を取得" in {
+				val contextCont = new MondogrossoContextController
+				val C1 = UUID.randomUUID.toString
+
+				val id = UUID.randomUUID().toString
+				val parser = new MondogrossoProcessParser(id, standardInput, standardJSON)
+				val parseResult = parser.parseProcess
+
+				val attachedContextIdentityList = contextCont.attachProcessOrders(C1, parseResult)
+				
+				attachedContextIdentityList.contains(C1) must beTrue
+			}
+
+			"run時、指定した名前と同様の名前を取得" in {
+				val contextCont = new MondogrossoContextController
+				val C1 = UUID.randomUUID.toString
+
+				val id = UUID.randomUUID().toString
+				val parser = new MondogrossoProcessParser(id, standardInput, standardJSON)
+				val parseResult = parser.parseProcess
+
+				contextCont.attachProcessOrders(C1, parseResult)
+				val startedContextIdentitiesList = contextCont.runAllContext
+
+				startedContextIdentitiesList.contains(C1) must beTrue
+			}
+		}
+	}
+	
 	/*
 	 * Contextの名前空間の重複を考慮する
 	 */
@@ -283,22 +306,167 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
 				//コンテキスト実行
 				contextCont.runAllContext
 
+				while (!contextCont.currentStatus.equals(ContextContStatus.STATUS_EMPTY)) {
+					Thread.sleep(100)
+					println("wait	C1 x ２個")
+				}
 				
+				//2つ終了状態のContextがあるので、状態からContext名が取得できる
+				contextCont.contextCountOfStatus(ContextStatus.STATUS_DONE.toString).length must be_==(2)
+				
+				//２つ結果が有る
+				contextCont.currentResults.length must be_==(2)
+				
+				//結果を受け取る
+				val contextResultSet = (for (doneCont <- contextCont.doneContexts) yield doneCont.currentContextResult).toSet
+
+				//結果はすべてDone
+				contextResultSet.forall(_.status == ContextStatus.STATUS_DONE) must beTrue
 			}
 
 			"C1 x n個" in {
-				"not yet applied" must be_==("")
+				val contextCont = new MondogrossoContextController
+				val C1 = UUID.randomUUID.toString
 				
+				val max = 10
+				
+				val C1NSequences = (for (i <- 1 to max) yield C1).toSeq
+				C1NSequences.foreach {contextIdentity =>
+					val id = UUID.randomUUID().toString
+					val parser = new MondogrossoProcessParser(id, standardInput, standardJSON)
+					val parseResult = parser.parseProcess
+	
+					contextCont.attachProcessOrders(contextIdentity, parseResult)
+				}
+
+				//コンテキスト実行
+				contextCont.runAllContext
+
+				while (!contextCont.currentStatus.equals(ContextContStatus.STATUS_EMPTY)) {
+					Thread.sleep(100)
+					println("wait	C1 x N個")
+				}
+				
+				//max個の終了状態のContextがあるので、状態からContext名が取得できる
+				contextCont.contextCountOfStatus(ContextStatus.STATUS_DONE.toString).length must be_==(max)
+				
+				//max個の結果が有る
+				contextCont.currentResults.length must be_==(max)
+				
+				//結果を受け取る
+				val contextResultSet = (for (doneCont <- contextCont.doneContexts) yield doneCont.currentContextResult).toSet
+
+				//結果はすべてDone
+				contextResultSet.forall(_.status == ContextStatus.STATUS_DONE) must beTrue
 			}
 
 			"C1,C2 x ２個" in {
-				"not yet applied" must be_==("")
+				val contextCont = new MondogrossoContextController
+				val C1 = UUID.randomUUID.toString
+				val C2 = UUID.randomUUID.toString
 
+				Seq(C1,C1,C2,C2).foreach {contextIdentity =>
+					val id = UUID.randomUUID().toString
+					val parser = new MondogrossoProcessParser(id, standardInput, standardJSON)
+					val parseResult = parser.parseProcess
+	
+					contextCont.attachProcessOrders(contextIdentity, parseResult)
+				}
+
+				//コンテキスト実行
+				contextCont.runAllContext
+
+				while (!contextCont.currentStatus.equals(ContextContStatus.STATUS_EMPTY)) {
+					Thread.sleep(100)
+					println("wait	C1,C2 x ２個")
+				}
+				
+				//2*2つ終了状態のContextがあるので、状態からContext名が取得できる
+				contextCont.contextCountOfStatus(ContextStatus.STATUS_DONE.toString).length must be_==(2*2)
+				
+				//２*2つ結果が有る
+				contextCont.currentResults.length must be_==(2*2)
+				
+				//結果を受け取る
+				val contextResultSet = (for (doneCont <- contextCont.doneContexts) yield doneCont.currentContextResult).toSet
+
+				//結果はすべてDone
+				contextResultSet.forall(_.status == ContextStatus.STATUS_DONE) must beTrue
 			}
 
 			"C1,C2 x n個" in {
-				"not yet applied" must be_==("")
+				val contextCont = new MondogrossoContextController
+				
+				val C1 = UUID.randomUUID.toString
+				val C2 = UUID.randomUUID.toString
+				
+				val max = 10
+				
+				val C1NSequences = (for (i <- 1 to max) yield C1).toSeq
+				val C2NSequences = (for (i <- 1 to max) yield C2).toSeq
 
+				val totalSeq = C1NSequences ++ C2NSequences
+				totalSeq.foreach {contextIdentity =>
+					val id = UUID.randomUUID().toString
+					val parser = new MondogrossoProcessParser(id, standardInput, standardJSON)
+					val parseResult = parser.parseProcess
+	
+					contextCont.attachProcessOrders(contextIdentity, parseResult)
+				}
+
+				//コンテキスト実行
+				contextCont.runAllContext
+
+				while (!contextCont.currentStatus.equals(ContextContStatus.STATUS_EMPTY)) {
+					Thread.sleep(100)
+					println("wait	C1,C2 x n個")
+				}
+				
+				//max*2個の終了状態のContextがあるので、状態からContext名が取得できる
+				contextCont.contextCountOfStatus(ContextStatus.STATUS_DONE.toString).length must be_==(max*2)
+				
+				//max*2個の結果が有る
+				contextCont.currentResults.length must be_==(max*2)
+
+				//結果を受け取る
+				val contextResultSet = (for (doneCont <- contextCont.doneContexts) yield doneCont.currentContextResult).toSet
+
+				//結果はすべてDone
+				contextResultSet.forall(_.status == ContextStatus.STATUS_DONE) must beTrue
+			}
+		}
+	}
+
+	/**
+	タイムアウトになったContextがある場合も、ContextControllerはEmptyになる。
+	*/
+	if (true) {
+		"タイムアウトになったContextがある場合も、ContextControllerはEmptyになる" should {
+			"タイムアウト" in {
+				val contextCont = new MondogrossoContextController
+
+				val id = UUID.randomUUID().toString
+				val input = "A>B>C(A:a:c)<E>E+(B)D(A:a2:d1,A:a3:d2)!Z"//実行不可能、タイムアウトになる
+
+				val parser = new MondogrossoProcessParser(id, input, standardJSON)
+				val parseResult = parser.parseProcess
+
+				val identity = UUID.randomUUID().toString
+				contextCont.attachProcessOrders(identity, parseResult)
+
+				//起動
+				contextCont.runAllContext
+
+				while (!contextCont.currentStatus.equals(ContextContStatus.STATUS_EMPTY)) {
+					Thread.sleep(100)
+					println("wait タイムアウト")
+				}
+
+				//結果を受け取る
+				val contextResult = contextCont.doneContexts(0).currentContextResult
+
+				//結果はタイムアウト
+				contextResult.status must be_==(ContextStatus.STATUS_TIMEOUTED)
 			}
 		}
 	}
@@ -306,7 +474,7 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
 	/*
 	 * OrderControllerへの複数Contextの順次投入
 	 */
-	if (false) {
+	if (true) {
 		"複数のContextを順次導入" should {
 			"C1投入後、C2を投入" in {
 				val contextCont = new MondogrossoContextController
@@ -343,10 +511,8 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
 				contextCont.runAllContext
 				
 				//待つ
-				var i = 0
-				while (!contextCont.currentStatus.equals(ContextContStatus.STATUS_EMPTY) && i < 50) {
+				while (!contextCont.currentStatus.equals(ContextContStatus.STATUS_EMPTY)) {
 					Thread.sleep(100)
-					i+=1
 					println("wait	C1投入後、C2を投入")
 				}
 
@@ -355,6 +521,12 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
 				
 				//２つ結果が有る
 				contextCont.currentResults.length must be_==(2)
+
+				//結果を受け取る
+				val contextResultSet = (for (doneCont <- contextCont.doneContexts) yield doneCont.currentContextResult).toSet
+
+				//結果はすべてDone
+				contextResultSet.forall(_.status == ContextStatus.STATUS_DONE) must beTrue
 			}
 			
 
@@ -379,14 +551,10 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
 				contextCont.runAllContext
 				
 				//待つ1
-				var i = 0
-				while (!contextCont.currentStatus.equals(ContextContStatus.STATUS_EMPTY) && i < 10) {
+				while (!contextCont.currentStatus.equals(ContextContStatus.STATUS_EMPTY)) {
 					Thread.sleep(100)
 					println("wait	C1投入後、完了を待ってC2を投入	1")
-					i+=1
 				}
-
-				println("その１、i is "+i)
 
 				Seq("C2").foreach {contextIdentity =>
 					val id = UUID.randomUUID().toString
@@ -401,75 +569,81 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
 				contextCont.runAllContext
 				
 				//待つ2
-				i = 0
-				while (!contextCont.currentStatus.equals(ContextContStatus.STATUS_EMPTY) && i < 10) {
+				while (!contextCont.currentStatus.equals(ContextContStatus.STATUS_EMPTY)) {
 					Thread.sleep(100)
-					i+=1
 					println("wait	C1投入後、完了を待ってC2を投入	2")
 				}
-
-				println("その2、i is "+i)
 
 				//2つ終了状態のContextがあるので、状態からContext名が取得できる
 				contextCont.contextCountOfStatus(ContextStatus.STATUS_DONE.toString).length must be_==(2)
 				
 				//２つ結果が有る
 				contextCont.currentResults.length must be_==(2)
+
+				//結果を受け取る
+				val contextResultSet = (for (doneCont <- contextCont.doneContexts) yield doneCont.currentContextResult).toSet
+
+				//結果はすべてDone
+				contextResultSet.forall(_.status == ContextStatus.STATUS_DONE) must beTrue
 			}
 			
-			// "C1投入後/実行、C2を投入後/実行、C3を投入" in {
-			// 	val contextCont = new MondogrossoContextController
+			"C1投入後/実行、C2を投入後/実行、C3を投入" in {
+				val contextCont = new MondogrossoContextController
 
-			// 	Seq("C1").foreach {contextIdentity =>
-			// 		val id = UUID.randomUUID().toString
+				Seq("C1").foreach {contextIdentity =>
+					val id = UUID.randomUUID().toString
 	
-			// 		val parser = new MondogrossoProcessParser(id, standardInput, standardJSON)
-			// 		val parseResult = parser.parseProcess
+					val parser = new MondogrossoProcessParser(id, standardInput, standardJSON)
+					val parseResult = parser.parseProcess
 	
-			// 		contextCont.attachProcessOrders(contextIdentity, parseResult)
-			// 	}
+					contextCont.attachProcessOrders(contextIdentity, parseResult)
+				}
 				
-			// 	//起動1
-			// 	contextCont.runAllContext
+				//起動1
+				contextCont.runAllContext
 				
-			// 	Seq("C2").foreach {contextIdentity =>
-			// 		val id = UUID.randomUUID().toString
+				Seq("C2").foreach {contextIdentity =>
+					val id = UUID.randomUUID().toString
 	
-			// 		val parser = new MondogrossoProcessParser(id, standardInput, standardJSON)
-			// 		val parseResult = parser.parseProcess
+					val parser = new MondogrossoProcessParser(id, standardInput, standardJSON)
+					val parseResult = parser.parseProcess
 	
-			// 		contextCont.attachProcessOrders(contextIdentity, parseResult)
-			// 	}
+					contextCont.attachProcessOrders(contextIdentity, parseResult)
+				}
 
-			// 	//起動2
-			// 	contextCont.runAllContext
+				//起動2
+				contextCont.runAllContext
 
-			// 	Seq("C3").foreach {contextIdentity =>
-			// 		val id = UUID.randomUUID().toString
+				Seq("C3").foreach {contextIdentity =>
+					val id = UUID.randomUUID().toString
 	
-			// 		val parser = new MondogrossoProcessParser(id, standardInput, standardJSON)
-			// 		val parseResult = parser.parseProcess
+					val parser = new MondogrossoProcessParser(id, standardInput, standardJSON)
+					val parseResult = parser.parseProcess
 	
-			// 		contextCont.attachProcessOrders(contextIdentity, parseResult)
-			// 	}
+					contextCont.attachProcessOrders(contextIdentity, parseResult)
+				}
 
-			// 	//起動3
-			// 	contextCont.runAllContext
+				//起動3
+				contextCont.runAllContext
 				
-			// 	//待つ
-			// 	var i = 0
-			// 	while (!contextCont.currentStatus.equals(ContextContStatus.STATUS_EMPTY) && i < 10) {
-			// 		Thread.sleep(100)
-			// 		i+=1
-			// 		println("wait	C1投入後/実行、C2を投入後/実行、C3を投入")
-			// 	}
+				//待つ
+				while (!contextCont.currentStatus.equals(ContextContStatus.STATUS_EMPTY)) {
+					Thread.sleep(100)
+					println("wait	C1投入後/実行、C2を投入後/実行、C3を投入")
+				}
 
-			// 	//3つ終了状態のContextがあるので、状態からContext名が取得できる
-			// 	contextCont.contextCountOfStatus(ContextStatus.STATUS_DONE.toString).length must be_==(3)
+				//3つ終了状態のContextがあるので、状態からContext名が取得できる
+				contextCont.contextCountOfStatus(ContextStatus.STATUS_DONE.toString).length must be_==(3)
 				
-			// 	//3つ結果が有る
-			// 	contextCont.currentResults.length must be_==(3)
-			// }
+				//3つ結果が有る
+				contextCont.currentResults.length must be_==(3)
+
+				//結果を受け取る
+				val contextResultSet = (for (doneCont <- contextCont.doneContexts) yield doneCont.currentContextResult).toSet
+
+				//結果はすべてDone
+				contextResultSet.forall(_.status == ContextStatus.STATUS_DONE) must beTrue
+			}
 		}
 	}
 

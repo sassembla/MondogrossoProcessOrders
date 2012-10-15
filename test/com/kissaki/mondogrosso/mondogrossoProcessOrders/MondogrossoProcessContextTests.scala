@@ -110,15 +110,7 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
 				currentContext.doneOrderIdentities(0) must be_==("A")
 			}
 			
-			"最初から実行、実行結果を受け取る" in {
-				val identity = UUID.randomUUID().toString
-				val currentContext = new MondogrossoProcessContext(identity, result, masterName)
-				
-				currentContext.runContext
-				
-				
-			}
-
+			
 			"途中のindexから実行" in {
 				val identity = UUID.randomUUID().toString
 				val currentContext = new MondogrossoProcessContext(identity, result, masterName)
@@ -1554,6 +1546,9 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
 
 	if (true) {
 		"additionalTestCase" should {
+			/*
+			このケースが温床みたい。しかも必ずではない。
+			*/
 			"解消されないテスト p1 Bの実行に1Sかかり、必ずCのafterWaitがセットされてからになる" in {
 				val id = UUID.randomUUID().toString
 				val input = "A>C<B+(A)B!Z"
