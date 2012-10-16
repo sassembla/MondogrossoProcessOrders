@@ -668,6 +668,9 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
           println("wait	100件")
         }
 
+				//3つ結果が有る
+        contextCont.currentResults.length must be_==(100)
+
         //結果を受け取る
         val contextResultSet = (for (doneCont <- contextCont.doneContexts) yield doneCont.currentContextResult).toSet
 
