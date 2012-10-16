@@ -392,10 +392,8 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
               case e: Exception => contextErrorProc(process.identity, currentOrderIdentity, "sourceOrderIdentity	" + inputs.sourceOrderIdentity + "	/from	" + inputs.from + "	/to	" + inputs.to + ":has ERROR. " + e.toString)
             }
 
-            val s = Map(inputs.to -> fromValue.toString)
             //fromValueをtoに代入したMapを作成
-            println("s lastPath = " + s)
-            s
+            Map(inputs.to -> fromValue.toString)
           } catch {
             case e: Exception => {
               contextErrorProc(process.identity, currentOrderIdentity, "sourceOrderIdentity	" + inputs.sourceOrderIdentity + "	/from	" + inputs.from + "	/to	" + inputs.to + ":has ERROR. " + e.toString)

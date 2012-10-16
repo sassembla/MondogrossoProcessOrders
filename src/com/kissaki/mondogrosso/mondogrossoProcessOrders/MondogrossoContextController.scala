@@ -210,10 +210,10 @@ class MondogrossoContextController extends MessengerProtocol {
    * ユーザー指定のIdentity @ contextIdentity
    */
   def getContextResult(targetContext: MondogrossoProcessContext) = {
-    println("<------------")
-    println(processNameToContextIdentityMap.apply(targetContext.currentContextResult.contextIdentity) + "@" + targetContext.currentContextResult.contextIdentity)
-    println(targetContext.currentContextResult)
-    println("------------>")
+    // println("<------------")
+    // println(processNameToContextIdentityMap.apply(targetContext.currentContextResult.contextIdentity) + "@" + targetContext.currentContextResult.contextIdentity)
+    // println(targetContext.currentContextResult)
+    // println("------------>")
 
     targetContext.currentContextResult
   }
