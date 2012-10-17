@@ -388,11 +388,11 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
         println("processSplitが2連続する	currentContext.contextKeyValues	" + currentContext.contextKeyValues)
 
         /*
-		 * processSplitが2連続する	currentContext.contextKeyValues	
-		 * Map(Z -> Map(__finallyTimeout -> 0, _result -> /Applications/eclipseScala/scalaworkspace/MondogrossoProcessOrders, _kind -> sh, _main -> pwd), 
-		 * A -> Map(_result -> /Applications/eclipseScala/scalaworkspace/MondogrossoProcessOrders, _kind -> sh, _main -> pwd), 
-		 * B -> Map(_kind -> sh, _main -> pwd))	/i	0
-		 */
+    		 * processSplitが2連続する	currentContext.contextKeyValues	
+    		 * Map(Z -> Map(__finallyTimeout -> 0, _result -> /Applications/eclipseScala/scalaworkspace/MondogrossoProcessOrders, _kind -> sh, _main -> pwd), 
+    		 * A -> Map(_result -> /Applications/eclipseScala/scalaworkspace/MondogrossoProcessOrders, _kind -> sh, _main -> pwd), 
+    		 * B -> Map(_kind -> sh, _main -> pwd))	/i	0
+    		 */
         Seq("A", "B").foreach { orderIdentity =>
           currentContext.contextKeyValues.apply(orderIdentity).keys must be_==(Set(
             OrderPrefix._kind.toString,

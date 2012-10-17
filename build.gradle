@@ -32,6 +32,9 @@ dependencies {
 	compile (
 		[group: "org.scala-lang", name: "scala-library",version: "2.9.2"],
 		[group: "net.liftweb",name:"lift-json_2.9.1", version:"2.4"],
+
+		[group: "org.clapper", name: "argot_2.9.2",version: "0.4"],
+		[group: "org.clapper", name: "grizzled-scala_2.9.0",version: "1.0.11.1"],
 	)
 	
 	testCompile (
