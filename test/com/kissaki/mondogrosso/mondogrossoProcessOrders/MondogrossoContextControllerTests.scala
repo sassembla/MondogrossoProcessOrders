@@ -30,6 +30,9 @@ import org.specs2.time.TimeConversions._
 
 @RunWith(classOf[JUnitRunner])
 class MondogrossoContextControllerTests extends Specification /*with TimeoutTrait*/ {
+  val dummyProcessOrder = new DummyProcessOrder(UUID.randomUUID.toString)
+  val dummyProcessOrderId = dummyProcessOrder.name
+  
   val standardInput = "A>B>C(A:a:c)+(B)D(A:a2:d1,A:a3:d2)!Z"
   val standardJSON = """
 					{"A": 
@@ -75,14 +78,14 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
   /*
 	 * OrderControllerへの単体Contextの投入	
 	 */
-  if (false) {
+  if (true) {
     "OrderController" should {
 
       /*
 			 * Contextの実行から終了 
 			 */
       "Contextを実行開始、成功結果を受け取る" in {
-        val contextCont = new MondogrossoContextController
+        val contextCont = new MondogrossoContextController(dummyProcessOrderId)
 
         val id = UUID.randomUUID().toString
         val input = "A>B>C(A:a:c)<E+(B)D(A:a2:d1,A:a3:d2)>E!Z"
@@ -110,11 +113,11 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
   /*
 	コンテキスト周りの実行テスト
 	*/
-  if (false) {
+  if (true) {
 
     "OrderController コンテキスト実行周りのテスト" should {
       "Contextを実行開始、各Contextが成功結果を受け取る" in {
-        val contextCont = new MondogrossoContextController
+        val contextCont = new MondogrossoContextController(dummyProcessOrderId)
 
         val id = UUID.randomUUID().toString
         val input = "A>B>C(A:a:c)<E+(B)D(A:a2:d1,A:a3:d2)>E!Z"
@@ -153,7 +156,7 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
       }
 
       "Contextを実行開始 Eのロックが解かれないので、達成不可能なオーダー順。　タイムアウトで失敗 結果を受け取る" in {
-        val contextCont = new MondogrossoContextController
+        val contextCont = new MondogrossoContextController(dummyProcessOrderId)
 
         val id = UUID.randomUUID().toString
         val input = "A>B>C(A:a:c)<E>E+(B)D(A:a2:d1,A:a3:d2)!Z"
@@ -183,7 +186,7 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
       }
 
       "Contextを実行開始 不正確な値引き継ぎエラーが出る。　エラー結果を受け取る" in {
-        val contextCont = new MondogrossoContextController
+        val contextCont = new MondogrossoContextController(dummyProcessOrderId)
 
         val id = UUID.randomUUID().toString
         val input = "A>B>C(A:a:c)+(B)D(Error:a2:d1,A:a3:d2)!Z"
@@ -222,10 +225,10 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
   /*
 	 * OrderControllerへの複数Contextの同時投入	
 	 */
-  if (false) {
+  if (true) {
     "複数のContextを同時に開始" should {
       "Context C1,C2を同時に開始" in {
-        val contextCont = new MondogrossoContextController
+        val contextCont = new MondogrossoContextController(dummyProcessOrderId)
 
         Seq("C1", "C2").foreach { contextIdentity =>
           val id = UUID.randomUUID().toString
@@ -255,10 +258,10 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
     }
   }
 
-  if (false) {
+  if (true) {
     "ContextのAttach,Run時に対象Contextのユーザー定義名をセットする/ゲットする" should {
       "attach時、指定した名前と同様の名前を取得" in {
-        val contextCont = new MondogrossoContextController
+        val contextCont = new MondogrossoContextController(dummyProcessOrderId)
         val C1 = UUID.randomUUID.toString
 
         val id = UUID.randomUUID().toString
@@ -271,7 +274,7 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
       }
 
       "run時、指定した名前と同様の名前を取得" in {
-        val contextCont = new MondogrossoContextController
+        val contextCont = new MondogrossoContextController(dummyProcessOrderId)
         val C1 = UUID.randomUUID.toString
 
         val id = UUID.randomUUID().toString
@@ -289,10 +292,10 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
   /*
 	 * Contextの名前空間の重複を考慮する
 	 */
-  if (false) {
+  if (true) {
     "同じ名称のContextを大量に作って実行" should {
       "C1 x ２個" in {
-        val contextCont = new MondogrossoContextController
+        val contextCont = new MondogrossoContextController(dummyProcessOrderId)
         val C1 = UUID.randomUUID.toString
 
         Seq(C1, C1).foreach { contextIdentity =>
@@ -326,7 +329,7 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
       }
 
       "C1 x n個" in {
-        val contextCont = new MondogrossoContextController
+        val contextCont = new MondogrossoContextController(dummyProcessOrderId)
         val C1 = UUID.randomUUID.toString
 
         val max = 10
@@ -363,7 +366,7 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
       }
 
       "C1,C2 x ２個" in {
-        val contextCont = new MondogrossoContextController
+        val contextCont = new MondogrossoContextController(dummyProcessOrderId)
         val C1 = UUID.randomUUID.toString
         val C2 = UUID.randomUUID.toString
 
@@ -398,7 +401,7 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
       }
 
       "C1,C2 x n個" in {
-        val contextCont = new MondogrossoContextController
+        val contextCont = new MondogrossoContextController(dummyProcessOrderId)
 
         val C1 = UUID.randomUUID.toString
         val C2 = UUID.randomUUID.toString
@@ -444,10 +447,10 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
   /**
    * タイムアウトになったContextがある場合も、ContextControllerはEmptyになる。
    */
-  if (false) {
+  if (true) {
     "タイムアウトになったContextがある場合も、ContextControllerはEmptyになる" should {
       "タイムアウト" in {
-        val contextCont = new MondogrossoContextController
+        val contextCont = new MondogrossoContextController(dummyProcessOrderId)
 
         val id = UUID.randomUUID().toString
         val input = "A>B>C(A:a:c)<E>E+(B)D(A:a2:d1,A:a3:d2)!Z" //実行不可能、タイムアウトになる
@@ -478,10 +481,10 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
   /*
 	 * OrderControllerへの複数Contextの順次投入
 	 */
-  if (false) {
+  if (true) {
     "複数のContextを順次導入" should {
       "C1投入後、C2を投入" in {
-        val contextCont = new MondogrossoContextController
+        val contextCont = new MondogrossoContextController(dummyProcessOrderId)
 
         Seq("C1").foreach { contextIdentity =>
           val id = UUID.randomUUID().toString
@@ -533,7 +536,7 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
       }
 
       "C1投入後、完了を待ってC2を投入" in {
-        val contextCont = new MondogrossoContextController
+        val contextCont = new MondogrossoContextController(dummyProcessOrderId)
 
         Seq("C1").foreach { contextIdentity =>
           val id = UUID.randomUUID().toString
@@ -588,7 +591,7 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
       }
 
       "C1投入後/実行、C2を投入後/実行、C3を投入" in {
-        val contextCont = new MondogrossoContextController
+        val contextCont = new MondogrossoContextController(dummyProcessOrderId)
 
         Seq("C1").foreach { contextIdentity =>
           val id = UUID.randomUUID().toString
@@ -647,10 +650,10 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
     }
   }
 
-  if (false) {
+  if (true) {
     "大量のProcessOrderを同時に" should {
       "100件" in {
-        val contextCont = new MondogrossoContextController
+        val contextCont = new MondogrossoContextController(dummyProcessOrderId)
 
         val max = 100
 
@@ -684,10 +687,10 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
     }
   }
 
-  if (false) {
+  if (true) {
     "report" should {
       "report run" in {
-        val contextCont = new MondogrossoContextController
+        val contextCont = new MondogrossoContextController(dummyProcessOrderId)
 
         val JSON = """
 					{"A": 

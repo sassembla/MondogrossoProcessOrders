@@ -4,8 +4,9 @@ import com.kissaki.MessengerProtocol
 import com.kissaki.TagValue
 import com.kissaki.mondogrosso.mondogrossoProcessOrders.ProcessOrdersMasterMessages
 
-class FileWriteReceiver (id : String) extends MessengerProtocol {
-	val messenger = new Messenger(this, id)
+class FileWriteReceiver (name : String) extends MessengerProtocol {
+	println("ファイル書き出し機能初期化	"+name)
+	val messenger = new Messenger(this, name)
 	
 	def receiver(exec: String, tagValues: Array[TagValue]) = {
 		ProcessOrdersMasterMessages.get(exec) match {

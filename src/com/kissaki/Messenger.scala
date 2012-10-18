@@ -388,7 +388,7 @@ class MessengerActor(myself : MessengerProtocol, inputtedName : String) extends 
 		}
 	}
 
-	def callParent(exec : String, message : Array[TagValue]) = {
+	def callParent(exec : String, message : Array[TagValue]) = {		
 		log += Log.LOG_TYPE_CALLPARENT.toString
 		val future = parent(0).duplicate !! CallParent(exec, message)
 		val result = future()

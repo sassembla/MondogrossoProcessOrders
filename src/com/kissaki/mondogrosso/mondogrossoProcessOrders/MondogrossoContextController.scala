@@ -17,11 +17,13 @@ import java.util.concurrent.TimeUnit
  *
  * 各コンテキストの終了を見る
  */
-class MondogrossoContextController extends MessengerProtocol {
+class MondogrossoContextController (masterName : String) extends MessengerProtocol {
   val controllerUuid = UUID.randomUUID().toString
 
   val messenger = new Messenger(this, controllerUuid)
   def name = messenger.getName
+
+  messenger.inputParent(masterName)
 
   /*
 	 * ステータス
@@ -38,14 +40,6 @@ class MondogrossoContextController extends MessengerProtocol {
   //投入されたOrderの名称とcontextIdentityをヒモづけるマップ
   val processNameToContextIdentityMap: scala.collection.mutable.Map[String, String] = scala.collection.mutable.Map()
 
-  
-  /**
-   * 親との接続
-   * masterName
-   */
-  def inputParent(masterName: String) {
-  	messenger.inputParent(masterName)
-  }
   
   /**
    * レシーバ
@@ -77,6 +71,7 @@ class MondogrossoContextController extends MessengerProtocol {
             //		val contextProcessIndex = messenger.get("contextProcessIndex", tagValues).asInstanceOf[Int]
             //		val contextProcessTotal = messenger.get("contextProcessTotal", tagValues).asInstanceOf[Int]
             messenger.callParent(ProcessOrdersMasterMessages.MESSAGE_START.toString, tagValues)
+            println("送信が終わったのでここではない")
           }
 
           case ContextMessages.MESSAGE_PROCEEDED => {
