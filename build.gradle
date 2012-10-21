@@ -51,7 +51,7 @@ dependencies {
 
 jar {
 	manifest {
-		attributes 'Main-class': "com.kissaki.mondogrosso.mondogrossoProcessOrders.MondogrossoDummyMain"
+		attributes 'Main-class': "com.kissaki.mondogrosso.mondogrossoProcessOrders.MondogrossoProcessOrders"
 	}
 	
 	from {
@@ -68,8 +68,10 @@ jar {
 		fileTree(dir: 'resources', includes: ['*.*'])
 	}
 	
-	exclude('scala/**') 
+	//exclude('scala/**') 
 }
+
+
 
 //MavenRepository identity setting
 group = 'com.kissaki.mondogrosso'

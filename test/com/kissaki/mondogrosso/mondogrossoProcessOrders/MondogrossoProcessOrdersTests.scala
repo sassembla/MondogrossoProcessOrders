@@ -3,6 +3,7 @@ package com.kissaki.mondogrosso.mondogrossoProcessOrders
 import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
 import org.junit.runner.RunWith
+import scala.io.Source
 
 @RunWith(classOf[JUnitRunner])
 class MondogrossoProcessOrdersTests extends Specification {
@@ -30,20 +31,22 @@ class MondogrossoProcessOrdersTests extends Specification {
   
 
   if (true) {
-    "-pと-sが有れば、入力をプロセス自体として受けて、プロセスを実行する" should {
-      "A!Z" in {
-      	println("-pと-sが有れば	開始")
-      	val input = Array(//コレが原因っぽい
-		  	"-i", "AtoZ",
-		    "-p", standardInput,
-		    "-s", standardJSON,
-		    "-o", "./testout.txt"
-    		)
+    "-p　プロセス入力 と、-s　JSONソース入力 で、プロセスをアタッチして即実行する" should {
 
+       "A!Z" in {
+
+        val input = Array(
+          "-i", "AtoZ",
+	      "-p", standardInput,
+	      "-s", standardJSON,
+	      "-o", "./testout.txt"
+        )
+        
         val result = MondogrossoProcessOrders.main(input)
 
-        println("result	" + result)
-        "not yet implement" must be_==("")
+        //結果のファイルが出来ているはず
+        var source = Source.fromFile("testout.txt")
+        source.size != 0 must beTrue
       }
     }
   }

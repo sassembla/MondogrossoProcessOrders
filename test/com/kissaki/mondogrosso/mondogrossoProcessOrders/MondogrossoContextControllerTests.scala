@@ -30,9 +30,26 @@ import org.specs2.time.TimeConversions._
 
 @RunWith(classOf[JUnitRunner])
 class MondogrossoContextControllerTests extends Specification /*with TimeoutTrait*/ {
+
+  /**
+  タイムアウト入りの完了ステータスを計る関数
+  */
+  def timeoutOrDone (contextCont : MondogrossoContextController) = {
+    var i = 0
+    while (!contextCont.currentStatus.equals(ContextContStatus.STATUS_EMPTY)) {
+      if (10 <= i) {
+        sys.error("回数超過 "+contextCont)
+        sys.exit(1)
+      }
+      i+=1
+      Thread.sleep(100)
+    }
+    
+  }
+
   val dummyProcessOrder = new DummyProcessOrder(UUID.randomUUID.toString)
   val dummyProcessOrderId = dummyProcessOrder.name
-  
+
   val standardInput = "A>B>C(A:a:c)+(B)D(A:a2:d1,A:a3:d2)!Z"
   val standardJSON = """
 					{"A": 
@@ -99,10 +116,7 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
         //起動
         contextCont.runAllContext
 
-        while (!contextCont.currentStatus.equals(ContextContStatus.STATUS_EMPTY)) {
-          Thread.sleep(100)
-          println("wait	Contextを実行開始、成功結果を受け取る")
-        }
+        timeoutOrDone(contextCont)
 
         //結果がDONE
         contextCont.currentResultsOfContext(identity)(0).status must be_==(ContextStatus.STATUS_DONE)
@@ -170,10 +184,7 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
         //起動
         contextCont.runAllContext
 
-        while (!contextCont.currentStatus.equals(ContextContStatus.STATUS_EMPTY)) {
-          Thread.sleep(100)
-          println("wait	Context C1,C2を同時に開始")
-        }
+        timeoutOrDone(contextCont)
 
         //結果を受け取る
         val contextResult = contextCont.doneContexts(0).currentContextResult
@@ -244,10 +255,7 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
         //起動
         contextCont.runAllContext
 
-        while (!contextCont.currentStatus.equals(ContextContStatus.STATUS_EMPTY)) {
-          Thread.sleep(100)
-          println("wait	Context C1,C2を同時に開始")
-        }
+        timeoutOrDone(contextCont)
 
         //2つ終了状態のContextがあるので、状態からContext名が取得できる
         contextCont.contextCountOfStatus(ContextStatus.STATUS_DONE.toString).length must be_==(2)
@@ -309,10 +317,7 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
         //コンテキスト実行
         contextCont.runAllContext
 
-        while (!contextCont.currentStatus.equals(ContextContStatus.STATUS_EMPTY)) {
-          Thread.sleep(100)
-          println("wait	C1 x ２個")
-        }
+        timeoutOrDone(contextCont)
 
         //2つ終了状態のContextがあるので、状態からContext名が取得できる
         println("C1 x 2個	contexts	"+contextCont.doneContexts)
@@ -346,10 +351,7 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
         //コンテキスト実行
         contextCont.runAllContext
 
-        while (!contextCont.currentStatus.equals(ContextContStatus.STATUS_EMPTY)) {
-          Thread.sleep(100)
-          println("wait	C1 x N個")
-        }
+        timeoutOrDone(contextCont)
 
         //max個の終了状態のContextがあるので、状態からContext名が取得できる
         println("C1 x n個	contexts	"+contextCont.doneContexts)
@@ -381,10 +383,7 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
         //コンテキスト実行
         contextCont.runAllContext
 
-        while (!contextCont.currentStatus.equals(ContextContStatus.STATUS_EMPTY)) {
-          Thread.sleep(100)
-          println("wait	C1,C2 x ２個")
-        }
+        timeoutOrDone(contextCont)
 
         //2*2つ終了状態のContextがあるので、状態からContext名が取得できる
         println("C1,C2 x ２個	contexts	"+contextCont.doneContexts)
@@ -423,10 +422,7 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
         //コンテキスト実行
         contextCont.runAllContext
 
-        while (!contextCont.currentStatus.equals(ContextContStatus.STATUS_EMPTY)) {
-          Thread.sleep(100)
-          println("wait	C1,C2 x n個")
-        }
+        timeoutOrDone(contextCont)
 
         //max*2個の終了状態のContextがあるので、状態からContext名が取得できる
         println("C1,C2 x n個	contexts	"+contextCont.doneContexts)
@@ -464,10 +460,7 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
         //起動
         contextCont.runAllContext
 
-        while (!contextCont.currentStatus.equals(ContextContStatus.STATUS_EMPTY)) {
-          Thread.sleep(100)
-          println("wait タイムアウト")
-        }
+        timeoutOrDone(contextCont)
 
         //結果を受け取る
         val contextResult = contextCont.doneContexts(0).currentContextResult
@@ -517,10 +510,7 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
         contextCont.runAllContext
 
         //待つ
-        while (!contextCont.currentStatus.equals(ContextContStatus.STATUS_EMPTY)) {
-          Thread.sleep(100)
-          println("wait	C1投入後、C2を投入")
-        }
+        timeoutOrDone(contextCont)
 
         //2つ終了状態のContextがあるので、状態からContext名が取得できる
         contextCont.contextCountOfStatus(ContextStatus.STATUS_DONE.toString).length must be_==(2)
@@ -554,10 +544,7 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
         contextCont.runAllContext
 
         //待つ1
-        while (!contextCont.currentStatus.equals(ContextContStatus.STATUS_EMPTY)) {
-          Thread.sleep(100)
-          println("wait	C1投入後、完了を待ってC2を投入	1")
-        }
+        timeoutOrDone(contextCont)
 
         Seq("C2").foreach { contextIdentity =>
           val id = UUID.randomUUID().toString
@@ -572,10 +559,7 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
         contextCont.runAllContext
 
         //待つ2
-        while (!contextCont.currentStatus.equals(ContextContStatus.STATUS_EMPTY)) {
-          Thread.sleep(100)
-          println("wait	C1投入後、完了を待ってC2を投入	2")
-        }
+        timeoutOrDone(contextCont)
 
         //2つ終了状態のContextがあるので、状態からContext名が取得できる
         contextCont.contextCountOfStatus(ContextStatus.STATUS_DONE.toString).length must be_==(2)
@@ -630,10 +614,7 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
         contextCont.runAllContext
 
         //待つ
-        while (!contextCont.currentStatus.equals(ContextContStatus.STATUS_EMPTY)) {
-          Thread.sleep(100)
-          println("wait	C1投入後/実行、C2を投入後/実行、C3を投入")
-        }
+        timeoutOrDone(contextCont)
 
         //3つ終了状態のContextがあるので、状態からContext名が取得できる
         contextCont.contextCountOfStatus(ContextStatus.STATUS_DONE.toString).length must be_==(3)
@@ -670,10 +651,7 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
         contextCont.runAllContext
 
         //待つ
-        while (!contextCont.currentStatus.equals(ContextContStatus.STATUS_EMPTY)) {
-          Thread.sleep(100)
-          println("wait	100件")
-        }
+        timeoutOrDone(contextCont)
 
 				//3つ結果が有る
         contextCont.currentResults.length must be_==(100)
@@ -743,10 +721,7 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
         contextCont.runAllContext
 
         //待つ
-        while (!contextCont.currentStatus.equals(ContextContStatus.STATUS_EMPTY)) {
-          Thread.sleep(100)
-          println("report run")
-        }
+        timeoutOrDone(contextCont)
 
         val contextResultSet = (for (doneCont <- contextCont.doneContexts) yield doneCont.currentContextResult).toSet
         contextResultSet.forall(_.status == ContextStatus.STATUS_DONE) must beTrue

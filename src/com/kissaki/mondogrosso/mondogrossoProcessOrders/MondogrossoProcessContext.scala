@@ -212,7 +212,7 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
     new ProcessWorker(process.identity, contextIdentity)
 
     //開始すべきIdentityを取得する(ここでは決めうちで0)
-    val currentOrderIdentity = process.orderIdentityList(0)
+    val currentOrderIdentity = process.orderIdentityList.head
 
     //process開始WaitId
     val processSplitIds = process.processSplitHeaders
@@ -244,7 +244,7 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
    */
   def startProcess(process: Process) {
     //開始すべきIdentityを取得する(ここでは決めうちで0)
-    val currentOrderIdentity = process.orderIdentityList(0)
+    val currentOrderIdentity = process.orderIdentityList.head
 
     //process開始WaitId
     val processSplitIds = process.processSplitHeaders
@@ -537,9 +537,9 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
         contextSrc.current.processList.withFilter(_.identity.equals(processIdentity)).foreach { process =>
           //終了したOrderのIndexを出し、次があれば実行する。
           val currentOrderIdentityIndex = (process.orderIdentityList.indexOf(finishedOrderIdentity) + 1)
-          println("process.orderIdentityList	" + process.orderIdentityList)
-          println("index	" + process.orderIdentityList.indexOf(finishedOrderIdentity))
-          println("finishedOrderIdentity	" + process.orderIdentityList.indexOf(finishedOrderIdentity))
+          // println("process.orderIdentityList	" + process.orderIdentityList)
+          // println("index	" + process.orderIdentityList.indexOf(finishedOrderIdentity))
+          // println("finishedOrderIdentity	" + process.orderIdentityList.indexOf(finishedOrderIdentity))
 
           comments += commentFormat(new Date, "PROCESS:" + processIdentity + "	requested the next Order of	" + finishedOrderIdentity)
 
@@ -628,6 +628,10 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
           //masterにタイムアウトを通知
           messenger.callParent(ContextMessages.MESSAGE_TIMEOUT.toString, messenger.tagValues(
             new TagValue("contextIdentity", identity),
+            new TagValue("contextOrderIndex", doneOrderIdentities.length),
+            new TagValue("contextOrderTotal", contextSrc.totalOrderCount),
+            new TagValue("contextProcessIndex", doneProcessList.length),
+            new TagValue("contextProcessTotal", contextSrc.totalProcessNum),
             new TagValue("contextResult", currentContextResult)))
         }
       }
@@ -682,6 +686,10 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
           //masterに完了を通知
           messenger.callParent(ContextMessages.MESSAGE_DONE.toString, messenger.tagValues(
             new TagValue("contextIdentity", identity),
+            new TagValue("contextOrderIndex", doneOrderIdentities.length),
+            new TagValue("contextOrderTotal", contextSrc.totalOrderCount),
+            new TagValue("contextProcessIndex", doneProcessList.length),
+            new TagValue("contextProcessTotal", contextSrc.totalProcessNum),
             new TagValue("contextResultString", contextResultString)))
         }
       }

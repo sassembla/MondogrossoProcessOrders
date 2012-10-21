@@ -31,9 +31,23 @@ import org.specs2.time.TimeConversions._
 @RunWith(classOf[JUnitRunner])
 class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/ {
 
-  //テスト全体の親
+  /**
+  タイムアウト入りの完了ステータスを計る関数
+  */
+  def timeoutOrDone (currentContext : MondogrossoProcessContext) = {
+    var i = 0
+    while (!currentContext.status.head.equals(ContextStatus.STATUS_DONE) && !currentContext.status.head.equals(ContextStatus.STATUS_TIMEOUTED)) {
+      if (10 <= i) {
+        sys.error("回数超過 "+currentContext)
+        sys.exit(1)
+      }
+      i+=1
+      Thread.sleep(100)
+    }
+    
+  }
   
-  
+
   val standardJSON = """
 						{"A": 
 							{
@@ -185,10 +199,8 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
         //コンテキストからの実行開始
         currentContext.runContext
 
-        while (!currentContext.status.head.equals(ContextStatus.STATUS_DONE)) {
-          Thread.sleep(100)
-          println("Context 基礎的な挙動　run A then Z	" + currentContext.status)
-        }
+
+        timeoutOrDone(currentContext)
 
         //実行履歴
         currentContext.status must be_==(ListBuffer(ContextStatus.STATUS_DONE,
@@ -243,10 +255,7 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
         //コンテキストからの実行開始
         currentContext.runContext
 
-        while (!currentContext.status.head.equals(ContextStatus.STATUS_DONE)) {
-          Thread.sleep(100)
-          println("wait	Context タイムアウトについて")
-        }
+        timeoutOrDone(currentContext)
 
         //実行履歴
         currentContext.status must be_==(ListBuffer(ContextStatus.STATUS_DONE,
@@ -328,11 +337,8 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
         //コンテキストからの実行開始
         currentContext.runContext
 
-        //Timeout処理の待ち
-        while (!currentContext.status.head.equals(ContextStatus.STATUS_DONE)) {
-          Thread.sleep(100)
-          println("wait	3:run A then Z 0msec で正常終了")
-        }
+        //Done待ち
+        timeoutOrDone(currentContext)
 
         //実行履歴
         currentContext.status must be_==(ListBuffer(ContextStatus.STATUS_DONE,
@@ -386,11 +392,9 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
         currentContext.runContext
 
         //Timeout処理の待ち
-        while (!currentContext.status.head.equals(ContextStatus.STATUS_DONE)) {
-          Thread.sleep(100)
-          println("wait	processSplitが2連続する	" + currentContext.status)
-        }
+        timeoutOrDone(currentContext)
 
+        currentContext.status.head must be_==(ContextStatus.STATUS_DONE)
         //A,B,Zともに終了している
         println("processSplitが2連続する	currentContext.contextKeyValues	" + currentContext.contextKeyValues)
 
@@ -457,10 +461,9 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
 
         //Timeout処理の待ち
 
-        while (!currentContext.status.head.equals(ContextStatus.STATUS_DONE)) {
-          Thread.sleep(100)
-          println("wait	processSplitが2連続する")
-        }
+        timeoutOrDone(currentContext)
+
+        currentContext.status.head must be_==(ContextStatus.STATUS_DONE)
 
         //A,B,C,Zともに終了している
         println("processSplitが3分裂する	currentContext.contextKeyValues	" + currentContext.contextKeyValues)
@@ -519,10 +522,9 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
         currentContext.runContext
 
         //Timeout処理の待ち
-        while (!currentContext.status.head.equals(ContextStatus.STATUS_DONE)) {
-          Thread.sleep(100)
-          println("wait	processSplitが2連鎖分裂する")
-        }
+        timeoutOrDone(currentContext)
+
+        currentContext.status.head must be_==(ContextStatus.STATUS_DONE)
 
         //A,B,C,Zともに終了している
         println("processSplitが3分裂する	currentContext.contextKeyValues	" + currentContext.contextKeyValues)
@@ -586,10 +588,9 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
         currentContext.runContext
 
         //Timeout処理の待ち
-        while (!currentContext.status.head.equals(ContextStatus.STATUS_DONE)) {
-          Thread.sleep(100)
-          println("wait	processSplitが3連鎖分裂する")
-        }
+        timeoutOrDone(currentContext)
+
+        currentContext.status.head must be_==(ContextStatus.STATUS_DONE)
 
         //A,B,C,D,Zともに終了している
         println("processSplitが3連鎖分裂するcurrentContext.contextKeyValues	" + currentContext.contextKeyValues)
@@ -659,11 +660,10 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
         currentContext.runContext
 
         //Timeout処理の待ち
-        while (!currentContext.status.head.equals(ContextStatus.STATUS_DONE)) {
-          Thread.sleep(100)
-          println("wait	複雑な分裂")
-        }
+        timeoutOrDone(currentContext)
 
+        currentContext.status.head must be_==(ContextStatus.STATUS_DONE)
+        
         //A,B,C,D,E,Zともに終了している
         println("processSplitが3連鎖分裂するcurrentContext.contextKeyValues	" + currentContext.contextKeyValues)
 
@@ -723,12 +723,10 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
         currentContext.runContext
 
         //Timeout処理の待ち
+        timeoutOrDone(currentContext)
 
-        while (!currentContext.status.head.equals(ContextStatus.STATUS_DONE)) {
-          Thread.sleep(100)
-          println("wait	収束 A,Bが発生、Cが発生して、事前にWaitが解かれた状態なのでZへ")
-        }
-
+        currentContext.status.head must be_==(ContextStatus.STATUS_DONE)
+        
         //A,B,C,Zともに終了している
         println("processSplitが3連鎖分裂するcurrentContext.contextKeyValues	" + currentContext.contextKeyValues)
 
@@ -789,10 +787,9 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
         currentContext.runContext
 
         //Timeout処理の待ち
-        while (!currentContext.status.head.equals(ContextStatus.STATUS_DONE)) {
-          Thread.sleep(100)
-          println("wait	収束 A,Bが発生、Bに時間のかかる処理、Cが発生、終了かつB待ち、B終了、Z")
-        }
+        timeoutOrDone(currentContext)
+
+        currentContext.status.head must be_==(ContextStatus.STATUS_DONE)
 
         //A,B,C,Zともに終了している
         println("processSplitが3連鎖分裂するcurrentContext.contextKeyValues	" + currentContext.contextKeyValues)
@@ -876,10 +873,10 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
         currentContext.runContext
 
         //Timeout処理の待ち
-        while (!currentContext.status.head.equals(ContextStatus.STATUS_DONE)) {
-          Thread.sleep(100)
-          println("wait	複雑な収束 A,B,D,E,C,Fで、F時にロックが解けているので、Zへ")
-        }
+        timeoutOrDone(currentContext)
+
+        currentContext.status.head must be_==(ContextStatus.STATUS_DONE)
+
 
         //A,B,C,D,E,F,Zともに終了している
         Seq("A", "B", "C", "D", "E", "F").foreach { orderIdentity =>
@@ -958,10 +955,10 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
         currentContext.runContext
 
         //Timeout処理の待ち
-        while (!currentContext.status.head.equals(ContextStatus.STATUS_DONE)) {
-          Thread.sleep(100)
-          println("wait	複雑な収束 A,C,F,B,D,E,で、E完了時にロックが解けているので、Zへ")
-        }
+        timeoutOrDone(currentContext)
+
+        currentContext.status.head must be_==(ContextStatus.STATUS_DONE)
+
 
         //A,B,C,D,E,F,Zともに終了している
         Seq("A", "C", "F").foreach { orderIdentity =>
@@ -1027,10 +1024,9 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
 
         currentContext.runContext
 
-        while (!currentContext.status.head.equals(ContextStatus.STATUS_DONE)) {
-          Thread.sleep(100)
-          println("waiting	5:run A,B,Z 複数のOrder")
-        }
+        timeoutOrDone(currentContext)
+
+        currentContext.status.head must be_==(ContextStatus.STATUS_DONE)
 
         //実行順が入っているはず
         println("5:run A,B,Z 複数のOrder	doneOrderIdentities	" + currentContext.doneOrderIdentities)
@@ -1071,12 +1067,12 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
         currentContext.runContext
 
         //	Timeout処理の待ち
-        while (!currentContext.status.head.equals(ContextStatus.STATUS_DONE)) {
-          Thread.sleep(100)
-          println("6.0:run A,B(A:_result:in),Z 複数のOrderで値を適応	" + currentContext.status)
-        }
-
+        timeoutOrDone(currentContext)
+      
         println("6.0	" + currentContext.currentContextResult.commentsStack)
+      
+        currentContext.status.head must be_==(ContextStatus.STATUS_DONE)
+
 
         //BがAの_resultをgrepした結果を持つ
         currentContext.contextKeyValues.get("B").get("1stPlace") must be_==("FirstParamReplaced")
@@ -1120,11 +1116,11 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
         currentContext.runContext
 
         //	Timeout処理の待ち
-        while (!currentContext.status.head.equals(ContextStatus.STATUS_DONE)) {
-          Thread.sleep(100)
-          println("6.01:run A,B(A:_result:in),Z 複数のOrderで値を適応	" + currentContext.status)
-        }
+        timeoutOrDone(currentContext)
+
         println("6.01	" + currentContext.currentContextResult.commentsStack)
+
+        currentContext.status.head must be_==(ContextStatus.STATUS_DONE)
 
         //BがAの_resultをgrepした結果を持つ
         currentContext.contextKeyValues.get("B").get("1stPlace") must be_==("A1Param")
@@ -1161,12 +1157,15 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
         val identity = UUID.randomUUID().toString
         val currentContext = new MondogrossoProcessContext(identity, result, contextParent.messenger.getName)
         currentContext.runContext
+
         //	Timeout処理の待ち
-        while (!currentContext.status.head.equals(ContextStatus.STATUS_DONE)) {
-          Thread.sleep(100)
-          println("6.1:run A,B(A:_result:in),Z 複数のOrderで値を適応	" + currentContext.status)
-        }
+        timeoutOrDone(currentContext)
+
         println("6.1	" + currentContext.currentContextResult.commentsStack)
+
+        currentContext.status.head must be_==(ContextStatus.STATUS_DONE)
+
+
         //実行順が入っているはず
         println("6.1:run A,B(A:_result:in),Z 複数のOrderで値を適応	doneOrderIdentities	" + currentContext.doneOrderIdentities)
         currentContext.doneOrderIdentities must be_==(List("A", "B", "Z"))
@@ -1212,11 +1211,12 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
         currentContext.runContext
 
         //	Timeout処理の待ち
-        while (!currentContext.status.head.equals(ContextStatus.STATUS_DONE)) {
-          Thread.sleep(100)
-          println("6.5:複数のOrderで値を共有する	" + currentContext.status.head)
-        }
+        timeoutOrDone(currentContext)
+
         println("6.5	" + currentContext.currentContextResult.commentsStack)
+
+        currentContext.status.head must be_==(ContextStatus.STATUS_DONE)
+
 
         //実行順が入っているはず
         println("doneOrderIdentities	" + currentContext.doneOrderIdentities)
@@ -1289,14 +1289,14 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
         currentContext.runContext
 
         //	Timeout処理の待ち
-        while (!currentContext.status.head.equals(ContextStatus.STATUS_DONE)) {
-          Thread.sleep(100)
-          println("7:時間のかかる処理を並列で行う	" + currentContext.status)
-          println("7	current doneOrderIdentities	" + currentContext.doneOrderIdentities)
-        }
+        timeoutOrDone(currentContext)
+
 
         //実行順が入っているはず 途中の順番は不明
         println("7	doneOrderIdentities	" + currentContext.doneOrderIdentities)
+
+        currentContext.status.head must be_==(ContextStatus.STATUS_DONE)
+
         currentContext.doneOrderIdentities.toSet must be_==(Set("B7", "D", "E", "C", "Z"))
       }
 
@@ -1334,11 +1334,12 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
         currentContext.runContext
 
         //	Timeout処理の待ち
-        while (!currentContext.status.head.equals(ContextStatus.STATUS_DONE)) {
-          Thread.sleep(100)
-          println("8:待ちが存在するOrder Aが完了したらBが動き出す	" + currentContext.status)
-        }
+        timeoutOrDone(currentContext)
+
         println("8	" + currentContext.currentContextResult.commentsStack)
+
+        currentContext.status.head must be_==(ContextStatus.STATUS_DONE)
+
 
         //実行順が入っているはず
         println("8:	doneOrderIdentities	" + currentContext.doneOrderIdentities)
@@ -1380,11 +1381,12 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
         val currentContext = new MondogrossoProcessContext(identity, result, contextParent.messenger.getName)
         currentContext.runContext
         //	Timeout処理の待ち
-        while (!currentContext.status.head.equals(ContextStatus.STATUS_DONE)) {
-          Thread.sleep(100)
-          println("8.1:待ちが存在するOrder Aが完了したらBが動き出す	" + currentContext.status)
-        }
+        timeoutOrDone(currentContext)
+
         println("8.1	" + currentContext.currentContextResult.commentsStack)
+        
+        currentContext.status.head must be_==(ContextStatus.STATUS_DONE)
+
         //実行順が入っているはず
         currentContext.doneOrderIdentities must be_==(List("A", "B", "Z"))
         //BがAの_resultをgrepした結果を持つ
@@ -1422,15 +1424,11 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
         val currentContext = new MondogrossoProcessContext(identity, result, contextParent.messenger.getName)
         currentContext.runContext
         //	Timeout処理の待ち
-        while (!currentContext.status.head.equals(ContextStatus.STATUS_DONE)) {
-          Thread.sleep(100)
-          println("9:待ちが存在するOrder Aの値を継いで、Aが完了したらBが動き出す	" + currentContext.status)
+        timeoutOrDone(currentContext)
 
-          if (currentContext.status.head.equals(ContextStatus.STATUS_ERROR)) {
-            println("エラー	" + currentContext.comments)
-          }
-        }
-        //				println("9	"+currentContext.currentContextResult.commentsStack)
+        println("9	"+currentContext.currentContextResult.commentsStack)
+        currentContext.status.head must be_==(ContextStatus.STATUS_DONE)
+
         //実行順が入っているはず
         println("9	doneOrderIdentities	" + currentContext.doneOrderIdentities)
         currentContext.doneOrderIdentities must be_==(List("A", "B", "Z"))
@@ -1567,7 +1565,7 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
   }
 
   if (true) {
-    "additionalTestCase" should {
+    "よく停止しているように見受けるケース　additionalTestCase" should {
       /*
 			このケースが温床みたい。しかも必ずではない。
 			*/
@@ -1613,10 +1611,9 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
 
         //Timeout処理の待ち
 
-        while (!currentContext.status.head.equals(ContextStatus.STATUS_DONE)) {
-          Thread.sleep(100)
-          println("wait	special1")
-        }
+        timeoutOrDone(currentContext)
+
+        currentContext.status.head must be_==(ContextStatus.STATUS_DONE)
       }
 
       "解消されないテスト p2 Cの実行に1Sかかり、必ずCのafterWaitがセットされる前にBが終わる" in {
@@ -1661,10 +1658,9 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
 
         //Timeout処理の待ち
 
-        while (!currentContext.status.head.equals(ContextStatus.STATUS_DONE)) {
-          Thread.sleep(100)
-          println("wait	special2")
-        }
+        timeoutOrDone(currentContext)
+
+        currentContext.status.head must be_==(ContextStatus.STATUS_DONE)
       }
       "解消されないテスト p0 確率的に失敗するっぽいデフォルト" in {
         val contextParent = new DummyContextParent(UUID.randomUUID.toString)
@@ -1706,10 +1702,9 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
 
         //Timeout処理の待ち
 
-        while (!currentContext.status.head.equals(ContextStatus.STATUS_DONE)) {
-          Thread.sleep(100)
-          println("wait	special2")
-        }
+        timeoutOrDone(currentContext)
+
+        currentContext.status.head must be_==(ContextStatus.STATUS_DONE)
       }
     }
   }

@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit
  */
 class MondogrossoContextController (masterName : String) extends MessengerProtocol {
   val controllerUuid = UUID.randomUUID().toString
-
+  
   val messenger = new Messenger(this, controllerUuid)
   def name = messenger.getName
 
@@ -53,83 +53,77 @@ class MondogrossoContextController (masterName : String) extends MessengerProtoc
         ContextMessages.get(exec) match {
           case ContextMessages.MESSAGE_READY => {
             println("MESSAGE_READYを受け取った	")
-            tagValues.foreach(tagValue => println(tagValue))
-
-            //		val contextOrderIndex = messenger.get("contextOrderIndex", tagValues).asInstanceOf[Int]
-            //		val contextOrderTotal = messenger.get("contextOrderTotal", tagValues).asInstanceOf[Int]
-            //		val contextProcessIndex = messenger.get("contextProcessIndex", tagValues).asInstanceOf[Int]
-            //		val contextProcessTotal = messenger.get("contextProcessTotal", tagValues).asInstanceOf[Int]
+            report(ProcessOrdersMasterMessages.MESSAGE_READY, tagValues)
             
-            messenger.callParent(ProcessOrdersMasterMessages.MESSAGE_EMPTY.toString, tagValues)
           }
           case ContextMessages.MESSAGE_START => {
             println("MESSAGE_STARTを受け取った	")
-            tagValues.foreach(tagValue => println(tagValue))
-
-            //		val contextOrderIndex = messenger.get("contextOrderIndex", tagValues).asInstanceOf[Int]
-            //		val contextOrderTotal = messenger.get("contextOrderTotal", tagValues).asInstanceOf[Int]
-            //		val contextProcessIndex = messenger.get("contextProcessIndex", tagValues).asInstanceOf[Int]
-            //		val contextProcessTotal = messenger.get("contextProcessTotal", tagValues).asInstanceOf[Int]
-            messenger.callParent(ProcessOrdersMasterMessages.MESSAGE_START.toString, tagValues)
-            println("送信が終わったのでここではない")
+            report(ProcessOrdersMasterMessages.MESSAGE_START, tagValues)
           }
 
           case ContextMessages.MESSAGE_PROCEEDED => {
             println("MESSAGE_PROCEEDED受け取った")
-            tagValues.foreach(tagValue => println(tagValue))
-
-            //		val contextOrderIndex = messenger.get("contextOrderIndex", tagValues).asInstanceOf[Int]
-            //		val contextOrderTotal = messenger.get("contextOrderTotal", tagValues).asInstanceOf[Int]
-            //		val contextProcessIndex = messenger.get("contextProcessIndex", tagValues).asInstanceOf[Int]
-            //		val contextProcessTotal = messenger.get("contextProcessTotal", tagValues).asInstanceOf[Int]
-            messenger.callParent(ProcessOrdersMasterMessages.MESSAGE_PROCEEDED.toString, tagValues)
+            report(ProcessOrdersMasterMessages.MESSAGE_PROCEEDED, tagValues)
           }
 
-          case ContextMessages.MESSAGE_TIMEOUT => procTimeout(tagValues)
+          case ContextMessages.MESSAGE_TIMEOUT => {
+          	val contextIdentity = messenger.get("contextIdentity", tagValues).asInstanceOf[String]
+    		    contextOvered(contextIdentity)
+    		    messenger.callParent(ProcessOrdersMasterMessages.MESSAGE_TIMEOUTED.toString, tagValues)
+          }
 
-          case ContextMessages.MESSAGE_ERROR => procError(tagValues)
+          case ContextMessages.MESSAGE_ERROR => {
+          	val contextIdentity = messenger.get("contextIdentity", tagValues).asInstanceOf[String]
+            contextOvered(contextIdentity)
+            messenger.callParent(ProcessOrdersMasterMessages.MESSAGE_ERROR.toString, tagValues)
+          }
 
-          case ContextMessages.MESSAGE_DONE => procDone(tagValues)
+          case ContextMessages.MESSAGE_DONE => {
+            val contextIdentity = messenger.get("contextIdentity", tagValues).asInstanceOf[String]
+            contextOvered(contextIdentity)
+            messenger.callParent(ProcessOrdersMasterMessages.MESSAGE_DONE.toString, tagValues)
+          }
+          
           case other =>
         }
       }
       case other => println("othe	" + other)
     }
   }
-
+  
   /**
-   * タイムアウト時の処理
-   */
-  def procTimeout(tagValues: Array[TagValue]) = {
-    val contextIdentity = messenger.get("contextIdentity", tagValues).asInstanceOf[String]
-    contextOvered(contextIdentity)
-    messenger.callParent(ProcessOrdersMasterMessages.MESSAGE_TIMEOUTED.toString, tagValues)
+  mainが提供した親へとレポートを吐き出す
+  */
+  def report (message:ProcessOrdersMasterMessages.Value, tagValues: Array[TagValue]) = {
+  	//ここで、インデックスなどを整形する。
+    val contextIdentity = messenger.get("contextIdentity",tagValues).asInstanceOf[String]
+		val contextOrderIndex = messenger.get("contextOrderIndex", tagValues).asInstanceOf[Int]
+		val contextOrderTotal = messenger.get("contextOrderTotal", tagValues).asInstanceOf[Int]
+		val contextProcessIndex = messenger.get("contextProcessIndex", tagValues).asInstanceOf[Int]
+		val contextProcessTotal = messenger.get("contextProcessTotal", tagValues).asInstanceOf[Int]
+    
+    println("contextCont received contextIdentity  "+contextIdentity)
+    println("currentMap = "+processNameToContextIdentityMap)
+    //100件が踏みやすいバグがあるみたいなので、ここでは一時的に「ファイルに情報を吐く」ことに集中する。
+    //含まれてないケースがあるみたいね。
+
+    messenger.callParent(message.toString, messenger.tagValues(
+    	new TagValue("contextOrderIndex",contextOrderIndex),
+    	new TagValue("contextOrderTotal",contextOrderTotal),
+    	new TagValue("contextProcessIndex",contextProcessIndex),
+    	new TagValue("contextProcessTotal",contextProcessTotal),
+    	new TagValue("processNameToContextIdentityMap",processNameToContextIdentityMap),
+    	new TagValue("contextIdentity",contextIdentity)
+    ))
   }
 
-  /**
-   * エラー時の処理
-   */
-  def procError(tagValues: Array[TagValue]) = {
-    val contextIdentity = messenger.get("contextIdentity", tagValues).asInstanceOf[String]
-    contextOvered(contextIdentity)
-    messenger.callParent(ProcessOrdersMasterMessages.MESSAGE_ERROR.toString, tagValues)
-  }
-
-  /**
-   * コンテキスト完了時の処理
-   */
-  def procDone(tagValues: Array[TagValue]) = {
-    val contextIdentity = messenger.get("contextIdentity", tagValues).asInstanceOf[String]
-    contextOvered(contextIdentity)
-    messenger.callParent(ProcessOrdersMasterMessages.MESSAGE_DONE.toString, tagValues)
-  }
 
   /**
    * コンテキストが終了した事を受け取り、ProcessOrders全体のステータスを管理する
    */
   def contextOvered(overedContextIdentity: String) = {
     val currentContext = activeContexts.filter(_.identity.equals(overedContextIdentity))
-
+    println("contextOvered  currentContext "+currentContext + " /overedContextIdentity  " +overedContextIdentity )
     currentContext.isEmpty match {
       case false => {
         activeContexts -= currentContext.head
@@ -144,7 +138,13 @@ class MondogrossoContextController (masterName : String) extends MessengerProtoc
           }
         }
       }
-      case true => println("空っぽっていうのはおかしい	、このidentityがactiveContextsに含まれてない	" + overedContextIdentity)
+      case true => {
+        println("空っぽっていうのはおかしい	、このidentityがactiveContextsに含まれてない	" + overedContextIdentity)
+        
+        sys.error("空っぽっていうのはおかしい  、このidentityがactiveContextsに含まれてない " + overedContextIdentity)
+        sys.exit(1)
+
+      }
     }
 
   }

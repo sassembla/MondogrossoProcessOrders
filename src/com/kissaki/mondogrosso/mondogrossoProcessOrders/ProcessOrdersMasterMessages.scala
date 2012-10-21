@@ -6,6 +6,7 @@ object ProcessOrdersMasterMessages extends Enumeration {
 	
 	//MESSAGES
 	val MESSAGE_EMPTY,
+	MESSAGE_READY,
 	MESSAGE_START,
 	MESSAGE_PROCEEDED,
 	MESSAGE_ERROR,
