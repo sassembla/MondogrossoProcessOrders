@@ -35,6 +35,9 @@ class FileWriteReceiver(name: String) extends MessengerProtocol {
     val line = tagValues.toSeq
     for (tagValue <- tagValues) yield tagValue
     tagValues.foreach { v => sb += v.toString + "\n" }
+
+    sb += status + "/\n"
+
   }
 
   /**

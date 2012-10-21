@@ -4,6 +4,7 @@ import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
 import org.junit.runner.RunWith
 import scala.io.Source
+import java.io.File
 
 @RunWith(classOf[JUnitRunner])
 class MondogrossoProcessOrdersTests extends Specification {
@@ -18,6 +19,21 @@ class MondogrossoProcessOrdersTests extends Specification {
 				"a2":"else",
 				"a3":"other",
 			},
+    "B": 
+      {
+        "_kind": "jar",
+        "_main": "TestProject",
+        "-i" : "確実にfinallyタイムアウトになる値 in MondogrossoProcessOrdersTests",
+        "-t" : "10000"
+      },
+    "C": 
+      {
+        "_kind": "jar",
+        "_main": "TestProject",
+        "-i" : "このJavaプロセス自身がタイムアウトになる in MondogrossoProcessOrdersTests",
+        "-t" : "10000",
+        "__timeout":"50"
+      },
 		"Z": 
 			{
 				"_kind": "sh",
@@ -28,54 +44,89 @@ class MondogrossoProcessOrdersTests extends Specification {
 		}
 	"""
 
-  
-
   if (true) {
     "-p　プロセス入力 と、-s　JSONソース入力 で、プロセスをアタッチして即実行する" should {
 
-       "A!Z" in {
+      "A!Z" in {
         //ファイルを消す
         for {
           files <- Option(new File("./").listFiles)
           file <- files if file.getName.startsWith("testStandardOut")
         } file.delete()
-        
+
         val input = Array(
           "-i", "AtoZ",
-  	      "-p", standardInput,
-  	      "-s", standardJSON,
-  	      "-o", "./testStandardOut.txt"
-        )
+          "-p", standardInput,
+          "-s", standardJSON,
+          "-o", "./testStandardOut.txt")
+
+        MondogrossoProcessOrders.main(input)
         
-        val result = MondogrossoProcessOrders.main(input)
+        //結果のファイルが出来ているはず
+        val source = Source.fromFile("testStandardOut.txt")
+        var last = ""
+        source.getLines.foreach{line => 
+        	last = line
+        }
+        
+        last must be_==("MESSAGE_DONE/")
+      }
+
+      "B!Z Bが終わらない事によるfinallyのタイムアウト" in {
+        
+        //ファイルを消す
+        for {
+          files <- Option(new File("./").listFiles)
+          file <- files if file.getName.startsWith("testFinallyTimeout")
+        } file.delete()
+
+        val input = Array(
+          "-i", "BtoZ",
+          "-p", "B!Z",
+          "-s", standardJSON,
+          "-o", "./testFinallyTimeout.txt")
+
+        MondogrossoProcessOrders.main(input)
 
         //結果のファイルが出来ているはず
-        var source = Source.fromFile("testStandardOut.txt")
-        source.size != 0 must beTrue
+        val source = Source.fromFile("testFinallyTimeout.txt")
+        var last = ""
+        source.getLines.foreach{line => 
+        	last = line
+        }
+        
+        last must be_==("MESSAGE_TIMEOUTED/")
+      }
+
+      "C!Z Cが自分自身でタイムアウト" in {
+
+        //ファイルを消す
+        for {
+          files <- Option(new File("./").listFiles)
+          file <- files if file.getName.startsWith("testTimeout")
+        } file.delete()
+
+        val input = Array(
+          "-i", "CtoZ",
+          "-p", "C!Z",
+          "-s", standardJSON,
+          "-o", "./testTimeout.txt")
+
+        MondogrossoProcessOrders.main(input)
+
+        //結果のファイルが出来ているはず
+        val source = Source.fromFile("testTimeout.txt")
+        var last = ""
+        source.getLines.foreach{line => 
+        	last = line
+        }
+        
+        last must be_==("MESSAGE_TIMEOUTED/")
       }
     }
   }
 
-  if (false) {//タイムアウト
-    "-p　プロセス入力 と、-s　JSONソース入力 で、プロセスをアタッチして即実行する" should {
-
-       "A!Z" in {
-
-        val input = Array(
-          "-i", "AtoZ",
-        "-p", standardInput,
-        "-s", standardJSON,
-        "-o", "./testTimeout.txt"
-        )
-        
-        val result = MondogrossoProcessOrders.main(input)
-
-        //結果のファイルが出来ているはず
-        var source = Source.fromFile("testTimeout.txt")
-        source.size != 0 must beTrue
-      }
-    }
-  }
+  
 
   if (false) {
     "replモード" should {
