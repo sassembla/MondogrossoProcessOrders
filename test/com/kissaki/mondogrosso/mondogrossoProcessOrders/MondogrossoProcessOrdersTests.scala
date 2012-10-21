@@ -34,18 +34,44 @@ class MondogrossoProcessOrdersTests extends Specification {
     "-p　プロセス入力 と、-s　JSONソース入力 で、プロセスをアタッチして即実行する" should {
 
        "A!Z" in {
-
+        //ファイルを消す
+        for {
+          files <- Option(new File("./").listFiles)
+          file <- files if file.getName.startsWith("testStandardOut")
+        } file.delete()
+        
         val input = Array(
           "-i", "AtoZ",
-	      "-p", standardInput,
-	      "-s", standardJSON,
-	      "-o", "./testout.txt"
+  	      "-p", standardInput,
+  	      "-s", standardJSON,
+  	      "-o", "./testStandardOut.txt"
         )
         
         val result = MondogrossoProcessOrders.main(input)
 
         //結果のファイルが出来ているはず
-        var source = Source.fromFile("testout.txt")
+        var source = Source.fromFile("testStandardOut.txt")
+        source.size != 0 must beTrue
+      }
+    }
+  }
+
+  if (false) {//タイムアウト
+    "-p　プロセス入力 と、-s　JSONソース入力 で、プロセスをアタッチして即実行する" should {
+
+       "A!Z" in {
+
+        val input = Array(
+          "-i", "AtoZ",
+        "-p", standardInput,
+        "-s", standardJSON,
+        "-o", "./testTimeout.txt"
+        )
+        
+        val result = MondogrossoProcessOrders.main(input)
+
+        //結果のファイルが出来ているはず
+        var source = Source.fromFile("testTimeout.txt")
         source.size != 0 must beTrue
       }
     }

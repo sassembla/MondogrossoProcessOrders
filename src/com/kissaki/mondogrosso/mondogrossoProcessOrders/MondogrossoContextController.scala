@@ -69,21 +69,21 @@ class MondogrossoContextController (masterName : String) extends MessengerProtoc
           case ContextMessages.MESSAGE_TIMEOUT => {
           	val contextIdentity = messenger.get("contextIdentity", tagValues).asInstanceOf[String]
     		    contextOvered(contextIdentity)
-    		    messenger.callParent(ProcessOrdersMasterMessages.MESSAGE_TIMEOUTED.toString, tagValues)
+            report(ProcessOrdersMasterMessages.MESSAGE_TIMEOUTED, tagValues)
           }
 
           case ContextMessages.MESSAGE_ERROR => {
           	val contextIdentity = messenger.get("contextIdentity", tagValues).asInstanceOf[String]
             contextOvered(contextIdentity)
-            messenger.callParent(ProcessOrdersMasterMessages.MESSAGE_ERROR.toString, tagValues)
+            report(ProcessOrdersMasterMessages.MESSAGE_ERROR, tagValues)
           }
 
           case ContextMessages.MESSAGE_DONE => {
             val contextIdentity = messenger.get("contextIdentity", tagValues).asInstanceOf[String]
             contextOvered(contextIdentity)
-            messenger.callParent(ProcessOrdersMasterMessages.MESSAGE_DONE.toString, tagValues)
+            report(ProcessOrdersMasterMessages.MESSAGE_DONE, tagValues)
           }
-          
+
           case other =>
         }
       }
@@ -94,27 +94,21 @@ class MondogrossoContextController (masterName : String) extends MessengerProtoc
   /**
   mainが提供した親へとレポートを吐き出す
   */
-  def report (message:ProcessOrdersMasterMessages.Value, tagValues: Array[TagValue]) = {
-  	//ここで、インデックスなどを整形する。
-    val contextIdentity = messenger.get("contextIdentity",tagValues).asInstanceOf[String]
-		val contextOrderIndex = messenger.get("contextOrderIndex", tagValues).asInstanceOf[Int]
-		val contextOrderTotal = messenger.get("contextOrderTotal", tagValues).asInstanceOf[Int]
-		val contextProcessIndex = messenger.get("contextProcessIndex", tagValues).asInstanceOf[Int]
-		val contextProcessTotal = messenger.get("contextProcessTotal", tagValues).asInstanceOf[Int]
-    
-    println("contextCont received contextIdentity  "+contextIdentity)
+  def report (message:ProcessOrdersMasterMessages.Value, tagValues: Array[TagValue]) = {    
+    val contextIdentity = messenger.get("contextIdentity", tagValues).asInstanceOf[String]
+
     println("currentMap = "+processNameToContextIdentityMap)
+    println("applied  "+processNameToContextIdentityMap.apply(contextIdentity))
+
     //100件が踏みやすいバグがあるみたいなので、ここでは一時的に「ファイルに情報を吐く」ことに集中する。
     //含まれてないケースがあるみたいね。
 
-    messenger.callParent(message.toString, messenger.tagValues(
-    	new TagValue("contextOrderIndex",contextOrderIndex),
-    	new TagValue("contextOrderTotal",contextOrderTotal),
-    	new TagValue("contextProcessIndex",contextProcessIndex),
-    	new TagValue("contextProcessTotal",contextProcessTotal),
-    	new TagValue("processNameToContextIdentityMap",processNameToContextIdentityMap),
-    	new TagValue("contextIdentity",contextIdentity)
-    ))
+    //tagValuesの値に、processNameToContextIdentityMapを足す
+    val newTagValues = tagValues ++ Array(new TagValue("userDefinedIdentity", processNameToContextIdentityMap.apply(contextIdentity)))
+    
+    newTagValues.foreach(println)
+
+    messenger.callParent(message.toString, newTagValues)
   }
 
 

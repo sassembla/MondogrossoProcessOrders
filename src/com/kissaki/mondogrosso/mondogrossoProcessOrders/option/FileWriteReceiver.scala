@@ -28,16 +28,17 @@ class FileWriteReceiver(name: String) extends MessengerProtocol {
    * ログ追記
    */
   def addLog(status: String, tagValues: Array[TagValue]) = {
-    sb += status + "\n"
+    val userDefinedIdentity = messenger.get("userDefinedIdentity", tagValues).asInstanceOf[String]
+
+    sb += userDefinedIdentity + " : " + status + "\n"
     
     val line = tagValues.toSeq
     for (tagValue <- tagValues) yield tagValue
     tagValues.foreach { v => sb += v.toString + "\n" }
-    println("sbは  "+sb)
   }
 
   /**
-   * ログ書き出し
+   * ログ書き出し(これだと一気に吐き出されちゃうが、まあ一応。)
    */
   def writeoutLog(file: File) = {
   	val writer = new PrintWriter(file)

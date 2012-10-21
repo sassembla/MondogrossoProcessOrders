@@ -54,7 +54,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 						}"""
 
 		//Worker
-	if (true) {
+	if (false) {
 		"Worker" should {
 
 			//擬似的に親を生成する
@@ -135,7 +135,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 	}
 
 	//Worker Delay
-	if (true) {
+	if (false) {
 		"Worker　非同期" should {
 
 			//擬似的に親を生成する
@@ -260,7 +260,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 	}
 
 	//Worker Timeout
-	if (true) {
+	if (false) {
 		"Worker タイムアウト" should {
 			//擬似的に親を生成する
 			val dummyParent = new DummyWorkerParent()
@@ -409,7 +409,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 	}
 
 	//Worker Cancel
-	if (true) {
+	if (false) {
 		"Worker Cancel" should {
 			//擬似的に親を生成する
 			val dummyParent = new DummyWorkerParent()
@@ -477,7 +477,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 	}
 
 	//Worker Error
-	if (true) {
+	if (false) {
 		"Worker エラー" should {
 			//擬似的に親を生成する
 			val dummyParent = new DummyWorkerParent()
@@ -646,7 +646,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 	}
 
 	//Worker OrderRun
-	if (true) {
+	if (false) {
 		"Worker Order実行" should {
 			//擬似的に親を生成する
 			val dummyParent = new DummyWorkerParent()
@@ -838,7 +838,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 	}
 
 	//Worker processSplit Wait
-	if (true) {
+	if (false) {
 		"Worker Order実行　processSplit付き" should {
 			//擬似的に親を生成する
 			val dummyParent = new DummyWorkerParent()
@@ -923,7 +923,7 @@ class MondogrossoProcessWorkerTests extends Specification {
 	}
 	
 	//Order後のwait afterWaitについて
-	if (true) {
+	if (false) {
 		"AfterWait" should {
 			//擬似的に親を生成する
 			val dummyParent = new DummyWorkerParent()

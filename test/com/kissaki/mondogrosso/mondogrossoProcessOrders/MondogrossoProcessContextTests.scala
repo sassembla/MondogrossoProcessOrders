@@ -90,7 +90,7 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
 					"""
 
   //Context information
-  if (true) {
+  if (false) {
     "Context information" should {
       val contextParent = new DummyContextParent(UUID.randomUUID.toString)
 
@@ -170,7 +170,7 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
   }
 
   //Context
-  if (true) {
+  if (false) {
     "Context run" should {
       "Context 基礎的な挙動　run A then Z" in {
         val contextParent = new DummyContextParent(UUID.randomUUID.toString)
@@ -225,7 +225,7 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
   }
 
   //timeouts
-  if (true) {
+  if (false) {
     "Context タイムアウトについて" should {
       "1:run A then Z finallyTimeout付きで時間内に完了する" in {
         val contextParent = new DummyContextParent(UUID.randomUUID.toString)
@@ -351,7 +351,7 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
   }
 
   //split
-  if (true) {
+  if (false) {
     /*
 		 * 分裂：		A+(A)B+(A)C+(A)D					複数のプロセスが同時に並列で開始
 		 * 連鎖分裂：	A+(A)B+(B)C+(C)D					連鎖的に並列で開始
@@ -990,7 +990,7 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
   }
 
   //special cases
-  if (true) {
+  if (false) {
     "Context 複雑なOrder" should {
       "5:run A,B,Z 複数のOrder" in {
         val contextParent = new DummyContextParent(UUID.randomUUID.toString)
@@ -1441,7 +1441,7 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
   }
 
   //Context Error
-  if (true) {
+  if (false) {
     "Context エラー処理" should {
 
       "__finallyTimeout設定によるタイムアウト発生" in {
@@ -1564,7 +1564,7 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
     }
   }
 
-  if (true) {
+  if (false) {
     "よく停止しているように見受けるケース　additionalTestCase" should {
       /*
 			このケースが温床みたい。しかも必ずではない。
