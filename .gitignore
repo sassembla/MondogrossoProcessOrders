@@ -32,3 +32,9 @@ lift-json-2.0.jar
 grizzled-scala_2.9.0-1.0.6.jar
 
 testout.txt
+
+testFinallyTimeout.txt
+
+testStandardOut.txt
+
+testTimeout.txt
