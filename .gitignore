@@ -38,3 +38,9 @@ testFinallyTimeout.txt
 testStandardOut.txt
 
 testTimeout.txt
+
+.ensime_lucene/_0.fnm
+
+.ensime
+
+.ensime_lucene/*

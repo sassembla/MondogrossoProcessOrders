@@ -45,40 +45,59 @@ class MondogrossoContextController (masterName : String) extends MessengerProtoc
    * レシーバ
    */
   def receiver(exec: String, tagValues: Array[TagValue]) = {
-    println("MondogrossoProcessOrdersController	exec	" + exec)
-
     currentStatus match {
-      case ContextContStatus.STATUS_EMPTY => println("no context running")
+      case ContextContStatus.STATUS_EMPTY => println("no context runningに来た、exec  "+exec)
       case ContextContStatus.STATUS_RUNNING => {
         ContextMessages.get(exec) match {
           case ContextMessages.MESSAGE_READY => {
-            println("MESSAGE_READYを受け取った	")
+          	val s = new StringBuffer
+            tagValues.foreach(contents => s.append(contents))
+            println("MESSAGE_READYを受け取った  "+s)
+            
             report(ProcessOrdersMasterMessages.MESSAGE_READY, tagValues)
             
           }
           case ContextMessages.MESSAGE_START => {
-            println("MESSAGE_STARTを受け取った	")
+            val s = new StringBuffer
+            tagValues.foreach(contents => s.append(contents))
+            println("ContextControllerがMESSAGE_STARTを受け取った  "+s)
+            
             report(ProcessOrdersMasterMessages.MESSAGE_START, tagValues)
           }
 
           case ContextMessages.MESSAGE_PROCEEDED => {
-            println("MESSAGE_PROCEEDED受け取った")
+          	val s = new StringBuffer
+            tagValues.foreach(contents => s.append(contents))
+            println("ContextControllerがMESSAGE_READYを受け取った  "+s)
+            
             report(ProcessOrdersMasterMessages.MESSAGE_PROCEEDED, tagValues)
           }
 
           case ContextMessages.MESSAGE_TIMEOUT => {
+          	val s = new StringBuffer
+            tagValues.foreach(contents => s.append(contents))
+            println("ContextControllerがMESSAGE_TIMEOUTを受け取った  "+s)
+            
           	val contextIdentity = messenger.get("contextIdentity", tagValues).asInstanceOf[String]
     		    contextOvered(contextIdentity)
             report(ProcessOrdersMasterMessages.MESSAGE_TIMEOUTED, tagValues)
           }
 
           case ContextMessages.MESSAGE_ERROR => {
+          	val s = new StringBuffer
+            tagValues.foreach(contents => s.append(contents))
+            println("ContextControllerがMESSAGE_ERRORを受け取った  "+s)
+            
           	val contextIdentity = messenger.get("contextIdentity", tagValues).asInstanceOf[String]
             contextOvered(contextIdentity)
             report(ProcessOrdersMasterMessages.MESSAGE_ERROR, tagValues)
           }
 
           case ContextMessages.MESSAGE_DONE => {
+          	val s = new StringBuffer
+            tagValues.foreach(contents => s.append(contents))
+            println("ContextControllerがMESSAGE_DONEを受け取った  "+s)
+            
             val contextIdentity = messenger.get("contextIdentity", tagValues).asInstanceOf[String]
             contextOvered(contextIdentity)
             report(ProcessOrdersMasterMessages.MESSAGE_DONE, tagValues)
@@ -87,7 +106,7 @@ class MondogrossoContextController (masterName : String) extends MessengerProtoc
           case other =>
         }
       }
-      case other => println("othe	" + other)
+      case other => println("other	" + other)
     }
   }
   
@@ -99,6 +118,12 @@ class MondogrossoContextController (masterName : String) extends MessengerProtoc
 
     println("currentMap = "+processNameToContextIdentityMap)
     println("applied  "+processNameToContextIdentityMap.apply(contextIdentity))
+
+    processNameToContextIdentityMap.get(contextIdentity) match {
+      case Some(v) => println("v  "+v)
+      case None => println("含まれてない")
+    }
+    
 
     //100件が踏みやすいバグがあるみたいなので、ここでは一時的に「ファイルに情報を吐く」ことに集中する。
     //含まれてないケースがあるみたいね。

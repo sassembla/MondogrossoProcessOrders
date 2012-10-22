@@ -4,7 +4,7 @@ import org.clapper.argot._
 import ArgotConverters._
 import java.util.UUID
 import java.io.File
-import com.kissaki.mondogrosso.mondogrossoProcessOrders.option.FileWriteReceiver
+import com.kissaki.mondogrosso.mondogrossoProcessOrders.option.WriteOnceFileWriter
 
 /**
  * ファイルからのJSON読み込みの為の機構
@@ -18,38 +18,49 @@ import com.kissaki.mondogrosso.mondogrossoProcessOrders.option.FileWriteReceiver
 object MondogrossoProcessOrders {
 	def main(args : Array[String]) :Unit = {
 		val writerId = UUID.randomUUID.toString
-		val fileWriteReceiver = new FileWriteReceiver(writerId)
+		val fileWriteReceiver = new WriteOnceFileWriter(writerId)//最終一発書き出し
 
 		//コマンドラインのパーサ
 		val argotParser = new ArgotParser("MondogrossoProcessOrders", preUsage = Some("Mondogrosso processOrder"))
 
 		//commandのソース
-		val commandSource = "exec"
-		println("commandSource  " + commandSource)
+		val commandSource = ProcessOrdersModes.MODE_DEFAULT.toString
 
+
+
+		
 		//processOrderのユーザー定義identity
 		val orderIdentitySource = argotParser.option[String](List("i", "identity"), "processOrder's append-identity", "the String of the process-order identity to identify same-name-processOrders") { (i, opt) =>
-			println("i  " + i)
-			println("i	opt  " + opt)
-			try { i.toString } catch {
-				case _ => UUID.randomUUID.toString
+			try { 
+				i.toString 
+			} catch {
+				case _ => throw new ArgotConversionException("should set filePath for -sf option")
 			}
 		}
 
 		//processOrderのソース
 		val processOrderSource = argotParser.option[String](List("p", "processorder"), "processOrder", "the String of the process-order pattern") { (p, opt) =>
-			println("p  " + p)
-			println("p	opt  " + opt)
 
-			try { p.toString } catch {
-				case _ => throw new ArgotConversionException("no input")
+			try {
+				p.toString
+			} catch {
+				case _ => throw new ArgotConversionException("no process imput, please set -p & input.")
+			}
+		}
+
+		//JSONString
+		val sourceJSONSource = argotParser.option[String](List("s", "sourcejson"), "sourceJSON", "the JSON-string-representeation of the process-order's detail JSON") { (s, opt) =>
+			try {
+				s.toString
+			} catch {
+				case _ => throw new ArgotConversionException("can not define sourceJSON description")
 			}
 		}
 
 		//JSONFile
 		val sourceJSONFile = argotParser.option[File](List("sf", "sourcejsonfile"), "sourceJSONFile", "the JSON-file-path or file of the process-order's detail JSON") { (sf, opt) =>
-			println("sf " + sf)
-			println("sf	opt  " + opt)
+			// println("sf " + sf)
+			// println("sf	opt  " + opt)
 
 			val file = new File(sf)
 			file.exists match {
@@ -57,54 +68,44 @@ object MondogrossoProcessOrders {
 					file
 				}
 				case false => {
-					null
+					throw new ArgotConversionException("should set filePath for -sf option")
 				}
 			}
 		}
 
-		//JSONString
-		val sourceJSONSource = argotParser.option[String](List("s", "sourcejson"), "sourceJSON", "the JSON-string-representeation of the process-order's detail JSON") { (s, opt) =>
-			println("s  " + s)
-			println("s	opt  " + opt)
 
-			try { s.toString } catch {
-				case _ =>
-					throw new ArgotConversionException(
-						"can not define sourceJSON description")
-			}
-		}
 
 		//ログのoutput場所の指定
 		val logOutputFile = argotParser.option[File](List("o", "outputlog"), "outputLog", "the outputlog of the process-order's result & proceed") { (o, opt) =>
-			println("o " + o)
-			println("o	opt " + opt)
-
+			// println("o " + o)
+			// println("o	opt " + opt)
 			val file = new File(o)
+
 			file.exists match {
 				case true => {
 					file
 				}
 				case false => {
 					//logファイルをデフォルト箇所に作り出す
-					println("logファイルをデフォルト箇所に作り出す")
 					file
 				}
 			}
 		}
+		// println("logOutputFile	"+logOutputFile)
 
-		println("logOutputFile	"+logOutputFile)
+
 
 		//パース
 		argotParser.parse(args)
 
-		println("orderIdentitySource	" + orderIdentitySource.value.get)
-		println("processOrderSource	" + processOrderSource.value.get)
-		println("sourceJSONSource	" + sourceJSONSource.value)
 
+		//このMondogrossoProcessOrdersのParseで作成するプロセスに対するid
 		val id = UUID.randomUUID().toString
 
+		//パース処理　processOrderSource と sourceJSONSource を使用
 		val parser = new MondogrossoProcessParser(id, processOrderSource.value.get, sourceJSONSource.value.get)
 		val parseResult = parser.parseProcess
+
 
 		/**
 		 * このパーツは完全に「外部で使う用」のコネクタの域なので、
@@ -130,8 +131,8 @@ object MondogrossoProcessOrders {
 		val contextCont = new MondogrossoContextController(writerId)
 
 		//処理
-		commandSource match {
-			case "exec" => { //デフォルト動作
+		ProcessOrdersModes.get(commandSource) match {
+			case ProcessOrdersModes.MODE_DEFAULT => { //デフォルト動作
 				
 				//アタッチ
 				contextCont.attachProcessOrders(orderIdentitySource.value.get, parseResult)
@@ -148,11 +149,11 @@ object MondogrossoProcessOrders {
 
 				contextCont.currentResultsOfContext(orderIdentitySource.value.get)
 			}
-			case "attach" => {
+			case ProcessOrdersModes.MODE_ATTACH => {
 				//アタッチ
 				contextCont.attachProcessOrders(orderIdentitySource.value.get, parseResult)				
 			}
-			case "run" => {
+			case ProcessOrdersModes.MODE_RUN => {
 				//起動
 				contextCont.runAllContext
 

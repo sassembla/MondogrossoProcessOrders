@@ -8,8 +8,7 @@ import java.io.File
 import java.io.PrintWriter
 
 
-class FileWriteReceiver(name: String) extends MessengerProtocol {
-  println("ファイル書き出し機能初期化	" + name)
+class WriteOnceFileWriter(name: String) extends MessengerProtocol {
   val messenger = new Messenger(this, name)
   val sb :ListBuffer[String] = new ListBuffer()
 
@@ -30,18 +29,18 @@ class FileWriteReceiver(name: String) extends MessengerProtocol {
   def addLog(status: String, tagValues: Array[TagValue]) = {
     val userDefinedIdentity = messenger.get("userDefinedIdentity", tagValues).asInstanceOf[String]
 
-    sb += userDefinedIdentity + " : " + status + "\n"
+    sb += userDefinedIdentity + "@" + status + "\n"
     
     val line = tagValues.toSeq
     for (tagValue <- tagValues) yield tagValue
-    tagValues.foreach { v => sb += v.toString + "\n" }
+    tagValues.foreach { v => sb += userDefinedIdentity + "@" + v.toString + "\n" }
 
-    sb += status + "/\n"
+    sb += "/"+userDefinedIdentity + "@"+ status + "\n"
 
   }
 
   /**
-   * ログ書き出し(これだと一気に吐き出されちゃうが、まあ一応。)
+   * ログ書き出し(これだと最後に一気に吐き出されちゃうが、まあ一応。)
    */
   def writeoutLog(file: File) = {
   	val writer = new PrintWriter(file)

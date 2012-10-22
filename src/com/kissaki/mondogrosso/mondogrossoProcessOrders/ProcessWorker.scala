@@ -125,7 +125,11 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 			}
 			
 			case WorkerStatus.STATUS_ERROR => {
-//				println("エラーが起こったようです")
+				println("エラーが起こったようです	"+identity)
+			}
+
+			case WorkerStatus.STATUS_TIMEOUT => {
+				println("タイムアウト発生	"+identity)
 			}
 
 			case other => println("予想外のstate	other	" + other)
