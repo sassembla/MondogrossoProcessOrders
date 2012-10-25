@@ -79,8 +79,8 @@ class MondogrossoContextController (masterName : String) extends MessengerProtoc
             println("ContextControllerがMESSAGE_TIMEOUTを受け取った  "+s)
             
           	val contextIdentity = messenger.get("contextIdentity", tagValues).asInstanceOf[String]
-    		    contextOvered(contextIdentity)
-            report(ProcessOrdersMasterMessages.MESSAGE_TIMEOUTED, tagValues)
+    		    report(ProcessOrdersMasterMessages.MESSAGE_TIMEOUTED, tagValues)
+            contextOvered(contextIdentity)
           }
 
           case ContextMessages.MESSAGE_ERROR => {
@@ -89,8 +89,8 @@ class MondogrossoContextController (masterName : String) extends MessengerProtoc
             println("ContextControllerがMESSAGE_ERRORを受け取った  "+s)
             
           	val contextIdentity = messenger.get("contextIdentity", tagValues).asInstanceOf[String]
-            contextOvered(contextIdentity)
             report(ProcessOrdersMasterMessages.MESSAGE_ERROR, tagValues)
+            contextOvered(contextIdentity)
           }
 
           case ContextMessages.MESSAGE_DONE => {
@@ -99,8 +99,8 @@ class MondogrossoContextController (masterName : String) extends MessengerProtoc
             println("ContextControllerがMESSAGE_DONEを受け取った  "+s)
             
             val contextIdentity = messenger.get("contextIdentity", tagValues).asInstanceOf[String]
-            contextOvered(contextIdentity)
             report(ProcessOrdersMasterMessages.MESSAGE_DONE, tagValues)
+            contextOvered(contextIdentity)
           }
 
           case other =>
@@ -111,7 +111,7 @@ class MondogrossoContextController (masterName : String) extends MessengerProtoc
   }
   
   /**
-  mainが提供した親へとレポートを吐き出す
+  interfaceへとレポートを吐き出す
   */
   def report (message:ProcessOrdersMasterMessages.Value, tagValues: Array[TagValue]) = {    
     val contextIdentity = messenger.get("contextIdentity", tagValues).asInstanceOf[String]
@@ -151,6 +151,7 @@ class MondogrossoContextController (masterName : String) extends MessengerProtoc
         activeContexts.isEmpty match {
           case true => {
             ContextContStatus.STATUS_EMPTY +=: statusHistory
+            messenger.callParent(ProcessOrdersMasterMessages.MESSAGE_CONTEXT_OVER.toString, null)
           }
           case false => {
             //続く
@@ -253,4 +254,5 @@ class MondogrossoContextController (masterName : String) extends MessengerProtoc
 
     targetContext.currentContextResult
   }
+
 }

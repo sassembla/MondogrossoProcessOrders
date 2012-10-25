@@ -6,22 +6,14 @@ import com.kissaki.mondogrosso.mondogrossoProcessOrders.ProcessOrdersMasterMessa
 import scala.collection.mutable.ListBuffer
 import java.io.File
 import java.io.PrintWriter
+import com.kissaki.mondogrosso.mondogrossoProcessOrders.MondogrossoContextController
 
 
 class WriteOnceFileWriter(name: String) extends MessengerProtocol {
   val messenger = new Messenger(this, name)
   val sb :ListBuffer[String] = new ListBuffer()
 
-  def receiver(exec: String, tagValues: Array[TagValue]) = {
-    ProcessOrdersMasterMessages.get(exec) match {
-      case ProcessOrdersMasterMessages.MESSAGE_READY => addLog(ProcessOrdersMasterMessages.MESSAGE_READY.toString, tagValues)
-      case ProcessOrdersMasterMessages.MESSAGE_START => addLog(ProcessOrdersMasterMessages.MESSAGE_START.toString, tagValues)
-      case ProcessOrdersMasterMessages.MESSAGE_PROCEEDED => addLog(ProcessOrdersMasterMessages.MESSAGE_PROCEEDED.toString, tagValues)
-      case ProcessOrdersMasterMessages.MESSAGE_ERROR => addLog(ProcessOrdersMasterMessages.MESSAGE_ERROR.toString, tagValues)
-      case ProcessOrdersMasterMessages.MESSAGE_TIMEOUTED => addLog(ProcessOrdersMasterMessages.MESSAGE_TIMEOUTED.toString, tagValues)
-      case ProcessOrdersMasterMessages.MESSAGE_DONE => addLog(ProcessOrdersMasterMessages.MESSAGE_DONE.toString, tagValues)
-    }
-  }
+  def receiver(exec: String, tagValues: Array[TagValue]) = {}
 
   /**
    * ログ追記
@@ -45,7 +37,7 @@ class WriteOnceFileWriter(name: String) extends MessengerProtocol {
   def writeoutLog(file: File) = {
   	val writer = new PrintWriter(file)
     sb.foreach {writer.write}
-    writer.close()
+    writer.close
   }
 
 }
