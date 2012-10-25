@@ -66,7 +66,7 @@ class MondogrossoCommandLineInterfaceTests extends Specification {
         while (interface.isAlive == 0) {
           Thread.sleep(100)
         }
-        println("とうたつしたかな")
+
 
         //結果のファイルが出来ているはず
         val source = Source.fromFile("testStandardOut.txt")
@@ -92,13 +92,13 @@ class MondogrossoCommandLineInterfaceTests extends Specification {
       //     "-s", standardJSON,
       //     "-o", "./testFinallyTimeout.txt")
 
-      //   MondogrossoProcessOrders.main(input)
-
-      //   var i = 0
-      //   while (i < 10) {
+      //   val interface = new MondogrossoCommandLineInterface
+      //   interface.input(input)
+        
+      //   while (interface.isAlive == 0) {
       //     Thread.sleep(100)
-      //     i+=1
       //   }
+
       //   //結果のファイルが出来ているはず
       //   val source = Source.fromFile("testFinallyTimeout.txt")
       //   var last = ""
@@ -123,14 +123,13 @@ class MondogrossoCommandLineInterfaceTests extends Specification {
       //     "-s", standardJSON,
       //     "-o", "./testTimeout.txt")
 
-      //   MondogrossoProcessOrders.main(input)
-
-      //   var i = 0
-      //   while (i < 10) {
+      //   val interface = new MondogrossoCommandLineInterface
+      //   interface.input(input)
+        
+      //   while (interface.isAlive == 0) {
       //     Thread.sleep(100)
-      //     i+=1
       //   }
-
+        
       //   //結果のファイルが出来ているはず
       //   val source = Source.fromFile("testTimeout.txt")
       //   var last = ""
