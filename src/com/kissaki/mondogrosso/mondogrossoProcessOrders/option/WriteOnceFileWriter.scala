@@ -19,16 +19,14 @@ class WriteOnceFileWriter(name: String) extends MessengerProtocol {
    * ログ追記
    */
   def addLog(status: String, tagValues: Array[TagValue]) = {
-    val userDefinedIdentity = messenger.get("userDefinedIdentity", tagValues).asInstanceOf[String]
-
-    sb += userDefinedIdentity + "@" + status + "\n"
+    sb += status + "\n"
     
     val line = tagValues.toSeq
     for (tagValue <- tagValues) yield tagValue
-    tagValues.foreach { v => sb += userDefinedIdentity + "@" + v.toString + "\n" }
+    tagValues.foreach { v => sb += status + "*" + v.toString + "\n" }
 
-    sb += "/"+userDefinedIdentity + "@"+ status + "\n"
-
+    sb += "/"+ status + "\n"
+    println("どうでしょう "+sb)
   }
 
   /**

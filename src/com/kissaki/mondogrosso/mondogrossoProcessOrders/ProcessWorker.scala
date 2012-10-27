@@ -112,6 +112,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 			case WorkerStatus.STATUS_DOING => {
 				
 				WorkerExecs.get(execSrc) match {
+					case WorkerExecs.EXEC_IGNITION => procIgnite(tagValues)
 					case WorkerExecs.EXEC_DONE => procDone(tagValues)
 					case other => 
 				}
@@ -139,6 +140,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 		 * いつでも発生する可能性のある外部からのイベント
 		 */
 		WorkerMessages.get(execSrc) match {
+
 			case WorkerMessages.MESSAGE_SETUP => messenger.callMyself(WorkerExecs.EXEC_SETUP.toString, tagValues)
 			
 //			//processSplitを解除する可能性がある、終了ORDERの通知
@@ -172,10 +174,10 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 	 */
 	def unlock_AfterWait(tagValues : Array[TagValue]) = {
 		//リストを空に
-		currentFinishedOrdersList.clear()
-
+		currentFinishedOrdersList.clear
+		println("MESSAGE_FINISHEDORDER_NOTIFY を受け取って unlock_AfterWait に来た	"+identity)
 		val allfinishedOrderIdentities = messenger.get("allfinishedOrderIdentities", tagValues).asInstanceOf[List[String]]
-//		println("これだけのOrderが終わったという。"	+allfinishedOrderIdentities+"	/これを、currentFinishedOrdersList	"+currentFinishedOrdersList+"	に足す")
+		println("これだけのOrderが終わったという。"	+allfinishedOrderIdentities+"	/これを、currentFinishedOrdersList	"+currentFinishedOrdersList+"	に足す")
 		//currentFinishedOrdersListに既存の完了済みOrderIdを移し替える
 		allfinishedOrderIdentities.foreach(id => currentFinishedOrdersList += id)
 
@@ -431,6 +433,17 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 	 */
 	def procUnlock(tagValues : Array[TagValue]) = tryUnlockAfterWait(currentWorkInformationHistory.head)
 
+
+	/**
+		非同期での着火(時間がかかるtaskでのロックを回避する)
+	*/
+	def procIgnite(tagValues : Array[TagValue]) = {
+		val info = messenger.get("info", tagValues).asInstanceOf[WorkInformation]
+		val stableCommand = messenger.get("stableCommand", tagValues).asInstanceOf[Seq[String]]
+		println("stableCommand 開始	"+stableCommand)
+		runProcess(info, stableCommand)
+	}
+
 	/**
 	 * DOING中の完了
 	 */
@@ -566,9 +579,11 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 				val stableCommand = Seq(OrderPrefix.RUN_PREFIX_JAVA,
 					OrderPrefix.RUN_PREFIX_JAR,
 					OrderPrefix.RUN_PREFIX_CURRENTDIR + info.localContext(OrderPrefix._main.toString) + OrderPrefix.RUN_PREFIX_DOTJAR) ++ inputKeyValueSeq
-					
+				
+				println("実行開始前1　"+stableCommand)
 				//実行
-				runProcess(info, stableCommand)
+				messenger.callMyselfWithAsync(WorkerExecs.EXEC_IGNITION.toString, messenger.tagValues(new TagValue("info", info), new TagValue("stableCommand", stableCommand)))
+				println("実行開始後1　"+stableCommand)
 			}
 
 			/*
@@ -594,7 +609,9 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 				val stableCommand = info.localContext(OrderPrefix._main.toString).split(OrderPrefix.RUN_PREFIX_WHITESPACE).toSeq ++ inputKeyValueSeq
 				
 				//実行
-				runProcess(info, stableCommand)
+				println("実行開始前2　"+stableCommand)
+				messenger.callMyselfWithAsync(WorkerExecs.EXEC_IGNITION.toString, messenger.tagValues(new TagValue("info", info), new TagValue("stableCommand", stableCommand)))
+				println("実行開始後2　"+stableCommand)
 			}
 
 			//未知の_kind

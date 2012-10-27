@@ -16,6 +16,8 @@ object WorkerExecs extends Enumeration {
 	
 	EXEC_UNLOCK_AFTERWAIT,
 	
+	EXEC_IGNITION,
+
 	EXEC_DONE,
 	EXEC_NOTFOUND
 	= Value

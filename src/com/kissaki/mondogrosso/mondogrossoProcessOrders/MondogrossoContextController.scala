@@ -60,7 +60,8 @@ class MondogrossoContextController (masterName : String) extends MessengerProtoc
           case ContextMessages.MESSAGE_START => {
             val s = new StringBuffer
             tagValues.foreach(contents => s.append(contents))
-            println("ContextControllerがMESSAGE_STARTを受け取った  "+s)
+            val identity = messenger.get("contextIdentity", tagValues).asInstanceOf[String]
+            println("ContextControllerがMESSAGE_STARTを受け取った、これはcontextのidentity  "+identity)
             
             report(ProcessOrdersMasterMessages.MESSAGE_START, tagValues)
           }
@@ -68,7 +69,8 @@ class MondogrossoContextController (masterName : String) extends MessengerProtoc
           case ContextMessages.MESSAGE_PROCEEDED => {
           	val s = new StringBuffer
             tagValues.foreach(contents => s.append(contents))
-            println("ContextControllerがMESSAGE_READYを受け取った  "+s)
+            val identity = messenger.get("contextIdentity", tagValues).asInstanceOf[String]
+            println("ContextControllerがMESSAGE_READYを受け取った、これはcontextのidentity  "+identity)
             
             report(ProcessOrdersMasterMessages.MESSAGE_PROCEEDED, tagValues)
           }
@@ -76,7 +78,8 @@ class MondogrossoContextController (masterName : String) extends MessengerProtoc
           case ContextMessages.MESSAGE_TIMEOUT => {
           	val s = new StringBuffer
             tagValues.foreach(contents => s.append(contents))
-            println("ContextControllerがMESSAGE_TIMEOUTを受け取った  "+s)
+            val identity = messenger.get("contextIdentity", tagValues).asInstanceOf[String]
+            println("ContextControllerがMESSAGE_TIMEOUTを受け取った、これはcontextのidentity  "+identity)
             
           	val contextIdentity = messenger.get("contextIdentity", tagValues).asInstanceOf[String]
     		    report(ProcessOrdersMasterMessages.MESSAGE_TIMEOUTED, tagValues)
@@ -86,7 +89,8 @@ class MondogrossoContextController (masterName : String) extends MessengerProtoc
           case ContextMessages.MESSAGE_ERROR => {
           	val s = new StringBuffer
             tagValues.foreach(contents => s.append(contents))
-            println("ContextControllerがMESSAGE_ERRORを受け取った  "+s)
+            val identity = messenger.get("contextIdentity", tagValues).asInstanceOf[String]
+            println("ContextControllerがMESSAGE_ERRORを受け取った、これはcontextのidentity  "+identity)
             
           	val contextIdentity = messenger.get("contextIdentity", tagValues).asInstanceOf[String]
             report(ProcessOrdersMasterMessages.MESSAGE_ERROR, tagValues)
@@ -96,7 +100,8 @@ class MondogrossoContextController (masterName : String) extends MessengerProtoc
           case ContextMessages.MESSAGE_DONE => {
           	val s = new StringBuffer
             tagValues.foreach(contents => s.append(contents))
-            println("ContextControllerがMESSAGE_DONEを受け取った  "+s)
+            val identity = messenger.get("contextIdentity", tagValues).asInstanceOf[String]
+            println("ContextControllerがMESSAGE_DONEを受け取った  "+identity)
             
             val contextIdentity = messenger.get("contextIdentity", tagValues).asInstanceOf[String]
             report(ProcessOrdersMasterMessages.MESSAGE_DONE, tagValues)
@@ -116,22 +121,21 @@ class MondogrossoContextController (masterName : String) extends MessengerProtoc
   def report (message:ProcessOrdersMasterMessages.Value, tagValues: Array[TagValue]) = {    
     val contextIdentity = messenger.get("contextIdentity", tagValues).asInstanceOf[String]
 
-    println("currentMap = "+processNameToContextIdentityMap)
-    println("applied  "+processNameToContextIdentityMap.apply(contextIdentity))
+    // println("currentMap = "+processNameToContextIdentityMap)
+    // println("applied  "+processNameToContextIdentityMap.apply(contextIdentity))
 
     processNameToContextIdentityMap.get(contextIdentity) match {
-      case Some(v) => println("v  "+v)
-      case None => println("含まれてない")
+      case Some(v) => 
+      case None => sys.error("含まれていない "+processNameToContextIdentityMap + " に、contextIdentity "+contextIdentity)
     }
     
-
-    //100件が踏みやすいバグがあるみたいなので、ここでは一時的に「ファイルに情報を吐く」ことに集中する。
+    println("100件が踏みやすいバグ、inside")
     //含まれてないケースがあるみたいね。
 
     //tagValuesの値に、processNameToContextIdentityMapを足す
     val newTagValues = tagValues ++ Array(new TagValue("userDefinedIdentity", processNameToContextIdentityMap.apply(contextIdentity)))
     
-    newTagValues.foreach(println)
+    newTagValues.foreach(tagVal => println("tagVal  "+tagVal))
 
     messenger.callParent(message.toString, newTagValues)
   }
@@ -183,6 +187,9 @@ class MondogrossoContextController (masterName : String) extends MessengerProtoc
 
     //コンテキスト自体をアクティブなコンテキストの集合へ加算
     activeContexts += context
+
+    
+    // println("processIdentity/identity  "+processIdentity +"  as "+identity)
 
     //attachしたContextのidentityから、ユーザー命名のidentityを取り出す
     getContextUserDefinedIdentityListFromContextIdentities(ListBuffer(processIdentity))

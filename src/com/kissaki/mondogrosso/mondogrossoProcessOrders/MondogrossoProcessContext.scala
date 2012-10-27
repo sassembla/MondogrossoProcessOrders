@@ -174,6 +174,7 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
       case OrderSettingDefault.SETTING_FINALLY_TIMEOUT_ZERO => println("thisContext = " + this + "	no timeout") //無ければ0扱い
       case _ => {
         try {
+          println("タイムアウトのセット "+delayValue)
           val timer = new Timer("context_finally_delay_" + this);
           timer.schedule(new TimerTask {
             def run = {
@@ -474,7 +475,7 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
     ContextExecs.get(execSrc) match {
       //waiterからのdelay時にまだRunningだったら
       case ContextExecs.EXEC_TIMEOUT_RUN => {
-        //				println("EXEC_TIMEOUT_RUNが発生")
+        println("EXEC_TIMEOUT_RUNが発生  "+identity)
         ContextStatus.STATUS_TIMEOUT +=: status
         comments += commentFormat(new Date, "Timeout break out.	" + identity)
 

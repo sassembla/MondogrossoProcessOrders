@@ -44,7 +44,7 @@ class MondogrossoCommandLineInterfaceTests extends Specification {
 		}
 	"""
 
-  if (true) {
+  if (false) {
     "-p　プロセス入力 と、-s　JSONソース入力 で、プロセスをアタッチして即実行する" should {
 
       "A!Z" in {
@@ -78,67 +78,67 @@ class MondogrossoCommandLineInterfaceTests extends Specification {
         last must be_==("/AtoZ@MESSAGE_DONE")
       }
 
-      // "B!Z Bが終わらない事によるfinallyのタイムアウト" in {
+      "B!Z Bが終わらない事によるfinallyのタイムアウト" in {
         
-      //   //ファイルを消す
-      //   for {
-      //     files <- Option(new File("./").listFiles)
-      //     file <- files if file.getName.startsWith("testFinallyTimeout")
-      //   } file.delete()
+        //ファイルを消す
+        for {
+          files <- Option(new File("./").listFiles)
+          file <- files if file.getName.startsWith("testFinallyTimeout")
+        } file.delete()
 
-      //   val input = Array(
-      //     "-i", "BtoZ",
-      //     "-p", "B!Z",
-      //     "-s", standardJSON,
-      //     "-o", "./testFinallyTimeout.txt")
+        val input = Array(
+          "-i", "BtoZ",
+          "-p", "B!Z",
+          "-s", standardJSON,
+          "-o", "./testFinallyTimeout.txt")
 
-      //   val interface = new MondogrossoCommandLineInterface
-      //   interface.input(input)
+        val interface = new MondogrossoCommandLineInterface
+        interface.input(input)
         
-      //   while (interface.isAlive == 0) {
-      //     Thread.sleep(100)
-      //   }
+        while (interface.isAlive == 0) {
+          Thread.sleep(100)
+        }
 
-      //   //結果のファイルが出来ているはず
-      //   val source = Source.fromFile("testFinallyTimeout.txt")
-      //   var last = ""
-      //   source.getLines.foreach{line => 
-      //   	last = line
-      //   }
+        //結果のファイルが出来ているはず
+        val source = Source.fromFile("testFinallyTimeout.txt")
+        var last = ""
+        source.getLines.foreach{line => 
+        	last = line
+        }
         
-      //   last must be_==("/BtoZ@MESSAGE_TIMEOUTED")
-      // }
+        last must be_==("/BtoZ@MESSAGE_TIMEOUTED")
+      }
 
-      // "C!Z Cが自分自身でタイムアウト" in {
+      "C!Z Cが自分自身でタイムアウト" in {
 
-      //   //ファイルを消す
-      //   for {
-      //     files <- Option(new File("./").listFiles)
-      //     file <- files if file.getName.startsWith("testTimeout")
-      //   } file.delete()
+        //ファイルを消す
+        for {
+          files <- Option(new File("./").listFiles)
+          file <- files if file.getName.startsWith("testTimeout")
+        } file.delete()
 
-      //   val input = Array(
-      //     "-i", "CtoZ",
-      //     "-p", "C!Z",
-      //     "-s", standardJSON,
-      //     "-o", "./testTimeout.txt")
+        val input = Array(
+          "-i", "CtoZ",
+          "-p", "C!Z",
+          "-s", standardJSON,
+          "-o", "./testTimeout.txt")
 
-      //   val interface = new MondogrossoCommandLineInterface
-      //   interface.input(input)
+        val interface = new MondogrossoCommandLineInterface
+        interface.input(input)
         
-      //   while (interface.isAlive == 0) {
-      //     Thread.sleep(100)
-      //   }
+        while (interface.isAlive == 0) {
+          Thread.sleep(100)
+        }
         
-      //   //結果のファイルが出来ているはず
-      //   val source = Source.fromFile("testTimeout.txt")
-      //   var last = ""
-      //   source.getLines.foreach{line => 
-      //   	last = line
-      //   }
+        //結果のファイルが出来ているはず
+        val source = Source.fromFile("testTimeout.txt")
+        var last = ""
+        source.getLines.foreach{line => 
+        	last = line
+        }
         
-      //   last must be_==("/CtoZ@MESSAGE_TIMEOUTED")
-      // }
+        last must be_==("/CtoZ@MESSAGE_TIMEOUTED")
+      }
     }
   }
 

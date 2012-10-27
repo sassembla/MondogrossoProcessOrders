@@ -8,9 +8,18 @@ import com.kissaki.mondogrosso.mondogrossoProcessOrders.option.WriteOnceFileWrit
 import com.kissaki.MessengerProtocol
 import com.kissaki.Messenger
 import com.kissaki.TagValue
+ // import scala.concurrent._
+ // import ExecutionContext.Implicits.global
+//import scala.actors.Future
+
 
 class MondogrossoCommandLineInterface extends MessengerProtocol {
-	var status : Int = 0
+	 var status:Int = _ 
+	// val firstOccurence: Future[Int] = future {
+	//   val source = scala.io.Source.fromFile("myText.txt")
+	//   source.toSeq.indexOfSlice("myKeyword")
+	// }
+//	firstOccurence.//
 	
   val identity = UUID.randomUUID.toString
   val messenger = new Messenger(this, identity)
@@ -22,12 +31,31 @@ class MondogrossoCommandLineInterface extends MessengerProtocol {
 
   def receiver(exec: String, tagValues: Array[TagValue]) = {
     ProcessOrdersMasterMessages.get(exec) match {
-      case ProcessOrdersMasterMessages.MESSAGE_READY => fileWriteReceiver.addLog(ProcessOrdersMasterMessages.MESSAGE_READY.toString, tagValues)
-      case ProcessOrdersMasterMessages.MESSAGE_START => fileWriteReceiver.addLog(ProcessOrdersMasterMessages.MESSAGE_START.toString, tagValues)
-      case ProcessOrdersMasterMessages.MESSAGE_PROCEEDED => fileWriteReceiver.addLog(ProcessOrdersMasterMessages.MESSAGE_PROCEEDED.toString, tagValues)
-      case ProcessOrdersMasterMessages.MESSAGE_ERROR => fileWriteReceiver.addLog(ProcessOrdersMasterMessages.MESSAGE_ERROR.toString, tagValues)
-      case ProcessOrdersMasterMessages.MESSAGE_TIMEOUTED => fileWriteReceiver.addLog(ProcessOrdersMasterMessages.MESSAGE_TIMEOUTED.toString, tagValues)
-      case ProcessOrdersMasterMessages.MESSAGE_DONE => fileWriteReceiver.addLog(ProcessOrdersMasterMessages.MESSAGE_DONE.toString, tagValues)
+      case ProcessOrdersMasterMessages.MESSAGE_READY => {
+        val userDefinedIdentity = messenger.get("userDefinedIdentity", tagValues).asInstanceOf[String] + "@" + ProcessOrdersMasterMessages.MESSAGE_READY.toString
+        fileWriteReceiver.addLog(userDefinedIdentity, tagValues)
+      }
+      case ProcessOrdersMasterMessages.MESSAGE_START => {
+        val userDefinedIdentity = messenger.get("userDefinedIdentity", tagValues).asInstanceOf[String] + "@" + ProcessOrdersMasterMessages.MESSAGE_START.toString
+        fileWriteReceiver.addLog(userDefinedIdentity, tagValues)
+      }
+      case ProcessOrdersMasterMessages.MESSAGE_PROCEEDED => {
+        val userDefinedIdentity = messenger.get("userDefinedIdentity", tagValues).asInstanceOf[String] + "@" + ProcessOrdersMasterMessages.MESSAGE_PROCEEDED.toString
+        fileWriteReceiver.addLog(userDefinedIdentity, tagValues)
+      }
+      case ProcessOrdersMasterMessages.MESSAGE_ERROR => {
+        val userDefinedIdentity = messenger.get("userDefinedIdentity", tagValues).asInstanceOf[String] + "@" + ProcessOrdersMasterMessages.MESSAGE_ERROR.toString
+        fileWriteReceiver.addLog(userDefinedIdentity, tagValues)
+      }
+
+      case ProcessOrdersMasterMessages.MESSAGE_TIMEOUTED => {
+        val userDefinedIdentity = messenger.get("userDefinedIdentity", tagValues).asInstanceOf[String] + "@" + ProcessOrdersMasterMessages.MESSAGE_TIMEOUTED.toString
+        fileWriteReceiver.addLog(userDefinedIdentity, tagValues)
+      }
+      case ProcessOrdersMasterMessages.MESSAGE_DONE => {
+        val userDefinedIdentity = messenger.get("userDefinedIdentity", tagValues).asInstanceOf[String] + "@" + ProcessOrdersMasterMessages.MESSAGE_DONE.toString
+        fileWriteReceiver.addLog(userDefinedIdentity, tagValues)
+      }
 
       case ProcessOrdersMasterMessages.MESSAGE_CONTEXT_OVER => {
         fileWriteReceiver.writeoutLog(logOutputFile.value.get)

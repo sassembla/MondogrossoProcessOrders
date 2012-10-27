@@ -3,19 +3,32 @@ import com.kissaki.MessengerProtocol
 import com.kissaki.Messenger
 import com.kissaki.TagValue
 import java.util.UUID
+import com.kissaki.mondogrosso.mondogrossoProcessOrders.option.WriteOnceFileWriter
+import java.io.File
 
 /**
  * Worker挙動のテストのためのMessenger
  */
-class DummyWorkerParent extends MessengerProtocol {
-	
+class DummyWorkerParent(testName:String) extends MessengerProtocol {
 	val uuid = UUID.randomUUID().toString
-	
 	val messenger = new Messenger(this, uuid)
 	def name = messenger.getName
 
+	val fileWriteReceiver = new WriteOnceFileWriter(uuid) //最終一発書き出し
+	
+	def outputLog = {
+		val path = "workerTestLogs/"+testName+".text"
+		val file : File = new File(path)
+		fileWriteReceiver.writeoutLog(file)
+	}
+
+
 	def receiver(exec:String, tagValues:Array[TagValue]) = {
+		
 		println("DummyParent exec	"+exec)
+		
+		fileWriteReceiver.addLog(testName+"@"+exec, tagValues)
+
 		exec match {
 			case "wait" => {
 				val id = messenger.get("delayId", tagValues).asInstanceOf[String]
@@ -25,6 +38,7 @@ class DummyWorkerParent extends MessengerProtocol {
 				Thread.sleep(delay)
 				println("dummyParent wake from sleep	"+id)
 			}
+
 			case other => {
 				val messagesExec = WorkerMessages.get(other)
 				messagesExec match {

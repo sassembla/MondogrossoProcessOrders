@@ -10,6 +10,7 @@ package com.kissaki.mondogrosso.mondogrossoProcessOrders
  * 					オーダーの解釈
  * 					JSON文字列からの実行
  */
+
 object MondogrossoProcessOrders {
 	def main(args : Array[String]) :Unit = {
 		println("来ました")	
