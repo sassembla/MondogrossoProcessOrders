@@ -76,6 +76,39 @@ class ProcessWorkerTests extends Specification {
 							}
 						}"""
 
+  //Safari起動
+  if (true) {
+    "Safari起動" should {
+      "Safari起動実行" in {
+        //擬似的に親を生成する
+
+
+        val dummyParent = new DummyWorkerParent("Safari起動")
+        
+        val workerId = UUID.randomUUID().toString
+        val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
+        
+        Seq(WorkerMessages.MESSAGE_SETUP.toString, WorkerMessages.MESSAGE_START.toString).foreach { exec =>
+          
+          dummyParent.messenger.call(workerId, exec,
+            dummyParent.messenger.tagValues(
+              new TagValue("identity", "A"),
+              new TagValue("processSplitIds", List()),
+              new TagValue("afterWaitIds", List()),
+              new TagValue("context", Map(
+                OrderPrefix._kind.toString -> "sh",
+                OrderPrefix._main.toString -> "open -a Safari.app /Applications/eclipseScala/scalaworkspace/MondogrossoProcessOrders/build/reports/tests/index.html"))))
+          println("えっえっ "+exec)
+        }
+
+        timeoutOrDoneOrAfterWait("Workerを実行後、完了したのでDone状態", worker, dummyParent)
+
+        //実行され、ステータスがDONEになる
+        worker.currentStatus.head must be_==(WorkerStatus.STATUS_DONE)
+        dummyParent.outputLog
+      }
+    }
+  }
   //Worker
   if (true) {
     "Worker" should {
@@ -109,68 +142,69 @@ class ProcessWorkerTests extends Specification {
         dummyParent.outputLog
       }
 
-      // "Workerを実行後、完了したので親にそのログが残る" in {
+      "Workerを実行後、完了したので親にそのログが残る" in {
 
-      // 	//擬似的に親を生成する
-      // 	val dummyParent = new DummyWorkerParent("Workerを実行後、完了したので親にそのログが残る")
+      	//擬似的に親を生成する
+      	val dummyParent = new DummyWorkerParent("Workerを実行後、完了したので親にそのログが残る")
 
-      // 	val workerId = UUID.randomUUID().toString
-      // 	val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
+      	val workerId = UUID.randomUUID().toString
+      	val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
 
-      // 	Seq(WorkerMessages.MESSAGE_SETUP.toString,WorkerMessages.MESSAGE_START.toString).foreach {exec =>
-      // 		dummyParent.messenger.call(workerId, exec,
-      // 			dummyParent.messenger.tagValues(
-      // 				new TagValue("identity", "A"),
-      // 				new TagValue("processSplitIds",List()),
-      // 				new TagValue("afterWaitIds", List()),
-      // 				new TagValue("context", Map(
-      // 					OrderPrefix._kind.toString -> "sh",
-      // 					OrderPrefix._main.toString -> "ls -l"))))
-      // 	}
+      	Seq(WorkerMessages.MESSAGE_SETUP.toString,WorkerMessages.MESSAGE_START.toString).foreach {exec =>
+      		dummyParent.messenger.call(workerId, exec,
+      			dummyParent.messenger.tagValues(
+      				new TagValue("identity", "A"),
+      				new TagValue("processSplitIds",List()),
+      				new TagValue("afterWaitIds", List()),
+      				new TagValue("context", Map(
+      					OrderPrefix._kind.toString -> "sh",
+      					OrderPrefix._main.toString -> "ls -l"))))
+      	}
 
-      // 	timeoutOrDoneOrAfterWait("Workerを実行後、完了したので親にそのログが残る", worker, dummyParent)
+      	timeoutOrDoneOrAfterWait("Workerを実行後、完了したので親にそのログが残る", worker, dummyParent)
 
-      // 	val latestWork = worker.getLatestWorkInformation
+      	val latestWork = worker.getLatestWorkInformation
 
-      // 	val currentFinishedWorkerIdentity = worker.workerIdentity
-      // 	val currentFinishedOrderIdentity = latestWork.orderIdentity
+      	val currentFinishedWorkerIdentity = worker.workerIdentity
+      	val currentFinishedOrderIdentity = latestWork.orderIdentity
 
-      // 	//親側にlogが残る
-      // 	dummyParent.messenger.getLog.contains(currentFinishedWorkerIdentity + currentFinishedOrderIdentity) must beTrue
-      // 	dummyParent.outputLog
-      // }
+      	//親側にlogが残る
+      	dummyParent.messenger.getLog.contains(currentFinishedWorkerIdentity + currentFinishedOrderIdentity) must beTrue
+      	dummyParent.outputLog
+      }
 
-      // "Workerを実行後、完了したので、次のOrderをリクエスト" in {
+      "Workerを実行後、完了したので、次のOrderをリクエスト" in {
 
-      // 	//擬似的に親を生成する
-      // 	val dummyParent = new DummyWorkerParent("Workerを実行後、完了したので、次のOrderをリクエスト")
+      	//擬似的に親を生成する
+      	val dummyParent = new DummyWorkerParent("Workerを実行後、完了したので、次のOrderをリクエスト")
 
-      // 	val workerId = UUID.randomUUID().toString
-      // 	val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
-      // 	Seq(WorkerMessages.MESSAGE_SETUP.toString,WorkerMessages.MESSAGE_START.toString).foreach {exec =>
-      // 		dummyParent.messenger.call(workerId, exec,
-      // 			dummyParent.messenger.tagValues(
-      // 				new TagValue("identity", "A"),
-      // 				new TagValue("processSplitIds",List()),
-      // 				new TagValue("afterWaitIds", List()),
-      // 				new TagValue("context", Map(
-      // 					OrderPrefix._kind.toString -> "sh",
-      // 					OrderPrefix._main.toString -> "ls -l"))))
-      // 	}
+      	val workerId = UUID.randomUUID().toString
+      	val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
+      	Seq(WorkerMessages.MESSAGE_SETUP.toString,WorkerMessages.MESSAGE_START.toString).foreach {exec =>
+      		dummyParent.messenger.call(workerId, exec,
+      			dummyParent.messenger.tagValues(
+      				new TagValue("identity", "A"),
+      				new TagValue("processSplitIds",List()),
+      				new TagValue("afterWaitIds", List()),
+      				new TagValue("context", Map(
+      					OrderPrefix._kind.toString -> "sh",
+      					OrderPrefix._main.toString -> "ls -l"))))
+      	}
 
-      // 	timeoutOrDoneOrAfterWait("Workerを実行後、完了したので、次のOrderをリクエスト", worker, dummyParent)
+      	timeoutOrDoneOrAfterWait("Workerを実行後、完了したので、次のOrderをリクエスト", worker, dummyParent)
 
-      // 	val latestWork = worker.getLatestWorkInformation
+      	val latestWork = worker.getLatestWorkInformation
 
-      // 	val processIdentity = worker.workerIdentity
-      // 	val finishedOrderIdentity = latestWork.orderIdentity
+      	val processIdentity = worker.workerIdentity
+      	val finishedOrderIdentity = latestWork.orderIdentity
 
-      // 	//ダミーの親に、Orderのリクエスト通知がある
-      // 	dummyParent.messenger.getLog.contains(processIdentity + finishedOrderIdentity) must beTrue
-      // 	dummyParent.outputLog
-      // }
+      	//ダミーの親に、Orderのリクエスト通知がある
+      	dummyParent.messenger.getLog.contains(processIdentity + finishedOrderIdentity) must beTrue
+      	dummyParent.outputLog
+      }
     }
   }
+
 
   //Worker Delay
   if (false) {

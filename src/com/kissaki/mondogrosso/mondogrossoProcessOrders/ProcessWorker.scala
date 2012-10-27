@@ -52,12 +52,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 			/*
 			 * 開始が来るのを待っている、初期化待ち状態
 			 */
-			case WorkerStatus.STATUS_EMPTY => {
-				WorkerExecs.get(execSrc) match {
-					case WorkerExecs.EXEC_SETUP => procSetUp(tagValues)
-					case other =>
-				}
-			}
+			case WorkerStatus.STATUS_EMPTY => 
 			
 			/*
 			 * 初期化済みからの開始
@@ -118,12 +113,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 				}
 			}
 
-			case WorkerStatus.STATUS_DONE => {
-				WorkerExecs.get(execSrc) match {
-					case WorkerExecs.EXEC_SETUP => procSetUp(tagValues)
-					case other => 
-				}
-			}
+			case WorkerStatus.STATUS_DONE => 
 			
 			case WorkerStatus.STATUS_ERROR => {
 				println("エラーが起こったようです	"+identity)
@@ -141,7 +131,13 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 		 */
 		WorkerMessages.get(execSrc) match {
 
-			case WorkerMessages.MESSAGE_SETUP => messenger.callMyself(WorkerExecs.EXEC_SETUP.toString, tagValues)
+			case WorkerMessages.MESSAGE_SETUP => {
+				currentStatus.head match {
+					case WorkerStatus.STATUS_EMPTY => procSetUp(tagValues)
+					case WorkerStatus.STATUS_DONE => procSetUp(tagValues)
+					case _ => 
+				}
+			}
 			
 //			//processSplitを解除する可能性がある、終了ORDERの通知
 //			case WorkerMessages.MESSAGE_FINISHEDORDER_NOTIFY => procRestart(tagValues)
@@ -181,7 +177,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 		//currentFinishedOrdersListに既存の完了済みOrderIdを移し替える
 		allfinishedOrderIdentities.foreach(id => currentFinishedOrdersList += id)
 
-		messenger.callMyself(WorkerExecs.EXEC_UNLOCK_AFTERWAIT.toString, tagValues)
+		messenger.callMyselfWithAsync(WorkerExecs.EXEC_UNLOCK_AFTERWAIT.toString, tagValues)
 	}
 
 	/**
@@ -284,7 +280,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 		val currentAddedOrderInfo = new WorkInformation(orderIdentity, orderContext, afterWaitIds)
 		WorkerStatus.STATUS_READY +=: currentStatus
 		
-		messenger.callMyself(WorkerExecs.EXEC_READY_TIMEOUT.toString, messenger.tagValues(
+		messenger.callMyselfWithAsync(WorkerExecs.EXEC_READY_TIMEOUT.toString, messenger.tagValues(
 			new TagValue("orderIdentity", orderIdentity),
 			new TagValue("orderContext", orderContext),
 			new TagValue("currentAddedOrderInfo", currentAddedOrderInfo)))
@@ -305,7 +301,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 			//Masterへの開始リクエストを行う
 			val nextOrder = currentWorkInformationHistory.head.orderIdentity
 			
-			messenger.callParent(WorkerMessages.MESSAGE_REQUEST_SPECIFY.toString,
+			messenger.callParentWithAsync(WorkerMessages.MESSAGE_REQUEST_SPECIFY.toString,
 					messenger.tagValues(
 							new TagValue("workerIdentity", identity),
 							new TagValue("requestOrderIdentity",nextOrder)
@@ -334,7 +330,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 		}
 
 		//セットが終わったのでRUNを実行
-		messenger.callMyself(WorkerExecs.EXEC_READY_RUN.toString, tagValues)
+		messenger.callMyselfWithAsync(WorkerExecs.EXEC_READY_RUN.toString, tagValues)
 	}
 
 	/**
@@ -352,7 +348,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 		orderContext.contains(OrderPrefix.__delay.toString) match {
 			case true => {
 				//非同期動作開始の通知
-				messenger.callParent(WorkerMessages.MESSAGE_ASYNCRONOUSLY_STARTED.toString,
+				messenger.callParentWithAsync(WorkerMessages.MESSAGE_ASYNCRONOUSLY_STARTED.toString,
 					messenger.tagValues(new TagValue("workerIdentity", identity),
 						new TagValue("orderIdentity", orderIdentity)))
 
@@ -361,7 +357,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 			}
 			case false => {
 				//動作開始の通知
-				messenger.callParent(WorkerMessages.MESSAGE_SYNCRONOUSLY_STARTED.toString,
+				messenger.callParentWithAsync(WorkerMessages.MESSAGE_SYNCRONOUSLY_STARTED.toString,
 					messenger.tagValues(new TagValue("workerIdentity", identity),
 						new TagValue("orderIdentity", orderIdentity)))
 				doWork(currentAddedOrderInfo)
@@ -458,7 +454,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 		new WorkInformation(info.orderIdentity, eventualContext, info.afterWaitIds) +=: currentWorkInformationHistory
 
 		//親に終了を通知
-		messenger.callParent(WorkerMessages.MESSAGE_DONE.toString,
+		messenger.callParentWithAsync(WorkerMessages.MESSAGE_DONE.toString,
 			messenger.tagValues(
 				new TagValue("identity", identity),
 				new TagValue("orderIdentity", info.orderIdentity),
@@ -650,7 +646,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 			val result = out.toString
 //			println("result	"+result+"	/out	"+out.toString+"	/err	"+err)
 			
-			messenger.callMyself(WorkerExecs.EXEC_DONE.toString,
+			messenger.callMyselfWithAsync(WorkerExecs.EXEC_DONE.toString,
 				messenger.tagValues(
 					new TagValue("result", result),
 					new TagValue("info", info)))
@@ -678,7 +674,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 		new WorkInformation(info.orderIdentity, errorContext, info.afterWaitIds) +=: currentWorkInformationHistory
 
 		//親に終了を通知
-		messenger.callParent(WorkerMessages.MESSAGE_ERROR.toString,
+		messenger.callParentWithAsync(WorkerMessages.MESSAGE_ERROR.toString,
 			messenger.tagValues(
 				new TagValue("erroredWorkerIdentity", identity),
 				new TagValue("erroredOrderIdentity", info.orderIdentity),
