@@ -15,7 +15,7 @@ class ProcessWorkerTests extends Specification {
   /**
    * タイムアウト入りの完了ステータスを計る関数
    */
-  def timeoutOrDoneOrAfterWait(identity: String, worker: ProcessWorker, dummyParent: DummyWorkerParent, limit: Int = 100) = {
+  def timeoutOrDoneOrAfterWait(identity: String, worker: ProcessWorker, dummyParent: DummyWorkerParent, limit: Int = 10) = {
     var i = 0
     println("OrDoneOrAfterWait開始	" + identity)
     while (!worker.currentStatus.head.equals(WorkerStatus.STATUS_DONE) &&
@@ -24,6 +24,8 @@ class ProcessWorkerTests extends Specification {
       !worker.currentStatus.head.equals(WorkerStatus.STATUS_ERROR) && i < limit) {
       i += 1
       println("OrDoneOrAfterWait waiting	" + identity + "	/" + i + " of " + limit)
+      val tagValues = dummyParent.messenger.tagValues(new TagValue("no", "mean"))
+      dummyParent.messenger.call(dummyParent.writerId, "addLog", dummyParent.messenger.tagValues(new TagValue("status", "lossTime"), new TagValue("tagValues", tagValues)))
       Thread.sleep(100)
     }
     if (limit == i) {
@@ -98,7 +100,7 @@ class ProcessWorkerTests extends Specification {
               new TagValue("context", Map(
                 OrderPrefix._kind.toString -> "sh",
                 OrderPrefix._main.toString -> "open -a Safari.app /Applications/eclipseScala/scalaworkspace/MondogrossoProcessOrders/build/reports/tests/index.html"))))
-          println("えっえっ "+exec)
+          
         }
 
         timeoutOrDoneOrAfterWait("Workerを実行後、完了したのでDone状態", worker, dummyParent)
@@ -132,7 +134,6 @@ class ProcessWorkerTests extends Specification {
               new TagValue("context", Map(
                 OrderPrefix._kind.toString -> "sh",
                 OrderPrefix._main.toString -> "ls -l"))))
-          println("えっえっ	"+exec)
         }
 
         timeoutOrDoneOrAfterWait("Workerを実行後、完了したのでDone状態", worker, dummyParent)
@@ -207,7 +208,7 @@ class ProcessWorkerTests extends Specification {
 
 
   //Worker Delay
-  if (false) {
+  if (true) {
     "Worker　非同期" should {
 
       "Workerを非同期で実行" in {
@@ -341,7 +342,7 @@ class ProcessWorkerTests extends Specification {
   }
 
   //Worker Timeout
-  if (false) {
+  if (true) {
     "Worker タイムアウト" should {
 
       "Workerを同期で実行、タイムアウト" in {
@@ -511,7 +512,7 @@ class ProcessWorkerTests extends Specification {
   }
 
   //Worker Cancel
-  if (false) {
+  if (true) {
     "Worker Cancel" should {
 
       "同期でのタイムアウトのキャンセル" in {
@@ -592,7 +593,7 @@ class ProcessWorkerTests extends Specification {
   }
 
   //Worker Error
-  if (false) {
+  if (true) {
     "Worker エラー" should {
 
       "__timeoutの値がセットされていない、実行前エラー" in {
@@ -789,7 +790,7 @@ class ProcessWorkerTests extends Specification {
   }
 
   //Worker OrderRun
-  if (false) {
+  if (true) {
     "Worker Order実行" should {
 
       "Workerでshellを実行" in {
@@ -1014,7 +1015,7 @@ class ProcessWorkerTests extends Specification {
   }
 
   //Worker processSplit Wait
-  if (false) {
+  if (true) {
     "Worker Order実行　processSplit付き" should {
 
       "processSplit	Workerにwaitが存在するOrderを渡し、待たせる" in {
@@ -1107,7 +1108,7 @@ class ProcessWorkerTests extends Specification {
   }
 
   //Order後のwait afterWaitについて
-  if (false) {
+  if (true) {
     "AfterWait" should {
 
       "waitに入ってからFinishedが来る" in {

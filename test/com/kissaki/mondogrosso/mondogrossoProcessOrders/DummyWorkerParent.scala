@@ -3,31 +3,32 @@ import com.kissaki.MessengerProtocol
 import com.kissaki.Messenger
 import com.kissaki.TagValue
 import java.util.UUID
-import com.kissaki.mondogrosso.mondogrossoProcessOrders.option.WriteOnceFileWriter
+import com.kissaki.mondogrosso.mondogrossoProcessOrders.fileWriters.AppendFileWriter
 import java.io.File
 
 /**
  * Worker挙動のテストのためのMessenger
  */
 class DummyWorkerParent(testName:String) extends MessengerProtocol {
-	val uuid = UUID.randomUUID().toString
-	val messenger = new Messenger(this, uuid)
+
+	val myUuid = UUID.randomUUID().toString
+	val messenger = new Messenger(this, myUuid)
 	def name = messenger.getName
 
-	val fileWriteReceiver = new WriteOnceFileWriter(uuid) //最終一発書き出し
-	
-	def outputLog = {
-		val path = "workerTestLogs/"+testName+".text"
-		val file : File = new File(path)
-		fileWriteReceiver.writeoutLog(file)
-	}
+	val writerId = UUID.randomUUID().toString
+	val fileWriteReceiver = new AppendFileWriter(writerId, myUuid, "workerTestLogs/"+testName+".text")
 
+	/**
+		AppendFileWriterを使っているので、完了時に閉じる。
+	*/
+	def outputLog = {
+		messenger.call(writerId, "wtiteOut", null)
+	}
 
 	def receiver(exec:String, tagValues:Array[TagValue]) = {
 		
-		println("DummyParent exec	"+exec)
-		
-		fileWriteReceiver.addLog(testName+"@"+exec, tagValues)
+		// println("DummyParent exec	"+exec)
+		messenger.call(writerId, "addLog", messenger.tagValues(new TagValue("status", testName+"@"+exec), new TagValue("tagValues",tagValues)))
 
 		exec match {
 			case "wait" => {
@@ -86,17 +87,5 @@ class DummyWorkerParent(testName:String) extends MessengerProtocol {
 				}
 			}
 		}
-	}
-}
-
-/**
- * Context挙動のテストのためのMessenger
- */
-class DummyChild extends MessengerProtocol {
-	val messenger = new Messenger(this, "DUMMY_CHILD")
-	def setParent(parentName:String) = messenger.inputParent(parentName)
-	
-	def receiver(exec:String, tagValues:Array[TagValue]) = {
-		println("DummyChild	exec	"+exec)
 	}
 }

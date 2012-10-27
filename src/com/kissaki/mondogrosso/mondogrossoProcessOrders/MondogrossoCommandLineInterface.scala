@@ -4,7 +4,7 @@ import org.clapper.argot._
 import ArgotConverters._
 import java.util.UUID
 import java.io.File
-import com.kissaki.mondogrosso.mondogrossoProcessOrders.option.WriteOnceFileWriter
+import com.kissaki.mondogrosso.mondogrossoProcessOrders.fileWriters.WriteOnceFileWriter
 import com.kissaki.MessengerProtocol
 import com.kissaki.Messenger
 import com.kissaki.TagValue
@@ -25,7 +25,7 @@ class MondogrossoCommandLineInterface extends MessengerProtocol {
   val messenger = new Messenger(this, identity)
 
   val writerId = UUID.randomUUID.toString
-  val fileWriteReceiver = new WriteOnceFileWriter(writerId) //最終一発書き出し
+  val fileWriteReceiver = new WriteOnceFileWriter(writerId, identity) //最終一発書き出し
 
   var logOutputFile: org.clapper.argot.SingleValueOption[java.io.File] = _
 
@@ -33,32 +33,33 @@ class MondogrossoCommandLineInterface extends MessengerProtocol {
     ProcessOrdersMasterMessages.get(exec) match {
       case ProcessOrdersMasterMessages.MESSAGE_READY => {
         val userDefinedIdentity = messenger.get("userDefinedIdentity", tagValues).asInstanceOf[String] + "@" + ProcessOrdersMasterMessages.MESSAGE_READY.toString
-        fileWriteReceiver.addLog(userDefinedIdentity, tagValues)
+        messenger.call(writerId, "addLog", messenger.tagValues(new TagValue("title", userDefinedIdentity), new TagValue("tagValues", tagValues)))
       }
       case ProcessOrdersMasterMessages.MESSAGE_START => {
         val userDefinedIdentity = messenger.get("userDefinedIdentity", tagValues).asInstanceOf[String] + "@" + ProcessOrdersMasterMessages.MESSAGE_START.toString
-        fileWriteReceiver.addLog(userDefinedIdentity, tagValues)
+        messenger.call(writerId, "addLog", messenger.tagValues(new TagValue("title", userDefinedIdentity), new TagValue("tagValues", tagValues)))
       }
       case ProcessOrdersMasterMessages.MESSAGE_PROCEEDED => {
         val userDefinedIdentity = messenger.get("userDefinedIdentity", tagValues).asInstanceOf[String] + "@" + ProcessOrdersMasterMessages.MESSAGE_PROCEEDED.toString
-        fileWriteReceiver.addLog(userDefinedIdentity, tagValues)
+        messenger.call(writerId, "addLog", messenger.tagValues(new TagValue("title", userDefinedIdentity), new TagValue("tagValues", tagValues)))
       }
       case ProcessOrdersMasterMessages.MESSAGE_ERROR => {
         val userDefinedIdentity = messenger.get("userDefinedIdentity", tagValues).asInstanceOf[String] + "@" + ProcessOrdersMasterMessages.MESSAGE_ERROR.toString
-        fileWriteReceiver.addLog(userDefinedIdentity, tagValues)
+        messenger.call(writerId, "addLog", messenger.tagValues(new TagValue("title", userDefinedIdentity), new TagValue("tagValues", tagValues)))
       }
 
       case ProcessOrdersMasterMessages.MESSAGE_TIMEOUTED => {
         val userDefinedIdentity = messenger.get("userDefinedIdentity", tagValues).asInstanceOf[String] + "@" + ProcessOrdersMasterMessages.MESSAGE_TIMEOUTED.toString
-        fileWriteReceiver.addLog(userDefinedIdentity, tagValues)
+        messenger.call(writerId, "addLog", messenger.tagValues(new TagValue("title", userDefinedIdentity), new TagValue("tagValues", tagValues)))
       }
       case ProcessOrdersMasterMessages.MESSAGE_DONE => {
         val userDefinedIdentity = messenger.get("userDefinedIdentity", tagValues).asInstanceOf[String] + "@" + ProcessOrdersMasterMessages.MESSAGE_DONE.toString
-        fileWriteReceiver.addLog(userDefinedIdentity, tagValues)
+        messenger.call(writerId, "addLog", messenger.tagValues(new TagValue("title", userDefinedIdentity), new TagValue("tagValues", tagValues)))
       }
 
       case ProcessOrdersMasterMessages.MESSAGE_CONTEXT_OVER => {
-        fileWriteReceiver.writeoutLog(logOutputFile.value.get)
+        messenger.call(writerId, "wtiteOut", messenger.tagValues(new TagValue("fileName", logOutputFile.value.get)))
+        
         status = 1
       }
       case _ =>
