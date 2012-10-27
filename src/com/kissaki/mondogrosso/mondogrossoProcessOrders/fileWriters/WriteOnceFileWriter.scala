@@ -1,4 +1,4 @@
-package com.kissaki.mondogrosso.mondogrossoProcessOrders.option
+package com.kissaki.mondogrosso.mondogrossoProcessOrders.fileWriters
 import com.kissaki.Messenger
 import com.kissaki.MessengerProtocol
 import com.kissaki.TagValue
@@ -9,11 +9,24 @@ import java.io.PrintWriter
 import com.kissaki.mondogrosso.mondogrossoProcessOrders.MondogrossoContextController
 
 
-class WriteOnceFileWriter(name: String) extends MessengerProtocol {
+class WriteOnceFileWriter(name: String, masterName:String) extends MessengerProtocol {
   val messenger = new Messenger(this, name)
   val sb :ListBuffer[String] = new ListBuffer()
+  
+  messenger.inputParent(masterName)
 
-  def receiver(exec: String, tagValues: Array[TagValue]) = {}
+  def receiver(exec: String, tagValues: Array[TagValue]) = {
+    if (exec.equals("addLog")) {
+      val status = messenger.get("status", tagValues).asInstanceOf[String]
+      val messagesTagValues = messenger.get("tagValues", tagValues).asInstanceOf[Array[TagValue]]
+      addLog(status, messagesTagValues)
+    }
+
+    if (exec.equals("wtiteOut")) {
+      val filePath = messenger.get("fileName", tagValues).asInstanceOf[String]
+      writeoutLog(filePath)
+    }
+  }
 
   /**
    * ログ追記
@@ -26,13 +39,13 @@ class WriteOnceFileWriter(name: String) extends MessengerProtocol {
     tagValues.foreach { v => sb += status + "*" + v.toString + "\n" }
 
     sb += "/"+ status + "\n"
-    println("どうでしょう "+sb)
   }
 
   /**
-   * ログ書き出し(これだと最後に一気に吐き出されちゃうが、まあ一応。)
+   * ログ書き出し
    */
-  def writeoutLog(file: File) = {
+  def writeoutLog(filePath: String) = {
+    val file : File = new File(filePath)
   	val writer = new PrintWriter(file)
     sb.foreach {writer.write}
     writer.close
