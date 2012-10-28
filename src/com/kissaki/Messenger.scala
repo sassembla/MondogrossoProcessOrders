@@ -225,6 +225,7 @@ class Messenger(myself : MessengerProtocol, nameInput : String) {
 	 */
 	def get(tag : String, tagvalues : Array[TagValue]) = {
 		val ret = for (tagValue <- tagvalues.withFilter(_.m_tag.equals(tag))) yield tagValue.get(tag)
+		if (ret.isEmpty) sys.error("no-tag	:"+tag + "/in	:"+tagvalues)
 		ret(0)
 	}
 }
