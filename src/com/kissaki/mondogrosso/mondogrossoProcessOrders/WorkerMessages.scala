@@ -5,8 +5,10 @@ object WorkerMessages extends Enumeration {
 	type WorkerMessages = Value
 	
 	//MESSAGES
-	val MESSAGE_START,
-	MESSAGE_SETUP,
+	val MESSAGE_SETUP,
+	MESSAGE_START,
+	MESSAGE_SETUP_AND_START,
+	
 	MESSAGE_SYNCRONOUSLY_STARTED,
 	MESSAGE_ASYNCRONOUSLY_STARTED,
 	

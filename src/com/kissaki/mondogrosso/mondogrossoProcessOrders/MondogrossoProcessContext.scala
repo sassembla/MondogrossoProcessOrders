@@ -257,6 +257,11 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
     //Initialコンテキスト + 既存コンテキスト(既存コンテキストで上塗り)
     val actualRuntimeContext = generateActualRuntimeContext(process, currentOrderIdentity)
 
+
+    //実行中Ordersにセット
+    doingOrderIdentities += currentOrderIdentity
+
+
     comments += commentFormat(new Date, "PROCESS:" + process.identity + "	start 1st Order:" + currentOrderIdentity)
 
     messenger.call(process.identity, WorkerMessages.MESSAGE_START.toString, messenger.tagValues(
@@ -270,31 +275,31 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
    * Workerに対して新しいOrderを割当、起動する
    */
   def dispachNextOrderToWorker(process: Process, index: Int) = {
-    //開始すべきIdentityを取得する
-    val currentOrderIdentity = process.orderIdentityList(index)
+    //開始すべきIdentityを取得する(ここでは決めうちで0)
+    val currentOrderIdentity = process.orderIdentityList.head
+
+    //process開始WaitId
+    val processSplitIds = process.processSplitHeaders
+
+    //order完了後WaitId
     val afterWaitIds = process.orderAdditional(currentOrderIdentity).waitIdentitiesList
+
+    //Initialコンテキスト + 既存コンテキスト(既存コンテキストで上塗り)
     val actualRuntimeContext = generateActualRuntimeContext(process, currentOrderIdentity)
+
 
     println("dispachNextOrderToWorker	currentOrderIdentity	" + currentOrderIdentity + "	/actualRuntimeContext	" + actualRuntimeContext)
 
     //実行中Ordersにセット
     doingOrderIdentities += currentOrderIdentity
 
-    comments += commentFormat(new Date, "PROCESS:" + process.identity + "	setUp Order:" + currentOrderIdentity)
-    messenger.call(process.identity, WorkerMessages.MESSAGE_SETUP.toString, messenger.tagValues(
+    comments += commentFormat(new Date, "PROCESS:" + process.identity + "	setUp then start Order:" + currentOrderIdentity)
+
+    messenger.call(process.identity, WorkerMessages.MESSAGE_SETUP_AND_START.toString, messenger.tagValues(
       new TagValue("identity", currentOrderIdentity),
-      new TagValue("processSplitIds", List()),
+      new TagValue("processSplitIds", processSplitIds), 
       new TagValue("afterWaitIds", afterWaitIds),
       new TagValue("context", actualRuntimeContext)))
-
-    comments += commentFormat(new Date, "PROCESS:" + process.identity + "	start Order:" + currentOrderIdentity)
-
-    messenger.call(process.identity, WorkerMessages.MESSAGE_START.toString, messenger.tagValues(
-      new TagValue("identity", currentOrderIdentity),
-      new TagValue("processSplitIds", List()),
-      new TagValue("afterWaitIds", afterWaitIds),
-      new TagValue("context", actualRuntimeContext)))
-
   }
 
   /**
