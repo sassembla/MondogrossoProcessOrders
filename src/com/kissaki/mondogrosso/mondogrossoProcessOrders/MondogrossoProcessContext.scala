@@ -275,8 +275,8 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
    * Workerに対して新しいOrderを割当、起動する
    */
   def dispachNextOrderToWorker(process: Process, index: Int) = {
-    //開始すべきIdentityを取得する(ここでは決めうちで0)
-    val currentOrderIdentity = process.orderIdentityList.head
+    
+    val currentOrderIdentity = process.orderIdentityList(index)
 
     //process開始WaitId
     val processSplitIds = process.processSplitHeaders
@@ -438,7 +438,7 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
    */
   def notifyFinishedOrderInfoToAllWorker(finishedOrderIdentity: String, allfinishedOrderIdentities: List[String]) = {
     for (processName <- runningProcessList) {
-      //			println("notify the end of processName	" + processName + "	/	" + identity)
+      
       messenger.callWithAsync(processName, WorkerMessages.MESSAGE_FINISHEDORDER_NOTIFY.toString, messenger.tagValues(
         new TagValue("finishedOrderIdentity", finishedOrderIdentity),
         new TagValue("allfinishedOrderIdentities", allfinishedOrderIdentities)))
@@ -537,6 +537,7 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
 			 * 全Workerが停止されたら、Context自体のfinallyを実行する
 			 */
       case WorkerMessages.MESSAGE_REQUEST => {
+        println("requestまでは来た")
         val processIdentity = messenger.get("workerIdentity", tagValues).asInstanceOf[String]
         val finishedOrderIdentity = messenger.get("finishedOrderIdentity", tagValues).asInstanceOf[String]
 
@@ -553,6 +554,7 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
           currentOrderIdentityIndex match {
             //次のOrderを実行
             case number if (number < process.orderIdentityList.length) => {
+              println("次のOrderを実行へ  "+process + " /num  " + number)
               dispachNextOrderToWorker(process, number)
             }
 

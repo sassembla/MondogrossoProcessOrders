@@ -4,7 +4,7 @@ import org.clapper.argot._
 import ArgotConverters._
 import java.util.UUID
 import java.io.File
-import com.kissaki.mondogrosso.mondogrossoProcessOrders.fileWriters.WriteOnceFileWriter
+import com.kissaki.mondogrosso.mondogrossoProcessOrders.fileWriters.AppendFileWriter
 import com.kissaki.MessengerProtocol
 import com.kissaki.Messenger
 import com.kissaki.TagValue
@@ -13,7 +13,7 @@ import com.kissaki.TagValue
 //import scala.actors.Future
 
 
-class MondogrossoCommandLineInterface extends MessengerProtocol {
+class MondogrossoCommandLineInterface(identity:String, targetFilePath:String) extends MessengerProtocol {
 	 var status:Int = _ 
 	// val firstOccurence: Future[Int] = future {
 	//   val source = scala.io.Source.fromFile("myText.txt")
@@ -21,11 +21,10 @@ class MondogrossoCommandLineInterface extends MessengerProtocol {
 	// }
 //	firstOccurence.//
 	
-  val identity = UUID.randomUUID.toString
   val messenger = new Messenger(this, identity)
 
   val writerId = UUID.randomUUID.toString
-  val fileWriteReceiver = new WriteOnceFileWriter(writerId, identity) //最終一発書き出し
+  val fileWriteReceiver = new AppendFileWriter(writerId, identity, targetFilePath) //追加書き出し
 
   var logOutputFile: org.clapper.argot.SingleValueOption[java.io.File] = _
 

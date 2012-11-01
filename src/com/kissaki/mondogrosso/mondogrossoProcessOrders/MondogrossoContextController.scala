@@ -135,7 +135,7 @@ class MondogrossoContextController (masterName : String) extends MessengerProtoc
     //tagValuesの値に、processNameToContextIdentityMapを足す
     val newTagValues = tagValues ++ Array(new TagValue("userDefinedIdentity", processNameToContextIdentityMap.apply(contextIdentity)))
     
-    newTagValues.foreach(tagVal => println("tagVal  "+tagVal))
+    newTagValues.foreach(tagVal => println("このへんかなーーうーーむtagVal  "+tagVal))
 
     messenger.callParent(message.toString, newTagValues)
   }

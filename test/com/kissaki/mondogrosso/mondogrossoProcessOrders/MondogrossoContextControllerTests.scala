@@ -16,17 +16,17 @@ import org.specs2.execute.Result
 import org.specs2.time.TimeConversions._
 
 //timeoutTrait　なのだが、ちょっと調整が必要。必ず終了時間が一定になってしまう。 あと、系全体が2回走る。
-//trait TimeoutTrait extends AroundExample with MustMatchers with TerminationMatchers with CommandLineArguments {
-//
-//	lazy val commandLineTimeOut = arguments.commandLine.int("timeout").map(_.millis)
-//	def timeout = commandLineTimeOut.getOrElse(2500.millis)
-//
-//	def around[T <% Result](t : => T) = {
-//		lazy val result = t
-//		val termination = result must terminate[T](sleep = timeout).orSkip((ko : String) => "TIMEOUT: " + timeout)
-//		termination.toResult and result
-//	}
-//}
+trait TimeoutTrait extends AroundExample with MustMatchers with TerminationMatchers with CommandLineArguments {
+
+	lazy val commandLineTimeOut = arguments.commandLine.int("timeout").map(_.millis)
+	def timeout = commandLineTimeOut.getOrElse(2500.millis)
+
+	def around[T <% Result](t : => T) = {
+		lazy val result = t
+		val termination = result must terminate[T](sleep = timeout).orSkip((ko : String) => "TIMEOUT: " + timeout)
+		termination.toResult and result
+	}
+}
 
 @RunWith(classOf[JUnitRunner])
 class MondogrossoContextControllerTests extends Specification /*with TimeoutTrait*/ {
@@ -34,11 +34,11 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
   /**
   タイムアウト入りの完了ステータスを計る関数
   */
-  def timeoutOrDone (contextCont : MondogrossoContextController) = {
+  def timeoutOrDone (title:String, contextCont : MondogrossoContextController) = {
     var i = 0
     while (!contextCont.currentStatus.equals(ContextContStatus.STATUS_EMPTY)) {
       if (10 <= i) {
-        sys.error("回数超過 "+contextCont)
+        sys.error("timeoutOrDone  回数超過 "+contextCont+ "  /title  " + title+"  /このときのstatus  "+contextCont.currentStatus)
         sys.exit(1)
       }
       i+=1
@@ -116,7 +116,7 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
         //起動
         contextCont.runAllContext
 
-        timeoutOrDone(contextCont)
+        timeoutOrDone("Contextを実行開始、成功結果を受け取る", contextCont)
 
         //結果がDONE
         contextCont.currentResultsOfContext(identity)(0).status must be_==(ContextStatus.STATUS_DONE)
@@ -151,12 +151,17 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
         //起動
         contextCont.runAllContext
 
-        while (!currentContext.currentStatus.equals(ContextStatus.STATUS_DONE)) {
+        while (
+          !currentContext.currentStatus.equals(ContextStatus.STATUS_DONE) &&
+          !currentContext.currentStatus.equals(ContextStatus.STATUS_TIMEOUTED)
+          ) {
           Thread.sleep(100)
-          println("Contextを実行開始、すべて同期でくまれているので、一瞬で完了するはず	" + currentContext.status)
+          println("Contextを実行開始、各Contextが成功結果を受け取る	" + currentContext.status)
         }
 
-        println("Contextを実行開始、すべて同期でくまれているので、一瞬で完了するはず	" + contextCont.activeContexts(0).contextKeyValues)
+        currentContext.currentStatus must be_==(ContextStatus.STATUS_DONE)
+
+        println("Contextを実行開始、各Contextが成功結果を受け取る	" + contextCont.activeContexts(0).contextKeyValues)
         contextCont.activeContexts(0).contextKeyValues.keys must be_==(Set("A", "B", "C", "E", "D", "Z"))
 
         //結果を受け取る
@@ -184,7 +189,7 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
         //起動
         contextCont.runAllContext
 
-        timeoutOrDone(contextCont)
+        timeoutOrDone("Contextを実行開始 Eのロックが解かれないので、達成不可能なオーダー順。　タイムアウトで失敗 結果を受け取る", contextCont)
 
         //結果を受け取る
         val contextResult = contextCont.doneContexts(0).currentContextResult
@@ -255,7 +260,7 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
         //起動
         contextCont.runAllContext
 
-        timeoutOrDone(contextCont)
+        timeoutOrDone("Context C1,C2を同時に開始", contextCont)
 
         //2つ終了状態のContextがあるので、状態からContext名が取得できる
         contextCont.contextCountOfStatus(ContextStatus.STATUS_DONE.toString).length must be_==(2)
@@ -317,7 +322,7 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
         //コンテキスト実行
         contextCont.runAllContext
 
-        timeoutOrDone(contextCont)
+        timeoutOrDone("C1 x ２個", contextCont)
 
         //2つ終了状態のContextがあるので、状態からContext名が取得できる
         println("C1 x 2個	contexts	"+contextCont.doneContexts)
@@ -351,7 +356,7 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
         //コンテキスト実行
         contextCont.runAllContext
 
-        timeoutOrDone(contextCont)
+        timeoutOrDone("C1 x n個", contextCont)
 
         //max個の終了状態のContextがあるので、状態からContext名が取得できる
         println("C1 x n個	contexts	"+contextCont.doneContexts)
@@ -383,7 +388,7 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
         //コンテキスト実行
         contextCont.runAllContext
 
-        timeoutOrDone(contextCont)
+        timeoutOrDone("C1,C2 x ２個", contextCont)
 
         //2*2つ終了状態のContextがあるので、状態からContext名が取得できる
         println("C1,C2 x ２個	contexts	"+contextCont.doneContexts)
@@ -422,7 +427,7 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
         //コンテキスト実行
         contextCont.runAllContext
 
-        timeoutOrDone(contextCont)
+        timeoutOrDone("C1,C2 x n個", contextCont)
 
         //max*2個の終了状態のContextがあるので、状態からContext名が取得できる
         println("C1,C2 x n個	contexts	"+contextCont.doneContexts)
@@ -460,7 +465,7 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
         //起動
         contextCont.runAllContext
 
-        timeoutOrDone(contextCont)
+        timeoutOrDone("タイムアウト", contextCont)
 
         //結果を受け取る
         val contextResult = contextCont.doneContexts(0).currentContextResult
@@ -510,7 +515,7 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
         contextCont.runAllContext
 
         //待つ
-        timeoutOrDone(contextCont)
+        timeoutOrDone("C1投入後、C2を投入", contextCont)
 
         //2つ終了状態のContextがあるので、状態からContext名が取得できる
         contextCont.contextCountOfStatus(ContextStatus.STATUS_DONE.toString).length must be_==(2)
@@ -544,7 +549,7 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
         contextCont.runAllContext
 
         //待つ1
-        timeoutOrDone(contextCont)
+        timeoutOrDone("C1投入後、完了を待ってC2を投入-1", contextCont)
 
         Seq("C2").foreach { contextIdentity =>
           val id = UUID.randomUUID().toString
@@ -559,7 +564,7 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
         contextCont.runAllContext
 
         //待つ2
-        timeoutOrDone(contextCont)
+        timeoutOrDone("C1投入後、完了を待ってC2を投入-2", contextCont)
 
         //2つ終了状態のContextがあるので、状態からContext名が取得できる
         contextCont.contextCountOfStatus(ContextStatus.STATUS_DONE.toString).length must be_==(2)
@@ -614,7 +619,7 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
         contextCont.runAllContext
 
         //待つ
-        timeoutOrDone(contextCont)
+        timeoutOrDone("C1投入後/実行、C2を投入後/実行、C3を投入", contextCont)
 
         //3つ終了状態のContextがあるので、状態からContext名が取得できる
         contextCont.contextCountOfStatus(ContextStatus.STATUS_DONE.toString).length must be_==(3)
@@ -651,7 +656,7 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
         contextCont.runAllContext
 
         //待つ
-        timeoutOrDone(contextCont)
+        timeoutOrDone("大量のProcessOrderを同時に", contextCont)
 
 				//3つ結果が有る
         contextCont.currentResults.length must be_==(100)
@@ -721,7 +726,7 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
         contextCont.runAllContext
 
         //待つ
-        timeoutOrDone(contextCont)
+        timeoutOrDone("report run", contextCont)
 
         val contextResultSet = (for (doneCont <- contextCont.doneContexts) yield doneCont.currentContextResult).toSet
         contextResultSet.forall(_.status == ContextStatus.STATUS_DONE) must beTrue

@@ -225,7 +225,17 @@ class Messenger(myself : MessengerProtocol, nameInput : String) {
 	 */
 	def get(tag : String, tagvalues : Array[TagValue]) = {
 		val ret = for (tagValue <- tagvalues.withFilter(_.m_tag.equals(tag))) yield tagValue.get(tag)
-		if (ret.isEmpty) sys.error("no-tag	:"+tag + "/in	:"+tagvalues)
+		
+			
+		if (ret.isEmpty) {
+			val out = (for (tagValue<- tagvalues) yield tagValue.toString).reduceLeft{
+				(total, toAdd) => 
+					total.toString +", "+ toAdd.toString
+			}
+			
+			sys.error("this is :"+ nameInput + "	/parent: "+ getParentName + "	/no-tag	:"+tag + "	/inside of	:"+out + "	/size	"+tagvalues.size)
+			sys.exit(-1)
+		}
 		ret(0)
 	}
 }
@@ -306,7 +316,7 @@ class MessengerCentral extends Actor {
 
 				case MessengerRemove(actor) => {
 					actorList -= actor
-					println("actorListから解除	" + actorList.length)
+					
 					reply(Done("removed rep	" + actorList.length))
 				}
 

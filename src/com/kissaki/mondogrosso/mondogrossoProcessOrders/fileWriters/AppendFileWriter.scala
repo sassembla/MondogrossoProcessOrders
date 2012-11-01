@@ -7,12 +7,16 @@ import scala.collection.mutable.ListBuffer
 import java.io.File
 import java.io.PrintWriter
 import com.kissaki.mondogrosso.mondogrossoProcessOrders.MondogrossoContextController
+import java.util.UUID
 
-class AppendFileWriter(name: String, masterName: String, targetFilePath: String) extends MessengerProtocol {
-  val messenger = new Messenger(this, name)
+class AppendFileWriter(name: String = null, masterName: String = null, targetFilePath: String) extends MessengerProtocol {
+  val messenger = if (name == null) {
+  	val messenger = new Messenger(this, name)
+  	messenger.inputParent(masterName)
+  	messenger
+  } else new Messenger(this, UUID.randomUUID.toString)
+  
   val sb: ListBuffer[String] = new ListBuffer()
-
-  messenger.inputParent(masterName)
 
   //すでにファイルが有れば、消す
   val file: File = new File(targetFilePath)

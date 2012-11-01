@@ -123,7 +123,8 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 			}
 			case WorkerMessages.MESSAGE_SETUP_AND_START => {
 				currentStatus.head match {
-					case WorkerStatus.STATUS_SPLIT_READY => procSetUpFromRpcessSplitWait(tagValues)
+					case WorkerStatus.STATUS_SPLIT_READY => procSetupAndStart(tagValues)
+					case WorkerStatus.STATUS_REQUESTING => procSetupAndStart(tagValues)
 					case _ => 
 				}
 			}
@@ -140,9 +141,11 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 
 				currentStatus.head match {
 					case WorkerStatus.STATUS_SPLIT_WAIT => {
+						println("STATUS_SPLIT_WAITに来てる")
 						procRestartOrContinueSplitWait(currentFinishedOrdersList.toSet, currentWorkInformationHistory.head.orderIdentity)
 					}
 					case WorkerStatus.STATUS_AFTER_WAIT => {
+						println("STATUS_AFTER_WAITに来てる")
 						procRequestOrContinueAfterWait(
 							currentFinishedOrdersList.toSet,
 							currentWorkInformationHistory.head.afterWaitIds.toSet,
@@ -192,7 +195,19 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 		} else true
 		
 		val hasCollectTimeoutOrNotContained = if (context.localContext.isDefinedAt(OrderPrefix.__timeout.toString)) {
-			val result = context.localContext.apply(OrderPrefix.__timeout.toString).forall { _.isDigit }//定義してあれば、数字が入っているはず
+			val result = try {
+				context.localContext.apply(OrderPrefix.__timeout.toString).toInt//定義してあれば、数字が入っているはず
+				true
+			} catch  {
+				case e:Exception => {
+					errorString.append(e.toString)
+					false
+				}
+				case other => {
+					errorString.append(other.toString)
+					false
+				}
+			}
 			result
 		} else true
 		
@@ -231,7 +246,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 	/**
 	 * Split待ちが完了したProcessへの準備を行う
 	 */
-	def procSetUpFromRpcessSplitWait(tagValues : Array[TagValue]) = {
+	def procSetupAndStart(tagValues : Array[TagValue]) = {
 		val orderIdentity = (messenger.get("identity", tagValues)).asInstanceOf[String]
 		val processSplitIds = (messenger.get("processSplitIds", tagValues)).asInstanceOf[List[OrderIdentity]]
 		val afterWaitIds = (messenger.get("afterWaitIds", tagValues)).asInstanceOf[List[String]]
@@ -514,9 +529,8 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 				val stableCommand = info.localContext(OrderPrefix._main.toString).split(OrderPrefix.RUN_PREFIX_WHITESPACE).toSeq ++ inputKeyValueSeq
 				
 				//実行
-				println("実行開始前2　"+stableCommand)
 				messenger.callMyselfWithAsync(WorkerExecs.EXEC_IGNITION.toString, messenger.tagValues(new TagValue("info", info), new TagValue("stableCommand", stableCommand)))
-				println("実行開始後2　"+stableCommand)
+				
 			}
 
 			//未知の_kind

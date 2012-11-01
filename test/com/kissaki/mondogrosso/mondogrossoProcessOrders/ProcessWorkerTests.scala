@@ -120,7 +120,7 @@ class ProcessWorkerTests extends Specification {
 						}"""
 
   //Safari起動
-  if (true) {
+  if (false) {
     "Safari起動" should {
       "Safari起動実行" in {
         //擬似的に親を生成する
@@ -152,7 +152,7 @@ class ProcessWorkerTests extends Specification {
     }
   }
   //Worker
-  if (true) {
+  if (false) {
     "Worker" should {
       "Workerを実行後、完了したのでDone状態" in {
 
@@ -245,7 +245,7 @@ class ProcessWorkerTests extends Specification {
   }
 
   //Worker Delay
-  if (true) {
+  if (false) {
     "Worker　非同期" should {
 
       "Workerを非同期で実行" in {
@@ -379,7 +379,7 @@ class ProcessWorkerTests extends Specification {
   }
 
   //Worker Timeout
-  if (true) {
+  if (false) {
     "Worker タイムアウト" should {
 
       "Workerを同期で実行、タイムアウト" in {
@@ -533,7 +533,7 @@ class ProcessWorkerTests extends Specification {
   }
 
   //Worker Cancel
-  if (true) {
+  if (false) {
     "Worker Cancel" should {
 
       "同期でのタイムアウトのキャンセル" in {
@@ -614,7 +614,7 @@ class ProcessWorkerTests extends Specification {
   }
 
   //Worker Error
-  if (true) {
+  if (false) {
     "Worker エラー" should {
 
       "__timeoutの値がセットされていない、実行前エラー" in {
@@ -640,7 +640,7 @@ class ProcessWorkerTests extends Specification {
         timeoutOrDone("__timeoutの値がセットされていない、実行前エラー", worker, dummyParent)
 
         //この時点でエラー
-        worker.currentStatus.head must be_==("__timeoutの値がセットされていない、実行前エラー", WorkerStatus.STATUS_ERROR)
+        worker.currentStatus.head must be_==(WorkerStatus.STATUS_ERROR)
 
         val latestWork = worker.getLatestWorkInformation
         latestWork.localContext.keys must be_==(Set(
@@ -649,7 +649,7 @@ class ProcessWorkerTests extends Specification {
           OrderPrefix.__timeout.toString,
           OrderPrefix._result.toString))
 
-        latestWork.localContext.get(OrderPrefix._result.toString).getOrElse("...empty") must be_==("java.lang.NumberFormatException: For input string: \"\"")
+        latestWork.localContext.get(OrderPrefix._result.toString).getOrElse("...empty") must be_==("in WorkInformation(A,Map(_kind -> sh, _main -> ls -l, __timeout -> ),List()) java.lang.NumberFormatException: For input string: \"\"")
         dummyParent.outputLog
       }
 
@@ -817,7 +817,7 @@ class ProcessWorkerTests extends Specification {
   }
 
   //Worker OrderRun
-  if (true) {
+  if (false) {
     "Worker Order実行" should {
 
       "Workerでshellを実行" in {
@@ -1042,7 +1042,7 @@ class ProcessWorkerTests extends Specification {
   }
 
   //Worker processSplit Wait
-  if (true) {
+  if (false) {
     "Worker Order実行　processSplit付き" should {
 
       "processSplit	Workerにwaitが存在するOrderを渡し、待たせる" in {
@@ -1137,7 +1137,7 @@ class ProcessWorkerTests extends Specification {
   }
 
   //Order後のwait afterWaitについて
-  if (true) {
+  if (false) {
     "AfterWait" should {
 
 
