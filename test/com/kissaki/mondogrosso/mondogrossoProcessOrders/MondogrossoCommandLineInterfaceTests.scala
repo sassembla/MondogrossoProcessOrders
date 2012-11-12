@@ -11,6 +11,8 @@ import com.kissaki.TagValue
 @RunWith(classOf[JUnitRunner])
 class MondogrossoCommandLineInterfaceTests extends Specification {
 
+
+
   /**
     待ち
   */
@@ -27,6 +29,7 @@ class MondogrossoCommandLineInterfaceTests extends Specification {
       output.appendLine(identity, tagValues)
       Thread.sleep(100)
     }
+
     
     if (limit == i) {
     	val tagValues = interface.messenger.tagValues(new TagValue("late", "whileAlive 回数超過 " + identity))

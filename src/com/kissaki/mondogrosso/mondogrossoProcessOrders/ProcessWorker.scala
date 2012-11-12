@@ -328,6 +328,9 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 		}
 	}
 	
+	/**
+	 * リクエストを行うか、待ち続けるか
+	 */
 	def procRequestOrContinueAfterWait(finished:Set[String], currentAfterWait:Set[String], finishedOrderIdentity:String) = {
 		if (currentAfterWait.subsetOf(finished)) {//完了しているのでリクエストを出す
 			WorkerStatus.STATUS_REQUESTING +=: currentStatus
@@ -336,8 +339,6 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 							new TagValue("workerIdentity", identity),
 							new TagValue("finishedOrderIdentity",finishedOrderIdentity)
 							))
-		} else {
-			WorkerStatus.STATUS_AFTER_WAIT +=: currentStatus
 		}
 	}
 
@@ -402,15 +403,13 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 		}, TimeUnit.MILLISECONDS.toMillis(delay));
 	}
 
-
-
 	/**
 		非同期での着火(時間がかかるtaskでのロックを回避する)
 	*/
 	def procIgnite(tagValues : Array[TagValue]) = {
 		val info = messenger.get("info", tagValues).asInstanceOf[WorkInformation]
 		val stableCommand = messenger.get("stableCommand", tagValues).asInstanceOf[Seq[String]]
-		println("stableCommand 開始	"+stableCommand)
+		// println("stableCommand 開始	"+stableCommand + "	/identity	" + identity)
 		runProcess(info, stableCommand)
 	}
 
@@ -418,14 +417,21 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 	 * DOING中の完了
 	 */
 	def procDone(tagValues : Array[TagValue]) = {
+		
 		val result = messenger.get("result", tagValues).asInstanceOf[String]
 		val info = messenger.get("info", tagValues).asInstanceOf[WorkInformation]
-
+		
+		// println("stableCommand 完了!!!	"+result + "	/identity	" + identity)
+		
 		//結果のコンテキストを作成する
 		val eventualContext = info.localContext ++ Map(OrderPrefix._result.toString -> result)
+		// println("eventualContext" + eventualContext+"	/identity	" + identity)
 		
 		//結果を残す
 		new WorkInformation(info.orderIdentity, eventualContext, info.afterWaitIds) +=: currentWorkInformationHistory
+
+		//親からのnotifyを待つ
+		WorkerStatus.STATUS_AFTER_WAIT +=: currentStatus
 
 		//親に終了を通知
 		messenger.callParentWithAsync(WorkerMessages.MESSAGE_DONE.toString,
@@ -433,12 +439,6 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 				new TagValue("identity", identity),
 				new TagValue("orderIdentity", info.orderIdentity),
 				new TagValue("eventualContext", eventualContext)))
-		
-		//完了後、リクエストを出すか、afterWaitするかの判定
-		procRequestOrContinueAfterWait(
-					currentFinishedOrdersList.toSet, 
-					currentWorkInformationHistory.head.afterWaitIds.toSet, 
-					currentWorkInformationHistory.head.orderIdentity)
 	}
 
 	/**
@@ -568,7 +568,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 			
 			val result = out.toString
 //			println("result	"+result+"	/out	"+out.toString+"	/err	"+err)
-			
+			println("stableCommand 完了!!!の前	"+processSrc + "	/identity	" + identity)
 			messenger.callMyselfWithAsync(WorkerExecs.EXEC_DONE.toString,
 				messenger.tagValues(
 					new TagValue("result", result),

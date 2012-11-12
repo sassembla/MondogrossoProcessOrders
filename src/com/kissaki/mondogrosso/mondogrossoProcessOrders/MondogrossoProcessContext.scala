@@ -174,7 +174,7 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
       case OrderSettingDefault.SETTING_FINALLY_TIMEOUT_ZERO => println("thisContext = " + this + "	no timeout") //無ければ0扱い
       case _ => {
         try {
-          println("タイムアウトのセット "+delayValue)
+          println("タイムアウトのセット " + delayValue)
           val timer = new Timer("context_finally_delay_" + this);
           timer.schedule(new TimerTask {
             def run = {
@@ -228,7 +228,6 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
     // println("processSplitIds	" + processSplitIds)
     // println("afterWaitIds	" + afterWaitIds)
     // println("actualRuntimeContext	" + actualRuntimeContext)
-    
 
     //実行中Ordersにセット
     doingOrderIdentities += currentOrderIdentity
@@ -257,10 +256,8 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
     //Initialコンテキスト + 既存コンテキスト(既存コンテキストで上塗り)
     val actualRuntimeContext = generateActualRuntimeContext(process, currentOrderIdentity)
 
-
     //実行中Ordersにセット
     doingOrderIdentities += currentOrderIdentity
-
 
     comments += commentFormat(new Date, "PROCESS:" + process.identity + "	start 1st Order:" + currentOrderIdentity)
 
@@ -275,7 +272,7 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
    * Workerに対して新しいOrderを割当、起動する
    */
   def dispachNextOrderToWorker(process: Process, index: Int) = {
-    
+
     val currentOrderIdentity = process.orderIdentityList(index)
 
     //process開始WaitId
@@ -287,7 +284,6 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
     //Initialコンテキスト + 既存コンテキスト(既存コンテキストで上塗り)
     val actualRuntimeContext = generateActualRuntimeContext(process, currentOrderIdentity)
 
-
     println("dispachNextOrderToWorker	currentOrderIdentity	" + currentOrderIdentity + "	/actualRuntimeContext	" + actualRuntimeContext)
 
     //実行中Ordersにセット
@@ -297,7 +293,7 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
 
     messenger.call(process.identity, WorkerMessages.MESSAGE_SETUP_AND_START.toString, messenger.tagValues(
       new TagValue("identity", currentOrderIdentity),
-      new TagValue("processSplitIds", processSplitIds), 
+      new TagValue("processSplitIds", processSplitIds),
       new TagValue("afterWaitIds", afterWaitIds),
       new TagValue("context", actualRuntimeContext)))
   }
@@ -396,14 +392,22 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
             try { //to 対象の有無をチェック
               contextKeyValues.apply(currentOrderIdentity).apply(inputs.to)
             } catch {
-              case e: Exception => contextErrorProc(process.identity, currentOrderIdentity, "sourceOrderIdentity	" + inputs.sourceOrderIdentity + "	/from	" + inputs.from + "	/to	" + inputs.to + ":has ERROR. " + e.toString)
+              case e: Exception => {
+                contextErrorProc(process.identity, currentOrderIdentity, "sourceOrderIdentity	" + inputs.sourceOrderIdentity + "	/from	" + inputs.from + "	/to	" + inputs.to + ":has ERROR. " + e.toString)
+                println("エラー1 " + process.identity + ":" + currentOrderIdentity + ":" + "sourceOrderIdentity " + inputs.sourceOrderIdentity + "  /from " + inputs.from + " /to " + inputs.to + ":has ERROR. " + e.toString)
+                sys.error("エラー1")
+                sys.exit(-1)
+              }
             }
-
             //fromValueをtoに代入したMapを作成
             Map(inputs.to -> fromValue.toString)
           } catch {
             case e: Exception => {
               contextErrorProc(process.identity, currentOrderIdentity, "sourceOrderIdentity	" + inputs.sourceOrderIdentity + "	/from	" + inputs.from + "	/to	" + inputs.to + ":has ERROR. " + e.toString)
+              println("エラー2 " + process.identity + ":" + currentOrderIdentity, "sourceOrderIdentity " + inputs.sourceOrderIdentity + "  /from " + inputs.from + " /to " + inputs.to + ":has ERROR. " + e.toString)
+              sys.error("エラー2")
+              sys.exit(-1)
+
               Map("" -> "")
             }
           }
@@ -412,6 +416,9 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
         } catch {
           case e: Exception => {
             contextErrorProc(process.identity, currentOrderIdentity, "sourceOrderIdentity	" + inputs.sourceOrderIdentity + "	/from	" + inputs.from + "	/to	" + inputs.to + ":has ERROR. " + e.toString)
+            println("エラー3 " + process.identity + ":" + currentOrderIdentity, "sourceOrderIdentity " + inputs.sourceOrderIdentity + "  /from " + inputs.from + " /to " + inputs.to + ":has ERROR. " + e.toString)
+            sys.error("エラー3")
+            sys.exit(-1)
             Map("" -> "")
           }
         }
@@ -429,16 +436,20 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
       }
 
     } catch {
-      case e: Exception => contextErrorProc(process.identity, currentOrderIdentity, "generateRuntimeContext has ERROR. " + e.toString)
+      case e: Exception => {
+        contextErrorProc(process.identity, currentOrderIdentity, "generateRuntimeContext has ERROR. " + e.toString)
+        println("エラー4 " + process.identity + ":" + currentOrderIdentity, "generateRuntimeContext has ERROR. " + e.toString)
+        sys.error("エラー4")
+        sys.exit(-1)
+      }
     }
   }
-
   /**
    * 存在する有効なWorkerに直近のContext内でのOrderの終了通知を投げる
    */
   def notifyFinishedOrderInfoToAllWorker(finishedOrderIdentity: String, allfinishedOrderIdentities: List[String]) = {
     for (processName <- runningProcessList) {
-      
+      // println("次のprocessに通知 " + processName)
       messenger.callWithAsync(processName, WorkerMessages.MESSAGE_FINISHEDORDER_NOTIFY.toString, messenger.tagValues(
         new TagValue("finishedOrderIdentity", finishedOrderIdentity),
         new TagValue("allfinishedOrderIdentities", allfinishedOrderIdentities)))
@@ -480,13 +491,13 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
     ContextExecs.get(execSrc) match {
       //waiterからのdelay時にまだRunningだったら
       case ContextExecs.EXEC_TIMEOUT_RUN => {
-        println("EXEC_TIMEOUT_RUNが発生  "+identity)
+        println("EXEC_TIMEOUT_RUNが発生  " + identity)
         ContextStatus.STATUS_TIMEOUT +=: status
         comments += commentFormat(new Date, "Timeout break out.	" + identity)
 
         contextKeyValues.get(finallyOrderIdentity).foreach { finallyContext => runFinally(finallyContext) }
       }
-      case _ => 
+      case _ =>
     }
 
     WorkerMessages.get(execSrc) match {
@@ -502,19 +513,16 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
       }
 
       case WorkerMessages.MESSAGE_DONE => {
-
         val currentFinishedWorkerIdentity = messenger.get("identity", tagValues).asInstanceOf[String]
         val currentFinishedOrderIdentity = messenger.get("orderIdentity", tagValues).asInstanceOf[String]
         val currentFinishedEventualContext = messenger.get("eventualContext", tagValues).asInstanceOf[scala.collection.mutable.Map[String, String]]
         //				println("結果はここ	"+currentFinishedOrderIdentity + "	/currentFinishedEventualContext	"+currentFinishedEventualContext)
 
-        println("currentFinishedWorkerIdentity	" + currentFinishedWorkerIdentity)
-        println("currentFinishedOrderIdentity	" + currentFinishedOrderIdentity)
-        //				println("currentFinishedEventualContext	" + currentFinishedEventualContext)
-
         //eventualを、contextKeyValuesに上書きする
         val appendedContext = (currentFinishedOrderIdentity -> currentFinishedEventualContext)
         contextKeyValues += appendedContext
+
+        // println("currentFinishedWorkerIdentity  " + currentFinishedWorkerIdentity + " /currentFinishedOrderIdentity  " + currentFinishedOrderIdentity + "  /currentFinishedEventualContext " + currentFinishedEventualContext + " /contextKeyValues " + contextKeyValues)
         comments += commentFormat(new Date, "PROCESS:" + currentFinishedWorkerIdentity + "	Order:" + currentFinishedOrderIdentity + " was done!")
 
         //動作中リストから除外
@@ -537,9 +545,11 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
 			 * 全Workerが停止されたら、Context自体のfinallyを実行する
 			 */
       case WorkerMessages.MESSAGE_REQUEST => {
-        println("requestまでは来た")
+
         val processIdentity = messenger.get("workerIdentity", tagValues).asInstanceOf[String]
         val finishedOrderIdentity = messenger.get("finishedOrderIdentity", tagValues).asInstanceOf[String]
+
+        println("requestまでは来た processIdentity " + processIdentity + " /finishedOrderIdentity  " + finishedOrderIdentity)
 
         //終了したOrderの属するProcessを検索、次のOrderを探す
         contextSrc.current.processList.withFilter(_.identity.equals(processIdentity)).foreach { process =>
@@ -554,7 +564,7 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
           currentOrderIdentityIndex match {
             //次のOrderを実行
             case number if (number < process.orderIdentityList.length) => {
-              println("次のOrderを実行へ  "+process + " /num  " + number)
+              println("次のOrderを実行へ  " + process + " /num  " + number)
               dispachNextOrderToWorker(process, number)
             }
 
@@ -606,8 +616,7 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
         contextErrorProc(erroredWorkerIdentity, erroredOrderIdentity, eventualContext.apply(OrderPrefix._result.toString))
       }
 
-
-      case _ => 
+      case _ =>
     }
   }
 
@@ -711,4 +720,5 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
   def contextResultToString(contextResult: ContextResult) = {
     "testResult"
   }
+
 }

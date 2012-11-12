@@ -166,7 +166,7 @@ class MondogrossoContextController (masterName : String) extends MessengerProtoc
         println("空っぽっていうのはおかしい	、このidentityがactiveContextsに含まれてない	" + overedContextIdentity)
         
         sys.error("空っぽっていうのはおかしい  、このidentityがactiveContextsに含まれてない " + overedContextIdentity)
-        sys.exit(1)
+        sys.exit(-1)
 
       }
     }
