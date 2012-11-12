@@ -18,6 +18,7 @@ package com.kissaki
  *
  * @author sassembla
  */
+ 
 
 import scala.actors.Actor._
 import scala.actors._
