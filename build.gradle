@@ -51,6 +51,13 @@ dependencies {
 	)
 }
 
+// compileScala {
+//     scalaCompileOptions.useCompileDaemon = true
+
+//     // optionally specify host and port of the daemon:
+//     scalaCompileOptions.daemonServer = "localhost:1111"
+// }
+
 
 jar {
 	manifest {
