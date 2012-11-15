@@ -688,7 +688,7 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
         }
       }
 
-      "収束 A,Bが発生、Aからは続けてCが発生して、Bの終了に合わせてB分のAfterWaitが解かれた状態なのでZへ" in {
+      "収束 A,Bが発生、AからCが発生、B終了に合わせてZへ" in {
         val contextParent = new DummyContextParent(UUID.randomUUID.toString)
         println("このテストが終了しないことがある")
         val id = UUID.randomUUID().toString
@@ -721,7 +721,7 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
         val parser = new MondogrossoProcessParser(id, input, json)
         val result = parser.parseProcess
 
-        val identity = "収束 A,Bが発生、Aからは続けてCが発生して、Bの終了に合わせてB分のAfterWaitが解かれた状態なのでZへ"
+        val identity = "収束 A,Bが発生、AからCが発生、B終了に合わせてZへ"
         val currentContext = new MondogrossoProcessContext(identity, result, contextParent.messenger.getName)
 
         //コンテキストからの実行開始
@@ -1452,6 +1452,7 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
   if (true) {
     "Context エラー処理" should {
 
+
       "__finallyTimeout設定によるタイムアウト発生" in {
         val contextParent = new DummyContextParent(UUID.randomUUID.toString)
         val id = UUID.randomUUID().toString
@@ -1686,7 +1687,6 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
 							}
 						}
 					"""
-          
 
         val parser = new MondogrossoProcessParser(id, input, json)
         val result = parser.parseProcess
