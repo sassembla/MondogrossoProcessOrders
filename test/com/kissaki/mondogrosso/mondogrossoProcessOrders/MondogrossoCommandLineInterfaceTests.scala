@@ -10,9 +10,7 @@ import com.kissaki.TagValue
 
 @RunWith(classOf[JUnitRunner])
 class MondogrossoCommandLineInterfaceTests extends Specification {
-
-
-
+  
   /**
     待ち
   */
