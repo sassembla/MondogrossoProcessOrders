@@ -225,7 +225,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 	def procSetUp(tagValues : Array[TagValue]) = {
 		val orderIdentity = (messenger.get("identity", tagValues)).asInstanceOf[String]
 		val processSplitIds = (messenger.get("processSplitIds", tagValues)).asInstanceOf[List[OrderIdentity]]
-		val afterWaitIds = (messenger.get("afterWaitIds", tagValues)).asInstanceOf[List[String]]2
+		val afterWaitIds = (messenger.get("afterWaitIds", tagValues)).asInstanceOf[List[String]]
 		val orderContext = (messenger.get("context", tagValues)).asInstanceOf[scala.collection.Map[String, String]]
 		
 		val currentAddedOrderInfo = new WorkInformation(orderIdentity, orderContext, afterWaitIds ++ List(orderIdentity))
