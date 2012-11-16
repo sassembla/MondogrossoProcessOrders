@@ -24,7 +24,7 @@ class ProcessWorkerTests extends Specification {
       !worker.currentStatus.head.equals(WorkerStatus.STATUS_ERROR) && i < limit) {
       i += 1
       println("OrDoneOrAfterWait waiting	" + identity + "	/" + i + " of " + limit)
-      val tagValues = dummyParent.messenger.tagValues(new TagValue("i/limit", i+"/"+limit))
+      val tagValues = dummyParent.messenger.tagValues(new TagValue("i/limit", i + "/" + limit))
       dummyParent.messenger.call(dummyParent.writerId, "addLog", dummyParent.messenger.tagValues(new TagValue("status", "lossTime"), new TagValue("tagValues", tagValues)))
       Thread.sleep(100)
     }
@@ -36,7 +36,7 @@ class ProcessWorkerTests extends Specification {
 
     //突破したのでログを吐く
     val tagValues = dummyParent.messenger.tagValues(new TagValue("no", "mean"))
-    val message = "OrDoneOrAfterWait完了  " + identity + "/状態は "+worker.currentStatus.head
+    val message = "OrDoneOrAfterWait完了  " + identity + "/状態は " + worker.currentStatus.head
 
     dummyParent.messenger.call(dummyParent.writerId, "addLog", dummyParent.messenger.tagValues(new TagValue("status", message), new TagValue("tagValues", tagValues)))
     println(message)
@@ -121,7 +121,6 @@ class ProcessWorkerTests extends Specification {
       }
     }
   }
-
 
   //Worker
   if (false) {
@@ -374,7 +373,6 @@ class ProcessWorkerTests extends Specification {
                 "-t" -> "1000", //1秒かかる処理なので、確実にタイムアウトになる
                 OrderPrefix.__timeout.toString -> "100")))) //0.1秒でtimeout
         }
-
 
         //非同期のセット自体が非同期なので、待ち
         timeoutOrDoneOrAfterWait("Workerを同期で実行、タイムアウト", worker, dummyParent)
@@ -1077,7 +1075,6 @@ class ProcessWorkerTests extends Specification {
         //WorkerはSTATUS_SPLIT_READYになっているはず		
         worker.currentStatus.head must be_==(WorkerStatus.STATUS_SPLIT_READY)
 
-
         //再度同じOrderを送る、今度はprocessSplitにならずに実行されるはず
         Seq(WorkerMessages.MESSAGE_SETUP_AND_START.toString).foreach { exec =>
           dummyParent.messenger.call(workerId, exec,
@@ -1112,7 +1109,6 @@ class ProcessWorkerTests extends Specification {
   if (true) {
     "AfterWait" should {
 
-
       // "waitに入ってからFinishedが来る" in {
 
       //   //擬似的に親を生成する
@@ -1136,18 +1132,16 @@ class ProcessWorkerTests extends Specification {
       //   //WorkerはSTATUS_AFTER_WAITに入っているはず
       //   worker.currentStatus.head must be_==(WorkerStatus.STATUS_AFTER_WAIT)
 
-       
-
       //   dummyParent.messenger.call(workerId, WorkerMessages.MESSAGE_FINISHEDORDER_NOTIFY.toString,
       //     dummyParent.messenger.tagValues(
       //       new TagValue("finishedOrderIdentity", "B"),
       //       new TagValue("allfinishedOrderIdentities", List("B"))))
 
       //   timeoutOrDoneOrAfterWait("waitに入ってからFinishedが来る/ログその2", worker, dummyParent)
- 
+
       //   //Workerはリクエストをしている
       //   worker.currentStatus.head must be_==(WorkerStatus.STATUS_REQUESTING)
-        
+
       //   //Aの実行が完了している
       //   val latestWork = worker.getLatestWorkInformation
       //   latestWork.localContext.keys must be_==(Set(
@@ -1180,13 +1174,18 @@ class ProcessWorkerTests extends Specification {
 
         timeoutOrDoneOrAfterWait("waitに入ってからFinishedが来る　複数のWait", worker, dummyParent)
 
+        //Aの完了が帰ってくる
+        dummyParent.messenger.call(workerId, WorkerMessages.MESSAGE_FINISHEDORDER_NOTIFY.toString,
+          dummyParent.messenger.tagValues(new TagValue("finishedOrderIdentity", "A"),
+            new TagValue("allfinishedOrderIdentities", List("A"))))
+
         //WorkerはSTATUS_AFTER_WAITに入っているはず
         worker.currentStatus.head must be_==(WorkerStatus.STATUS_AFTER_WAIT)
 
         //B
         dummyParent.messenger.call(workerId, WorkerMessages.MESSAGE_FINISHEDORDER_NOTIFY.toString,
           dummyParent.messenger.tagValues(new TagValue("finishedOrderIdentity", "B"),
-            new TagValue("allfinishedOrderIdentities", List("B"))))
+            new TagValue("allfinishedOrderIdentities", List("A", "B"))))
 
         //WorkerはまだSTATUS_AFTER_WAITに入っているはず
         worker.currentStatus.head must be_==(WorkerStatus.STATUS_AFTER_WAIT)
@@ -1194,16 +1193,12 @@ class ProcessWorkerTests extends Specification {
         //C
         dummyParent.messenger.call(workerId, WorkerMessages.MESSAGE_FINISHEDORDER_NOTIFY.toString,
           dummyParent.messenger.tagValues(new TagValue("finishedOrderIdentity", "C"),
-            new TagValue("allfinishedOrderIdentities", List("B", "C"))))
+            new TagValue("allfinishedOrderIdentities", List("A", "B", "C"))))
 
         timeoutOrDoneOrAfterWait("waitに入ってからFinishedが来る　複数のWait", worker, dummyParent)
 
-        //ここで、Aが終わってないのが本来な気がする。Aの終了通知が来てないと、駄目なはず。
-        //とあるプロセスのアフターロックが有るとして、そのロックの解除には、自身も含まれなければいけない。
-        //そうでないと、対称性が無い。
-
-        //WorkerはSTATUS_AFTER_WAITになっているはず	
-        worker.currentStatus.head must be_==(WorkerStatus.STATUS_AFTER_WAIT)
+        //WorkerはSTATUS_REQUESTINGになっているはず	
+        worker.currentStatus.head must be_==(WorkerStatus.STATUS_REQUESTING)
 
         //Aの実行が完了している
         val latestWork = worker.getLatestWorkInformation
@@ -1216,92 +1211,115 @@ class ProcessWorkerTests extends Specification {
         dummyParent.outputLog
       }
 
-      // "waitに入る前にFinishedが来る" in {
+      "waitに入る前にFinishedが来る" in {
 
-      //   //擬似的に親を生成する
-      //   val dummyParent = new DummyWorkerParent("waitに入る前にFinishedが来る")
+        //擬似的に親を生成する
+        val dummyParent = new DummyWorkerParent("waitに入る前にFinishedが来る")
 
-      //   val workerId = UUID.randomUUID().toString
-      //   val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
+        val workerId = UUID.randomUUID().toString
+        val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
 
-      //   //Bが終わった事が伝わる
-      //   dummyParent.messenger.call(workerId, WorkerMessages.MESSAGE_FINISHEDORDER_NOTIFY.toString,
-      //     dummyParent.messenger.tagValues(new TagValue("finishedOrderIdentity", "B"),
-      //       new TagValue("allfinishedOrderIdentities", List("B"))))
+        //Bが終わった事が伝わる
+        dummyParent.messenger.call(workerId, WorkerMessages.MESSAGE_FINISHEDORDER_NOTIFY.toString,
+          dummyParent.messenger.tagValues(new TagValue("finishedOrderIdentity", "B"),
+            new TagValue("allfinishedOrderIdentities", List("B"))))
 
-      //   //この状態で開始
-      //   Seq(WorkerMessages.MESSAGE_SETUP.toString, WorkerMessages.MESSAGE_START.toString).foreach { exec =>
-      //     dummyParent.messenger.call(workerId, exec,
-      //       dummyParent.messenger.tagValues(
-      //         new TagValue("identity", "A"),
-      //         new TagValue("processSplitIds", List()),
-      //         new TagValue("afterWaitIds", List("B")),
-      //         new TagValue("context", Map(
-      //           OrderPrefix._kind.toString -> "sh",
-      //           OrderPrefix._main.toString -> "echo some"))))
-      //   }
+        //この状態で開始
+        Seq(WorkerMessages.MESSAGE_SETUP.toString, WorkerMessages.MESSAGE_START.toString).foreach { exec =>
+          dummyParent.messenger.call(workerId, exec,
+            dummyParent.messenger.tagValues(
+              new TagValue("identity", "A"),
+              new TagValue("processSplitIds", List()),
+              new TagValue("afterWaitIds", List("B")),
+              new TagValue("context", Map(
+                OrderPrefix._kind.toString -> "sh",
+                OrderPrefix._main.toString -> "echo some"))))
+        }
 
-      //   timeoutOrDoneOrAfterWait("waitに入る前にFinishedが来る", worker, dummyParent)
+        timeoutOrDoneOrAfterWait("waitに入る前にFinishedが来る", worker, dummyParent)
 
-      //   //WorkerはREQUESTINGになっているはず		
-      //   worker.currentStatus.head must be_==(WorkerStatus.STATUS_REQUESTING)
+        //WorkerはSTATUS_AFTER_WAITになっているはず		
+        worker.currentStatus.head must be_==(WorkerStatus.STATUS_AFTER_WAIT)
 
-      //   //Aの実行が完了している
-      //   val latestWork = worker.getLatestWorkInformation
-      //   latestWork.localContext.keys must be_==(Set(
-      //     OrderPrefix._kind.toString,
-      //     OrderPrefix._main.toString,
-      //     OrderPrefix._result.toString))
+        //Aが終わった事が伝わる
+        dummyParent.messenger.call(workerId, WorkerMessages.MESSAGE_FINISHEDORDER_NOTIFY.toString,
+          dummyParent.messenger.tagValues(new TagValue("finishedOrderIdentity", "A"),
+            new TagValue("allfinishedOrderIdentities", List("B", "A"))))
 
-      //   latestWork.localContext(OrderPrefix._result.toString) must be_==("some")
-      //   dummyParent.outputLog
-      // }
+        timeoutOrDoneOrAfterWait("waitに入る前にFinishedが来る", worker, dummyParent)
 
-      // "waitに入る前にFinishedが来る 複数" in {
+        //WorkerはREQUESTINGになっているはず   
+        worker.currentStatus.head must be_==(WorkerStatus.STATUS_REQUESTING)
 
-      //   //擬似的に親を生成する
-      //   val dummyParent = new DummyWorkerParent("waitに入る前にFinishedが来る 複数")
 
-      //   val workerId = UUID.randomUUID().toString
-      //   val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
+        //Aの実行が完了している
+        val latestWork = worker.getLatestWorkInformation
+        latestWork.localContext.keys must be_==(Set(
+          OrderPrefix._kind.toString,
+          OrderPrefix._main.toString,
+          OrderPrefix._result.toString))
 
-      //   //Bが終わった事が伝わる
-      //   dummyParent.messenger.call(workerId, WorkerMessages.MESSAGE_FINISHEDORDER_NOTIFY.toString,
-      //     dummyParent.messenger.tagValues(new TagValue("finishedOrderIdentity", "B"),
-      //       new TagValue("allfinishedOrderIdentities", List("B"))))
+        latestWork.localContext(OrderPrefix._result.toString) must be_==("some")
+        dummyParent.outputLog
+      }
 
-      //   //Cが終わった事が伝わる
-      //   dummyParent.messenger.call(workerId, WorkerMessages.MESSAGE_FINISHEDORDER_NOTIFY.toString,
-      //     dummyParent.messenger.tagValues(new TagValue("finishedOrderIdentity", "C"),
-      //       new TagValue("allfinishedOrderIdentities", List("B", "C"))))
+      "waitに入る前にFinishedが来る 複数" in {
 
-      //   //この状態で開始
-      //   Seq(WorkerMessages.MESSAGE_SETUP.toString, WorkerMessages.MESSAGE_START.toString).foreach { exec =>
-      //     dummyParent.messenger.call(workerId, exec,
-      //       dummyParent.messenger.tagValues(
-      //         new TagValue("identity", "A"),
-      //         new TagValue("processSplitIds", List()),
-      //         new TagValue("afterWaitIds", List("B", "C")),
-      //         new TagValue("context", Map(
-      //           OrderPrefix._kind.toString -> "sh",
-      //           OrderPrefix._main.toString -> "echo some"))))
-      //   }
+        //擬似的に親を生成する
+        val dummyParent = new DummyWorkerParent("waitに入る前にFinishedが来る 複数")
 
-      //   timeoutOrDoneOrAfterWait("waitに入る前にFinishedが来る 複数", worker, dummyParent)
+        val workerId = UUID.randomUUID().toString
+        val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
 
-      //   //WorkerはREQUESTINGになっているはず		
-      //   worker.currentStatus.head must be_==(WorkerStatus.STATUS_REQUESTING)
+        //Bが終わった事が伝わる
+        dummyParent.messenger.call(workerId, WorkerMessages.MESSAGE_FINISHEDORDER_NOTIFY.toString,
+          dummyParent.messenger.tagValues(new TagValue("finishedOrderIdentity", "B"),
+            new TagValue("allfinishedOrderIdentities", List("B"))))
 
-      //   //Aの実行が完了している
-      //   val latestWork = worker.getLatestWorkInformation
-      //   latestWork.localContext.keys must be_==(Set(
-      //     OrderPrefix._kind.toString,
-      //     OrderPrefix._main.toString,
-      //     OrderPrefix._result.toString))
+        //Cが終わった事が伝わる
+        dummyParent.messenger.call(workerId, WorkerMessages.MESSAGE_FINISHEDORDER_NOTIFY.toString,
+          dummyParent.messenger.tagValues(new TagValue("finishedOrderIdentity", "C"),
+            new TagValue("allfinishedOrderIdentities", List("B", "C"))))
 
-      //   latestWork.localContext(OrderPrefix._result.toString) must be_==("some")
-      //   dummyParent.outputLog
-      // }
+        //この状態で開始
+        Seq(WorkerMessages.MESSAGE_SETUP.toString, WorkerMessages.MESSAGE_START.toString).foreach { exec =>
+          dummyParent.messenger.call(workerId, exec,
+            dummyParent.messenger.tagValues(
+              new TagValue("identity", "A"),
+              new TagValue("processSplitIds", List()),
+              new TagValue("afterWaitIds", List("B", "C")),
+              new TagValue("context", Map(
+                OrderPrefix._kind.toString -> "sh",
+                OrderPrefix._main.toString -> "echo some"))))
+        }
+
+        timeoutOrDoneOrAfterWait("waitに入る前にFinishedが来る 複数", worker, dummyParent)
+
+        //WorkerはまだSTATUS_AFTER_WAITになっているはず		
+        worker.currentStatus.head must be_==(WorkerStatus.STATUS_AFTER_WAIT)
+
+
+        //Aが終わった事が伝わる
+        dummyParent.messenger.call(workerId, WorkerMessages.MESSAGE_FINISHEDORDER_NOTIFY.toString,
+          dummyParent.messenger.tagValues(new TagValue("finishedOrderIdentity", "A"),
+            new TagValue("allfinishedOrderIdentities", List("B", "C", "A"))))
+
+        timeoutOrDoneOrAfterWait("waitに入る前にFinishedが来る 複数", worker, dummyParent)
+
+        //WorkerはREQUESTINGになっているはず   
+        worker.currentStatus.head must be_==(WorkerStatus.STATUS_REQUESTING)
+
+
+        //Aの実行が完了している
+        val latestWork = worker.getLatestWorkInformation
+        latestWork.localContext.keys must be_==(Set(
+          OrderPrefix._kind.toString,
+          OrderPrefix._main.toString,
+          OrderPrefix._result.toString))
+
+        latestWork.localContext(OrderPrefix._result.toString) must be_==("some")
+        dummyParent.outputLog
+      }
 
       // "waitに入る前、入った後にFinishedが来る 複数" in {
 
