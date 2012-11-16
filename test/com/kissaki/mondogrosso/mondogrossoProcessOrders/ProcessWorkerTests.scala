@@ -173,6 +173,9 @@ class ProcessWorkerTests extends Specification {
 
         timeoutOrDoneOrAfterWait("Workerを実行後、完了したので親にそのログが残る", worker, dummyParent)
 
+        //実行され、ステータスがSTATUS_AFTER_WAITになる
+        worker.currentStatus.head must be_==(WorkerStatus.STATUS_AFTER_WAIT)
+
         val latestWork = worker.getLatestWorkInformation
 
         val currentFinishedWorkerIdentity = worker.workerIdentity
@@ -584,7 +587,7 @@ class ProcessWorkerTests extends Specification {
   }
 
   //Worker Error
-  if (false) {
+  if (true) {
     "Worker エラー" should {
 
       "__timeoutの値がセットされていない、実行前エラー" in {
@@ -619,7 +622,7 @@ class ProcessWorkerTests extends Specification {
           OrderPrefix.__timeout.toString,
           OrderPrefix._result.toString))
 
-        latestWork.localContext.get(OrderPrefix._result.toString).getOrElse("...empty") must be_==("in WorkInformation(A,Map(_kind -> sh, _main -> ls -l, __timeout -> ),List()) java.lang.NumberFormatException: For input string: \"\"")
+        latestWork.localContext.get(OrderPrefix._result.toString).getOrElse("...empty") must be_==("in WorkInformation(A,Map(_kind -> sh, _main -> ls -l, __timeout -> ),List(A)) java.lang.NumberFormatException: For input string: \"\"")
         dummyParent.outputLog
       }
 
@@ -640,6 +643,8 @@ class ProcessWorkerTests extends Specification {
               new TagValue("context", Map("a" -> "b")))) //must値の指定忘れ
         }
 
+        timeoutOrDoneOrAfterWait("_main,_kindという最低限のパラメータが足りない 実行前エラー __timeoutなし", worker, dummyParent)
+
         //この時点でエラー
         worker.currentStatus.head must be_==(WorkerStatus.STATUS_ERROR)
 
@@ -648,7 +653,7 @@ class ProcessWorkerTests extends Specification {
           "a",
           OrderPrefix._result.toString))
 
-        latestWork.localContext.get(OrderPrefix._result.toString).getOrElse("...empty") must be_==("in WorkInformation(A,Map(a -> b),List()) no _kind key found,no _main key found,")
+        latestWork.localContext.get(OrderPrefix._result.toString).getOrElse("...empty") must be_==("in WorkInformation(A,Map(a -> b),List(A)) no _kind key found,no _main key found,")
         dummyParent.outputLog
       }
 
@@ -681,7 +686,7 @@ class ProcessWorkerTests extends Specification {
           "a",
           OrderPrefix._result.toString))
 
-        latestWork.localContext.get(OrderPrefix._result.toString).getOrElse("...empty") must be_==("in WorkInformation(A,Map(a -> b, __timeout -> 1),List()) no _kind key found,no _main key found,")
+        latestWork.localContext.get(OrderPrefix._result.toString).getOrElse("...empty") must be_==("in WorkInformation(A,Map(a -> b, __timeout -> 1),List(A)) no _kind key found,no _main key found,")
         dummyParent.outputLog
 
       }
@@ -704,6 +709,8 @@ class ProcessWorkerTests extends Specification {
                 OrderPrefix._kind.toString -> "undefined type!",
                 OrderPrefix._main.toString -> "ls -l"))))
         }
+
+        timeoutOrDoneOrAfterWait("未知のtypeが送られてきた 実行前エラー", worker, dummyParent)
 
         //この時点でエラー
         worker.currentStatus.head must be_==(WorkerStatus.STATUS_ERROR)
@@ -736,6 +743,9 @@ class ProcessWorkerTests extends Specification {
                 OrderPrefix._kind.toString -> "sh",
                 OrderPrefix._main.toString -> "dfghjklls -l")))) //存在しないコマンドで実行エラー
         }
+
+        timeoutOrDoneOrAfterWait("Workerを同期で実行、実行時エラー", worker, dummyParent)
+
 
         //実行が同期的に行われ、実行されたあとの情報が残る
         worker.currentStatus.head must be_==(WorkerStatus.STATUS_ERROR)
@@ -1106,7 +1116,7 @@ class ProcessWorkerTests extends Specification {
   }
 
   //Order後のwait afterWaitについて
-  if (true) {
+  if (false) {
     "AfterWait" should {
 
       "waitに入ってからFinishedが来る" in {
