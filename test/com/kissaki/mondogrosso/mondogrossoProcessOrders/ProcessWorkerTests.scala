@@ -797,7 +797,7 @@ class ProcessWorkerTests extends Specification {
   }
 
   //Worker OrderRun
-  if (false) {
+  if (true) {
     "Worker Order実行" should {
 
       "Workerでshellを実行" in {
@@ -1022,7 +1022,7 @@ class ProcessWorkerTests extends Specification {
   }
 
   //Worker processSplit Wait
-  if (false) {
+  if (true) {
     "Worker Order実行　processSplit付き" should {
 
       "processSplit	Workerにwaitが存在するOrderを渡し、待たせる" in {
