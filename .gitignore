@@ -45,4 +45,4 @@ testTimeout.txt
 
 .ensime_lucene/*
 
-workerTestLogs/*
+workerTestLogs/*.text
