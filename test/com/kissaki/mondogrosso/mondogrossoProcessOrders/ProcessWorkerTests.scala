@@ -90,7 +90,7 @@ class ProcessWorkerTests extends Specification {
 						}"""
 
   //Safari起動
-  if (false) {
+  if (true) {
     "Safari起動" should {
       "Safari起動実行" in {
         //擬似的に親を生成する
@@ -123,7 +123,7 @@ class ProcessWorkerTests extends Specification {
   }
 
   //Worker
-  if (false) {
+  if (true) {
     "Worker" should {
       "Workerを実行後、完了したのでDone状態" in {
 
@@ -151,75 +151,11 @@ class ProcessWorkerTests extends Specification {
         worker.currentStatus.head must be_==(WorkerStatus.STATUS_AFTER_WAIT)
         dummyParent.outputLog
       }
-
-      "Workerを実行後、完了したので親にそのログが残る" in {
-
-        //擬似的に親を生成する
-        val dummyParent = new DummyWorkerParent("Workerを実行後、完了したので親にそのログが残る")
-
-        val workerId = UUID.randomUUID().toString
-        val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
-
-        Seq(WorkerMessages.MESSAGE_SETUP.toString, WorkerMessages.MESSAGE_START.toString).foreach { exec =>
-          dummyParent.messenger.call(workerId, exec,
-            dummyParent.messenger.tagValues(
-              new TagValue("identity", "A"),
-              new TagValue("processSplitIds", List()),
-              new TagValue("afterWaitIds", List()),
-              new TagValue("context", Map(
-                OrderPrefix._kind.toString -> "sh",
-                OrderPrefix._main.toString -> "ls -l"))))
-        }
-
-        timeoutOrDoneOrAfterWait("Workerを実行後、完了したので親にそのログが残る", worker, dummyParent)
-
-        //実行され、ステータスがSTATUS_AFTER_WAITになる
-        worker.currentStatus.head must be_==(WorkerStatus.STATUS_AFTER_WAIT)
-
-        val latestWork = worker.getLatestWorkInformation
-
-        val currentFinishedWorkerIdentity = worker.workerIdentity
-        val currentFinishedOrderIdentity = latestWork.orderIdentity
-
-        //親側にlogが残る
-        dummyParent.messenger.getLog.contains(currentFinishedWorkerIdentity + currentFinishedOrderIdentity) must beTrue
-        dummyParent.outputLog
-      }
-
-      "Workerを実行後、完了したので、次のOrderをリクエスト" in {
-
-        //擬似的に親を生成する
-        val dummyParent = new DummyWorkerParent("Workerを実行後、完了したので、次のOrderをリクエスト")
-
-        val workerId = UUID.randomUUID().toString
-        val worker = new ProcessWorker(workerId, dummyParent.messenger.getName)
-        Seq(WorkerMessages.MESSAGE_SETUP.toString, WorkerMessages.MESSAGE_START.toString).foreach { exec =>
-          dummyParent.messenger.call(workerId, exec,
-            dummyParent.messenger.tagValues(
-              new TagValue("identity", "A"),
-              new TagValue("processSplitIds", List()),
-              new TagValue("afterWaitIds", List()),
-              new TagValue("context", Map(
-                OrderPrefix._kind.toString -> "sh",
-                OrderPrefix._main.toString -> "ls -l"))))
-        }
-
-        timeoutOrDoneOrAfterWait("Workerを実行後、完了したので、次のOrderをリクエスト", worker, dummyParent)
-
-        val latestWork = worker.getLatestWorkInformation
-
-        val processIdentity = worker.workerIdentity
-        val finishedOrderIdentity = latestWork.orderIdentity
-
-        //ダミーの親に、Orderのリクエスト通知がある
-        dummyParent.messenger.getLog.contains(processIdentity + finishedOrderIdentity) must beTrue
-        dummyParent.outputLog
-      }
     }
   }
 
   //Worker Delay
-  if (false) {
+  if (true) {
     "Worker　非同期" should {
 
       "Workerを非同期で実行" in {
@@ -330,30 +266,13 @@ class ProcessWorkerTests extends Specification {
 
         //エラーになっているはず
         worker.currentStatus.head must be_==(WorkerStatus.STATUS_ERROR)
-
-        val latestWork = worker.getLatestWorkInformation
-
-        val erroredWorkerIdentity = worker.workerIdentity
-        val erroredOrderIdentity = latestWork.orderIdentity
-
-        //親に完了受信記録がある
-        dummyParent.messenger.getLog.contains(erroredWorkerIdentity + erroredOrderIdentity) must beTrue
-
-        latestWork.localContext.keys must be_==(Set(
-          OrderPrefix._kind.toString,
-          OrderPrefix._main.toString,
-          OrderPrefix.__delay.toString,
-          OrderPrefix._result.toString))
-
-        latestWork.localContext.get(OrderPrefix._result.toString).getOrElse("...empty") must be_==("java.lang.IllegalArgumentException: Negative delay.")
-        dummyParent.outputLog
       }
     }
 
   }
 
   //Worker Timeout
-  if (false) {
+  if (true) {
     "Worker タイムアウト" should {
 
       "Workerを同期で実行、タイムアウト" in {
@@ -1116,7 +1035,7 @@ class ProcessWorkerTests extends Specification {
   }
 
   //Order後のwait afterWaitについて
-  if (false) {
+  if (true) {
     "AfterWait" should {
 
       "waitに入ってからFinishedが来る" in {
