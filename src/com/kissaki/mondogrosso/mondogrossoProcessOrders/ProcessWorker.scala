@@ -122,6 +122,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 				}
 			}
 			case WorkerMessages.MESSAGE_SETUP_AND_START => {
+				println("finallyProcessIdentity が、受け取っているはず、、、"+identity)
 				currentStatus.head match {
 					case WorkerStatus.STATUS_SPLIT_READY => procSetupAndStart(tagValues)
 					case WorkerStatus.STATUS_REQUESTING => procSetupAndStart(tagValues)
@@ -227,7 +228,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 		val afterWaitIds = (messenger.get("afterWaitIds", tagValues)).asInstanceOf[List[String]]
 		val orderContext = (messenger.get("context", tagValues)).asInstanceOf[scala.collection.Map[String, String]]
 		
-		val currentAddedOrderInfo = new WorkInformation(orderIdentity, orderContext, afterWaitIds)
+		val currentAddedOrderInfo = new WorkInformation(orderIdentity, orderContext, afterWaitIds ++ List(orderIdentity))
 
 		//currentWorkInformationHistoryのheadに、最新のInfoを加算する
 		currentAddedOrderInfo +=: currentWorkInformationHistory
@@ -252,7 +253,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 		val afterWaitIds = (messenger.get("afterWaitIds", tagValues)).asInstanceOf[List[String]]
 		val orderContext = (messenger.get("context", tagValues)).asInstanceOf[scala.collection.Map[String, String]]
 		
-		val currentAddedOrderInfo = new WorkInformation(orderIdentity, orderContext, afterWaitIds)
+		val currentAddedOrderInfo = new WorkInformation(orderIdentity, orderContext, afterWaitIds ++ List(orderIdentity))
 
 		//currentWorkInformationHistoryのheadに、最新のInfoを加算する
 		currentAddedOrderInfo +=: currentWorkInformationHistory
@@ -278,7 +279,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 		val afterWaitIds = (messenger.get("afterWaitIds", tagValues)).asInstanceOf[List[String]]
 		val orderContext = (messenger.get("context", tagValues)).asInstanceOf[scala.collection.Map[String, String]]
 
-		val currentAddedOrderInfo = new WorkInformation(orderIdentity, orderContext, afterWaitIds)
+		val currentAddedOrderInfo = new WorkInformation(orderIdentity, orderContext, afterWaitIds ++ List(orderIdentity))
 		WorkerStatus.STATUS_READY +=: currentStatus
 
 
