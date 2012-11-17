@@ -423,142 +423,142 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
      //  }
 
 
-     //  "processSplitが3分裂する" in {
-     //    val contextParent = new DummyContextParent(UUID.randomUUID.toString)
-     //    val id = UUID.randomUUID().toString
-     //    val input = "A+(A)B+(A)C!Z"
-     //    val json = """
-					// 	{"A": 
-					// 		{
-					// 			"_kind": "sh",
-					// 			"_main": "pwd"
-					// 		},
-					// 	"B": 
-					// 		{
-					// 			"_kind": "sh",
-					// 			"_main": "pwd"
-					// 		},
-					// 	"C": 
-					// 		{
-					// 			"_kind": "sh",
-					// 			"_main": "pwd"
-					// 		},
-					// 	"Z": 
-					// 		{
-					// 			"_kind": "sh",
-					// 			"_main": "pwd",
-					// 			"__finallyTimeout":"0"
-					// 		}
-					// 	}
-					// """
-     //    val parser = new MondogrossoProcessParser(id, input, json)
-     //    val result = parser.parseProcess
+      "processSplitが3分裂する" in {
+        val contextParent = new DummyContextParent(UUID.randomUUID.toString)
+        val id = UUID.randomUUID().toString
+        val input = "A+(A)B+(A)C!Z"
+        val json = """
+						{"A": 
+							{
+								"_kind": "sh",
+								"_main": "pwd"
+							},
+						"B": 
+							{
+								"_kind": "sh",
+								"_main": "pwd"
+							},
+						"C": 
+							{
+								"_kind": "sh",
+								"_main": "pwd"
+							},
+						"Z": 
+							{
+								"_kind": "sh",
+								"_main": "pwd",
+								"__finallyTimeout":"0"
+							}
+						}
+					"""
+        val parser = new MondogrossoProcessParser(id, input, json)
+        val result = parser.parseProcess
 
-     //    val identity = "processSplitが3分裂する"
-     //    val currentContext = new MondogrossoProcessContext(identity, result, contextParent.messenger.getName)
+        val identity = "processSplitが3分裂する"
+        val currentContext = new MondogrossoProcessContext(identity, result, contextParent.messenger.getName)
 
-     //    //コンテキストからの実行開始
-     //    currentContext.runContext
+        //コンテキストからの実行開始
+        currentContext.runContext
 
-     //    //Timeout処理の待ち
-     //    timeoutOrDone(identity, currentContext)
+        //Timeout処理の待ち
+        timeoutOrDone(identity, currentContext)
 
-     //    currentContext.status.head must be_==(ContextStatus.STATUS_DONE)
+        currentContext.status.head must be_==(ContextStatus.STATUS_DONE)
 
-     //    //A,B,C,Zともに終了している
-     //    println("processSplitが3分裂する	currentContext.contextKeyValues	" + currentContext.contextKeyValues)
-     //    Seq("A", "B", "C").foreach { orderIdentity =>
-     //      currentContext.contextKeyValues.apply(orderIdentity).keys must be_==(Set(
-     //        OrderPrefix._kind.toString,
-     //        OrderPrefix._main.toString,
-     //        OrderPrefix._result.toString))
-     //    }
+        //A,B,C,Zともに終了している
+        println("processSplitが3分裂する	currentContext.contextKeyValues	" + currentContext.contextKeyValues)
+        Seq("A", "B", "C").foreach { orderIdentity =>
+          currentContext.contextKeyValues.apply(orderIdentity).keys must be_==(Set(
+            OrderPrefix._kind.toString,
+            OrderPrefix._main.toString,
+            OrderPrefix._result.toString))
+        }
 
-     //    Seq("Z").foreach { orderIdentity =>
-     //      currentContext.contextKeyValues.apply(orderIdentity).keys must be_==(Set(
-     //        OrderPrefix.__finallyTimeout.toString,
-     //        OrderPrefix._result.toString,
-     //        OrderPrefix._kind.toString,
-     //        OrderPrefix._main.toString))
-     //    }
-     //  }
+        Seq("Z").foreach { orderIdentity =>
+          currentContext.contextKeyValues.apply(orderIdentity).keys must be_==(Set(
+            OrderPrefix.__finallyTimeout.toString,
+            OrderPrefix._result.toString,
+            OrderPrefix._kind.toString,
+            OrderPrefix._main.toString))
+        }
+      }
       
 
   
-     //  "複雑な分裂" in {
+      "複雑な分裂" in {
 
-     //    val contextParent = new DummyContextParent(UUID.randomUUID.toString)
-     //    val id = UUID.randomUUID().toString
-     //    val input = "A+(A)B+(A)C+(B)D+(B)E!Z"
-     //    val json = """
+        val contextParent = new DummyContextParent(UUID.randomUUID.toString)
+        val id = UUID.randomUUID().toString
+        val input = "A+(A)B+(A)C+(B)D+(B)E!Z"
+        val json = """
 
-					// 	{"A": 
-					// 		{
-					// 			"_kind": "sh",
-					// 			"_main": "pwd"
-					// 		},
-					// 	"B": 
-					// 		{
-					// 			"_kind": "sh",
-					// 			"_main": "pwd"
-					// 		},
-					// 	"C": 
-					// 		{
-					// 			"_kind": "sh",
-					// 			"_main": "pwd"
-					// 		},
-					// 	"D": 
-					// 		{
-					// 			"_kind": "sh",
-					// 			"_main": "pwd"
-					// 		},
-					// 	"E": 
-					// 		{
-					// 			"_kind": "sh",
-					// 			"_main": "pwd"
-					// 		},
-					// 	"Z": 
-					// 		{
-					// 			"_kind": "sh",
-					// 			"_main": "pwd",
-					// 			"__finallyTimeout":"0"
-					// 		}
-					// 	}
-					// """
+						{"A": 
+							{
+								"_kind": "sh",
+								"_main": "pwd"
+							},
+						"B": 
+							{
+								"_kind": "sh",
+								"_main": "pwd"
+							},
+						"C": 
+							{
+								"_kind": "sh",
+								"_main": "pwd"
+							},
+						"D": 
+							{
+								"_kind": "sh",
+								"_main": "pwd"
+							},
+						"E": 
+							{
+								"_kind": "sh",
+								"_main": "pwd"
+							},
+						"Z": 
+							{
+								"_kind": "sh",
+								"_main": "pwd",
+								"__finallyTimeout":"0"
+							}
+						}
+					"""
 
 
-     //    val parser = new MondogrossoProcessParser(id, input, json)
-     //    val result = parser.parseProcess
+        val parser = new MondogrossoProcessParser(id, input, json)
+        val result = parser.parseProcess
 
-     //    val identity = "複雑な分裂"
-     //    val currentContext = new MondogrossoProcessContext(identity, result, contextParent.messenger.getName)
+        val identity = "複雑な分裂"
+        val currentContext = new MondogrossoProcessContext(identity, result, contextParent.messenger.getName)
 
-     //    //コンテキストからの実行開始
-     //    currentContext.runContext
+        //コンテキストからの実行開始
+        currentContext.runContext
 
-     //    //Timeout処理の待ち
-     //    timeoutOrDone(identity, currentContext)
+        //Timeout処理の待ち
+        timeoutOrDone(identity, currentContext)
 
-     //    currentContext.status.head must be_==(ContextStatus.STATUS_DONE)
+        currentContext.status.head must be_==(ContextStatus.STATUS_DONE)
 
-     //    //A,B,C,D,E,Zともに終了している
-     //    println("processSplitが3連鎖分裂するcurrentContext.contextKeyValues	" + currentContext.contextKeyValues)
+        //A,B,C,D,E,Zともに終了している
+        println("processSplitが3連鎖分裂するcurrentContext.contextKeyValues	" + currentContext.contextKeyValues)
 
-     //    Seq("A", "B", "C", "D", "E").foreach { orderIdentity =>
-     //      currentContext.contextKeyValues.apply(orderIdentity).keys must be_==(Set(
-     //        OrderPrefix._kind.toString,
-     //        OrderPrefix._main.toString,
-     //        OrderPrefix._result.toString))
-     //    }
+        Seq("A", "B", "C", "D", "E").foreach { orderIdentity =>
+          currentContext.contextKeyValues.apply(orderIdentity).keys must be_==(Set(
+            OrderPrefix._kind.toString,
+            OrderPrefix._main.toString,
+            OrderPrefix._result.toString))
+        }
 
-     //    Seq("Z").foreach { orderIdentity =>
-     //      currentContext.contextKeyValues.apply(orderIdentity).keys must be_==(Set(
-     //        OrderPrefix.__finallyTimeout.toString,
-     //        OrderPrefix._result.toString,
-     //        OrderPrefix._kind.toString,
-     //        OrderPrefix._main.toString))
-     //    }
-     //  }
+        Seq("Z").foreach { orderIdentity =>
+          currentContext.contextKeyValues.apply(orderIdentity).keys must be_==(Set(
+            OrderPrefix.__finallyTimeout.toString,
+            OrderPrefix._result.toString,
+            OrderPrefix._kind.toString,
+            OrderPrefix._main.toString))
+        }
+      }
 
      //  "収束 A,Bが発生、AからCが発生、B終了に合わせてZへ" in {
      //    val contextParent = new DummyContextParent(UUID.randomUUID.toString)

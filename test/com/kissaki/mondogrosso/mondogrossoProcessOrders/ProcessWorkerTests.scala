@@ -90,7 +90,7 @@ class ProcessWorkerTests extends Specification {
 						}"""
 
   //Safari起動
-  if (true) {
+  if (false) {
     "Safari起動" should {
       "Safari起動実行" in {
         //擬似的に親を生成する
