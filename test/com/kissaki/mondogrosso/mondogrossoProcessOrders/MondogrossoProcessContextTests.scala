@@ -1436,7 +1436,7 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
     }
   }
 
-  if (false) {
+  if (true) {
     "よく停止しているように見受けるケース　additionalTestCase" should {
       /*
 			このケースが温床みたい。しかも必ずではない。
