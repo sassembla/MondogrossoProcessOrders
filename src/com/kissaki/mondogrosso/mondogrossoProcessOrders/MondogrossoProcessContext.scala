@@ -573,18 +573,19 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
             //先ほど完了したのがこのProcessのラスト
             case last => {
               //runningProcessListリストからdoneProcessListへとprocessを移す
-              println("この時点で	runningProcessList	"+runningProcessList+"	/から、	"+processIdentity+"	/が引かれる")
-              runningProcessList -= processIdentity
+              println("この時点で	doneProcessList	"+runningProcessList+"	/に、	"+processIdentity+"	/が足される")
               doneProcessList += processIdentity
 
               //Workerを停める
               messenger.callWithAsync(processIdentity, WorkerMessages.MESSAGE_OVER.toString, null)
 
-              println("このプロセスが完了したので引かれた後  "+processIdentity + " /この時点でリストは	"+runningProcessList)
+              println("このプロセスが完了したので足されたのが次のidentity  "+processIdentity + " /この時点でdoneリストは	"+doneProcessList)
+
+
               comments += commentFormat(new Date, "PROCESS:" + processIdentity + "	All Orders done!")
 
-              //runningProcessListが空になったらfinallyを実行
-              if (runningProcessList.isEmpty) {
+              //runningProcessListとdoneProcessListが同値=包含になったらfinallyを実行
+              if (runningProcessList.subsetOf(doneProcessList)) {
                 ContextStatus.STATUS_FINALLY +=: status
                 comments += commentFormat(new Date, "FinallyOrder:" + finallyOrderIdentity + "	ready.")
 
