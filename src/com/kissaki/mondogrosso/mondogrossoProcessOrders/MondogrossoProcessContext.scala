@@ -581,11 +581,10 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
 
               println("このプロセスが完了したので足されたのが次のidentity  "+processIdentity + " /この時点でdoneリストは	"+doneProcessList)
 
-
               comments += commentFormat(new Date, "PROCESS:" + processIdentity + "	All Orders done!")
 
               //runningProcessListとdoneProcessListが同値=包含になったらfinallyを実行
-              if (runningProcessList.subsetOf(doneProcessList)) {
+              if (runningProcessList.toSet.subsetOf(doneProcessList.toSet)) {
                 ContextStatus.STATUS_FINALLY +=: status
                 comments += commentFormat(new Date, "FinallyOrder:" + finallyOrderIdentity + "	ready.")
 
