@@ -580,7 +580,7 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
               //Workerを停める
               messenger.callWithAsync(processIdentity, WorkerMessages.MESSAGE_OVER.toString, null)
 
-              println(processIdentity + " /この時点でリストは	"+runningProcessList)
+              println("このプロセスが完了したので引かれた後  "+processIdentity + " /この時点でリストは	"+runningProcessList)
               comments += commentFormat(new Date, "PROCESS:" + processIdentity + "	All Orders done!")
 
               //runningProcessListが空になったらfinallyを実行

@@ -773,45 +773,45 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
       "複雑な収束 A,C,F,B,D,E,で、E完了時にロックが解けているので、Zへ" in {
         val contextParent = new DummyContextParent(UUID.randomUUID.toString)
         val id = UUID.randomUUID().toString
-        val input = "A>F<B,C,D,E+(A)B+(A)C+(B)D+(B)E!Z"
+        val input = "複雑な収束A>複雑な収束F<複雑な収束B,複雑な収束C,複雑な収束D,複雑な収束E+(複雑な収束A)複雑な収束B+(複雑な収束A)複雑な収束C+(複雑な収束B)複雑な収束D+(複雑な収束B)複雑な収束E!複雑な収束Z"
         val json = """
-						{"A": 
+						{"複雑な収束A": 
 							{
 								"_kind": "sh",
 								"_main": "pwd"
 							},
-						"B": 
+						"複雑な収束B": 
 							{
 								"_kind": "jar",
 								"_main": "TestProject",
 								"-i" : "B",
 								"-t" : "100"
 							},
-						"C": 
+						"複雑な収束C": 
 							{
 								"_kind": "sh",
 								"_main": "pwd"
 							},
-						"D": 
+						"複雑な収束D": 
 							{
 								"_kind": "jar",
 								"_main": "TestProject",
 								"-i" : "D",
 								"-t" : "1000"
 							},
-						"E": 
+						"複雑な収束E": 
 							{
 								"_kind": "jar",
 								"_main": "TestProject",
 								"-i" : "E",
 								"-t" : "1000"
 							},
-						"F": 
+						"複雑な収束F": 
 							{
 								"_kind": "sh",
 								"_main": "pwd"
 							},
-						"Z": 
+						"複雑な収束Z": 
 							{
 								"_kind": "sh",
 								"_main": "pwd",
@@ -834,14 +834,14 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
         currentContext.status.head must be_==(ContextStatus.STATUS_DONE)
 
         //A,B,C,D,E,F,Zともに終了している
-        Seq("A", "C", "F").foreach { orderIdentity =>
+        Seq("複雑な収束A", "複雑な収束C", "複雑な収束F").foreach { orderIdentity =>
           currentContext.contextKeyValues.apply(orderIdentity).keys must be_==(Set(
             OrderPrefix._kind.toString,
             OrderPrefix._main.toString,
             OrderPrefix._result.toString))
         }
 
-        Seq("B", "D", "E").foreach { orderIdentity =>
+        Seq("複雑な収束B", "複雑な収束D", "複雑な収束E").foreach { orderIdentity =>
           currentContext.contextKeyValues.apply(orderIdentity).keys must be_==(Set(
             OrderPrefix._kind.toString,
             "-t",
@@ -850,7 +850,7 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
             OrderPrefix._result.toString))
         }
 
-        Seq("Z").foreach { orderIdentity =>
+        Seq("複雑な収束Z").foreach { orderIdentity =>
           currentContext.contextKeyValues.apply(orderIdentity).keys must be_==(Set(
             OrderPrefix.__finallyTimeout.toString,
             OrderPrefix._result.toString,
@@ -1437,26 +1437,26 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
       "解消されないテスト p1 Bの実行に1Sかかり、必ずCのafterWaitがセットされてからになる" in {
         val contextParent = new DummyContextParent(UUID.randomUUID.toString)
         val id = UUID.randomUUID().toString
-        val input = "A>C<B+(A)B!Z"
+        val input = "よく停止しているA>よく停止しているC<よく停止しているB+(よく停止しているA)よく停止しているB!よく停止しているZ"
         val json = """
-						{"A": 
+						{"よく停止しているA": 
 							{
 								"_kind": "sh",
 								"_main": "pwd"
 							},
-						"B": 
+						"よく停止しているB": 
 							{
 								"_kind": "jar",
 								"_main": "TestProject",
 								"-i" : "B",
 								"-t" : "1000"
 							},
-						"C": 
+						"よく停止しているC": 
 							{
 								"_kind": "sh",
 								"_main": "pwd"
 							},
-						"Z": 
+						"よく停止しているZ": 
 							{
 								"_kind": "sh",
 								"_main": "pwd",
