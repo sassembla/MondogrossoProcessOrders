@@ -122,7 +122,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 				}
 			}
 			case WorkerMessages.MESSAGE_SETUP_AND_START => {
-				println("finallyProcessIdentity が、受け取っているはず、、、"+identity)
+				println("連続したOrderを待ってるWorkerか、finallyProcessIdentity が、受け取っているはず、、、"+identity)
 				currentStatus.head match {
 					case WorkerStatus.STATUS_SPLIT_READY => procSetupAndStart(tagValues)
 					case WorkerStatus.STATUS_REQUESTING => procSetupAndStart(tagValues)
@@ -133,8 +133,8 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 
 			//processSplitWait,afterWaitを解除する可能性がある、終了ORDERの通知
 			case WorkerMessages.MESSAGE_FINISHEDORDER_NOTIFY => {
-				println("workerIdentity "+ identity + "	/が、MESSAGE_FINISHEDORDER_NOTIFYを受け取った")
 				val allfinishedOrderIdentities = messenger.get("allfinishedOrderIdentities", tagValues).asInstanceOf[List[String]]
+				println("workerIdentity "+ identity + "	/が、MESSAGE_FINISHEDORDER_NOTIFYを受け取った	ここまでの完了Orderは	"+allfinishedOrderIdentities)
 
 				//リストを更新
 				currentFinishedOrdersList.clear

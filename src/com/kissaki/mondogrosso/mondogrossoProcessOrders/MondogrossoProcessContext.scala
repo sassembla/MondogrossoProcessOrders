@@ -125,7 +125,6 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
     identity
   }
 
-
   /**
    * レシーバ
    */
@@ -469,7 +468,7 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
    * FinallyOrderを開始する
    */
   def runFinally(finallyContext: scala.collection.mutable.Map[String, String]) = {
-    println("finally開始するんだけど、、"+finallyContext)
+    println("finally開始するんだけど、、" + finallyContext)
     comments += commentFormat(new Date, "FinallyOrder:" + finallyOrderIdentity + "	setUp.")
     messenger.call(finallyProcessIdentity, WorkerMessages.MESSAGE_SETUP.toString, messenger.tagValues(
       new TagValue("identity", finallyOrderIdentity),
@@ -573,13 +572,13 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
             //先ほど完了したのがこのProcessのラスト
             case last => {
               //runningProcessListリストからdoneProcessListへとprocessを移す
-              println("この時点で	doneProcessList	"+doneProcessList+"	/に、	"+processIdentity+"	/が足される")
+              println("この時点で	doneProcessList	" + doneProcessList + "	/に、	" + processIdentity + "	/が足される")
               doneProcessList += processIdentity
 
               //Workerを停める
               messenger.callWithAsync(processIdentity, WorkerMessages.MESSAGE_OVER.toString, null)
 
-              println("このプロセスが完了したので足されたのが次のidentity  "+processIdentity + " /この時点でdoneリストは	"+doneProcessList)
+              println("このプロセスが完了したので足されたのが次のidentity  " + processIdentity + " /この時点でdoneリストは	" + doneProcessList)
 
               comments += commentFormat(new Date, "PROCESS:" + processIdentity + "	All Orders done!")
 
@@ -646,7 +645,6 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
           ContextStatus.STATUS_TIMEOUTED +=: status
           comments += commentFormat(new Date, "Timeout Order:" + currentFinishedOrderIdentity + "	was finished.	" + identity)
 
-
           //masterにタイムアウトを通知
           messenger.callParent(ContextMessages.MESSAGE_TIMEOUT.toString, messenger.tagValues(
             new TagValue("contextIdentity", identity),
@@ -667,10 +665,10 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
    */
   def procFinally(exec: WorkerMessages.Value, tagValues: Array[TagValue]) = {
     exec match {
-      case WorkerMessages.MESSAGE_FINALLY => contextKeyValues.get(finallyOrderIdentity).foreach {finallyContext => 
-        println("Finallyの実行が始まった  "+finallyOrderIdentity)
+      case WorkerMessages.MESSAGE_FINALLY => contextKeyValues.get(finallyOrderIdentity).foreach { finallyContext =>
+        println("Finallyの実行が始まった  " + finallyOrderIdentity)
         runFinally(finallyContext)
-        println("finallyContextが実行開始されたはず "+ finallyContext)
+        println("finallyContextが実行開始されたはず " + finallyContext)
       }
 
       case WorkerMessages.MESSAGE_SYNCRONOUSLY_STARTED => {
