@@ -115,7 +115,7 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
       new TagValue("contextProcessIndex", doneProcessList.length),
       new TagValue("contextProcessTotal", contextSrc.totalProcessNum)))
 
-    println("スタート時点でリストは	" + runningProcessList)
+    println("このcontextのidentity " + identity + "  /スタート時点でリストは	" + runningProcessList)
 
     //初期状態での、finallyの予約時間起動
     setContextTimeout
