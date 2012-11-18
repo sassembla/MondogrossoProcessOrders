@@ -174,7 +174,7 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
   }
 
   //Context
-  if (true) {
+  if (false) {
     "Context run" should {
       "Context 基礎的な挙動　run A then Z" in {
         val contextParent = new DummyContextParent(UUID.randomUUID.toString)
@@ -228,7 +228,7 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
   }
 
   //timeouts
-  if (true) {
+  if (false) {
     "Context タイムアウトについて" should {
       "1:run A then Z finallyTimeout付きで時間内に完了する" in {
         val contextParent = new DummyContextParent(UUID.randomUUID.toString)
@@ -360,418 +360,413 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
 		 * 収束:		A>E<B,C,D+(A)B+(B)C+(C)D!Z			B,C,Dが完了したらやっとEが終わる
 		 */
     "processSplitの分裂、連鎖分裂、収束" should {
-      "processSplitが2連続する" in {
-        val contextParent = new DummyContextParent(UUID.randomUUID.toString)
-        val id = UUID.randomUUID().toString
-        val input = "A+(A)B!Z"
-        val json = """
-						{"A": 
-							{
-								"_kind": "sh",
-								"_main": "pwd"
-							},
-						"B": 
-							{
-								"_kind": "sh",
-								"_main": "pwd"
-							},
-						"Z": 
-							{
-								"_kind": "sh",
-								"_main": "pwd",
-								"__finallyTimeout":"0"
-							}
-						}
-					"""
+     //  "processSplitが2連続する" in {
+     //    val contextParent = new DummyContextParent(UUID.randomUUID.toString)
+     //    val id = UUID.randomUUID().toString
+     //    val input = "A+(A)B!Z"
+     //    val json = """
+					// 	{"A": 
+					// 		{
+					// 			"_kind": "sh",
+					// 			"_main": "pwd"
+					// 		},
+					// 	"B": 
+					// 		{
+					// 			"_kind": "sh",
+					// 			"_main": "pwd"
+					// 		},
+					// 	"Z": 
+					// 		{
+					// 			"_kind": "sh",
+					// 			"_main": "pwd",
+					// 			"__finallyTimeout":"0"
+					// 		}
+					// 	}
+					// """
 
-        val parser = new MondogrossoProcessParser(id, input, json)
-        val result = parser.parseProcess
+     //    val parser = new MondogrossoProcessParser(id, input, json)
+     //    val result = parser.parseProcess
 
-        val identity = "processSplitが2連続する"
-        val currentContext = new MondogrossoProcessContext(identity, result, contextParent.messenger.getName)
+     //    val identity = "processSplitが2連続する"
+     //    val currentContext = new MondogrossoProcessContext(identity, result, contextParent.messenger.getName)
 
-        //コンテキストからの実行開始
-        currentContext.runContext
+     //    //コンテキストからの実行開始
+     //    currentContext.runContext
 
-        //Timeout処理の待ち
-        timeoutOrDone(identity, currentContext)
+     //    //Timeout処理の待ち
+     //    timeoutOrDone(identity, currentContext)
 
-        currentContext.status.head must be_==(ContextStatus.STATUS_DONE)
-        //A,B,Zともに終了している
-        println("processSplitが2連続する	currentContext.contextKeyValues	" + currentContext.contextKeyValues)
+     //    currentContext.status.head must be_==(ContextStatus.STATUS_DONE)
+     //    //A,B,Zともに終了している
+     //    println("processSplitが2連続する	currentContext.contextKeyValues	" + currentContext.contextKeyValues)
 
-        /*
-    		 * processSplitが2連続する	currentContext.contextKeyValues	
-    		 * Map(Z -> Map(__finallyTimeout -> 0, _result -> /Applications/eclipseScala/scalaworkspace/MondogrossoProcessOrders, _kind -> sh, _main -> pwd), 
-    		 * A -> Map(_result -> /Applications/eclipseScala/scalaworkspace/MondogrossoProcessOrders, _kind -> sh, _main -> pwd), 
-    		 * B -> Map(_kind -> sh, _main -> pwd))	/i	0
-    		 */
-        Seq("A", "B").foreach { orderIdentity =>
-          currentContext.contextKeyValues.apply(orderIdentity).keys must be_==(Set(
-            OrderPrefix._kind.toString,
-            OrderPrefix._main.toString,
-            OrderPrefix._result.toString))
-        }
+     //    /*
+    	// 	 * processSplitが2連続する	currentContext.contextKeyValues	
+    	// 	 * Map(Z -> Map(__finallyTimeout -> 0, _result -> /Applications/eclipseScala/scalaworkspace/MondogrossoProcessOrders, _kind -> sh, _main -> pwd), 
+    	// 	 * A -> Map(_result -> /Applications/eclipseScala/scalaworkspace/MondogrossoProcessOrders, _kind -> sh, _main -> pwd), 
+    	// 	 * B -> Map(_kind -> sh, _main -> pwd))	/i	0
+    	// 	 */
+     //    Seq("A", "B").foreach { orderIdentity =>
+     //      currentContext.contextKeyValues.apply(orderIdentity).keys must be_==(Set(
+     //        OrderPrefix._kind.toString,
+     //        OrderPrefix._main.toString,
+     //        OrderPrefix._result.toString))
+     //    }
 
-        Seq("Z").foreach { orderIdentity =>
-          currentContext.contextKeyValues.apply(orderIdentity).keys must be_==(Set(
-            OrderPrefix.__finallyTimeout.toString,
-            OrderPrefix._result.toString,
-            OrderPrefix._kind.toString,
-            OrderPrefix._main.toString))
-        }
-      }
+     //    Seq("Z").foreach { orderIdentity =>
+     //      currentContext.contextKeyValues.apply(orderIdentity).keys must be_==(Set(
+     //        OrderPrefix.__finallyTimeout.toString,
+     //        OrderPrefix._result.toString,
+     //        OrderPrefix._kind.toString,
+     //        OrderPrefix._main.toString))
+     //    }
+     //  }
 
+     //  "processSplitが3分裂する" in {
+     //    val contextParent = new DummyContextParent(UUID.randomUUID.toString)
+     //    val id = UUID.randomUUID().toString
+     //    val input = "A+(A)B+(A)C!Z"
+     //    val json = """
+					// 	{"A": 
+					// 		{
+					// 			"_kind": "sh",
+					// 			"_main": "pwd"
+					// 		},
+					// 	"B": 
+					// 		{
+					// 			"_kind": "sh",
+					// 			"_main": "pwd"
+					// 		},
+					// 	"C": 
+					// 		{
+					// 			"_kind": "sh",
+					// 			"_main": "pwd"
+					// 		},
+					// 	"Z": 
+					// 		{
+					// 			"_kind": "sh",
+					// 			"_main": "pwd",
+					// 			"__finallyTimeout":"0"
+					// 		}
+					// 	}
+					// """
+     //    val parser = new MondogrossoProcessParser(id, input, json)
+     //    val result = parser.parseProcess
 
-      "processSplitが3分裂する" in {
-        val contextParent = new DummyContextParent(UUID.randomUUID.toString)
-        val id = UUID.randomUUID().toString
-        val input = "A+(A)B+(A)C!Z"
-        val json = """
-						{"A": 
-							{
-								"_kind": "sh",
-								"_main": "pwd"
-							},
-						"B": 
-							{
-								"_kind": "sh",
-								"_main": "pwd"
-							},
-						"C": 
-							{
-								"_kind": "sh",
-								"_main": "pwd"
-							},
-						"Z": 
-							{
-								"_kind": "sh",
-								"_main": "pwd",
-								"__finallyTimeout":"0"
-							}
-						}
-					"""
-        val parser = new MondogrossoProcessParser(id, input, json)
-        val result = parser.parseProcess
+     //    val identity = "processSplitが3分裂する"
+     //    val currentContext = new MondogrossoProcessContext(identity, result, contextParent.messenger.getName)
 
-        val identity = "processSplitが3分裂する"
-        val currentContext = new MondogrossoProcessContext(identity, result, contextParent.messenger.getName)
+     //    //コンテキストからの実行開始
+     //    currentContext.runContext
 
-        //コンテキストからの実行開始
-        currentContext.runContext
+     //    //Timeout処理の待ち
+     //    timeoutOrDone(identity, currentContext)
 
-        //Timeout処理の待ち
-        timeoutOrDone(identity, currentContext)
+     //    currentContext.status.head must be_==(ContextStatus.STATUS_DONE)
 
-        currentContext.status.head must be_==(ContextStatus.STATUS_DONE)
+     //    //A,B,C,Zともに終了している
+     //    println("processSplitが3分裂する	currentContext.contextKeyValues	" + currentContext.contextKeyValues)
+     //    Seq("A", "B", "C").foreach { orderIdentity =>
+     //      currentContext.contextKeyValues.apply(orderIdentity).keys must be_==(Set(
+     //        OrderPrefix._kind.toString,
+     //        OrderPrefix._main.toString,
+     //        OrderPrefix._result.toString))
+     //    }
 
-        //A,B,C,Zともに終了している
-        println("processSplitが3分裂する	currentContext.contextKeyValues	" + currentContext.contextKeyValues)
-        Seq("A", "B", "C").foreach { orderIdentity =>
-          currentContext.contextKeyValues.apply(orderIdentity).keys must be_==(Set(
-            OrderPrefix._kind.toString,
-            OrderPrefix._main.toString,
-            OrderPrefix._result.toString))
-        }
-
-        Seq("Z").foreach { orderIdentity =>
-          currentContext.contextKeyValues.apply(orderIdentity).keys must be_==(Set(
-            OrderPrefix.__finallyTimeout.toString,
-            OrderPrefix._result.toString,
-            OrderPrefix._kind.toString,
-            OrderPrefix._main.toString))
-        }
-      }
-      
-
+     //    Seq("Z").foreach { orderIdentity =>
+     //      currentContext.contextKeyValues.apply(orderIdentity).keys must be_==(Set(
+     //        OrderPrefix.__finallyTimeout.toString,
+     //        OrderPrefix._result.toString,
+     //        OrderPrefix._kind.toString,
+     //        OrderPrefix._main.toString))
+     //    }
+     //  }
   
-      "複雑な分裂" in {
+     //  "複雑な分裂" in {
 
-        val contextParent = new DummyContextParent(UUID.randomUUID.toString)
-        val id = UUID.randomUUID().toString
-        val input = "A+(A)B+(A)C+(B)D+(B)E!Z"
-        val json = """
+     //    val contextParent = new DummyContextParent(UUID.randomUUID.toString)
+     //    val id = UUID.randomUUID().toString
+     //    val input = "A+(A)B+(A)C+(B)D+(B)E!Z"
+     //    val json = """
 
-						{"A": 
-							{
-								"_kind": "sh",
-								"_main": "pwd"
-							},
-						"B": 
-							{
-								"_kind": "sh",
-								"_main": "pwd"
-							},
-						"C": 
-							{
-								"_kind": "sh",
-								"_main": "pwd"
-							},
-						"D": 
-							{
-								"_kind": "sh",
-								"_main": "pwd"
-							},
-						"E": 
-							{
-								"_kind": "sh",
-								"_main": "pwd"
-							},
-						"Z": 
-							{
-								"_kind": "sh",
-								"_main": "pwd",
-								"__finallyTimeout":"0"
-							}
-						}
-					"""
-
-
-        val parser = new MondogrossoProcessParser(id, input, json)
-        val result = parser.parseProcess
-
-        val identity = "複雑な分裂"
-        val currentContext = new MondogrossoProcessContext(identity, result, contextParent.messenger.getName)
-
-        //コンテキストからの実行開始
-        currentContext.runContext
-
-        //Timeout処理の待ち
-        timeoutOrDone(identity, currentContext)
-
-        currentContext.status.head must be_==(ContextStatus.STATUS_DONE)
-
-        //A,B,C,D,E,Zともに終了している
-        println("processSplitが3連鎖分裂するcurrentContext.contextKeyValues	" + currentContext.contextKeyValues)
-
-        Seq("A", "B", "C", "D", "E").foreach { orderIdentity =>
-          currentContext.contextKeyValues.apply(orderIdentity).keys must be_==(Set(
-            OrderPrefix._kind.toString,
-            OrderPrefix._main.toString,
-            OrderPrefix._result.toString))
-        }
-
-        Seq("Z").foreach { orderIdentity =>
-          currentContext.contextKeyValues.apply(orderIdentity).keys must be_==(Set(
-            OrderPrefix.__finallyTimeout.toString,
-            OrderPrefix._result.toString,
-            OrderPrefix._kind.toString,
-            OrderPrefix._main.toString))
-        }
-      }
-
-      "収束 A,Bが発生、AからCが発生、B終了に合わせてZへ" in {
-        val contextParent = new DummyContextParent(UUID.randomUUID.toString)
-        val id = UUID.randomUUID().toString
-        val input = "A>C<B+(A)B!Z"
-        val json = """
-						{"A": 
-							{
-								"_kind": "sh",
-								"_main": "pwd"
-							},
-						"B": 
-							{
-								"_kind": "sh",
-								"_main": "pwd"
-							},
-						"C": 
-							{
-								"_kind": "sh",
-								"_main": "pwd"
-							},
-						"Z": 
-							{
-								"_kind": "sh",
-								"_main": "pwd",
-								"__finallyTimeout":"0"
-							}
-						}
-					"""
-
-        val parser = new MondogrossoProcessParser(id, input, json)
-        val result = parser.parseProcess
-
-        val identity = "収束 A,Bが発生、AからCが発生、B終了に合わせてZへ"
-        val currentContext = new MondogrossoProcessContext(identity, result, contextParent.messenger.getName)
-
-        //コンテキストからの実行開始
-        currentContext.runContext
-
-        //Timeout処理の待ち
-        timeoutOrDone(identity, currentContext)
+					// 	{"A": 
+					// 		{
+					// 			"_kind": "sh",
+					// 			"_main": "pwd"
+					// 		},
+					// 	"B": 
+					// 		{
+					// 			"_kind": "sh",
+					// 			"_main": "pwd"
+					// 		},
+					// 	"C": 
+					// 		{
+					// 			"_kind": "sh",
+					// 			"_main": "pwd"
+					// 		},
+					// 	"D": 
+					// 		{
+					// 			"_kind": "sh",
+					// 			"_main": "pwd"
+					// 		},
+					// 	"E": 
+					// 		{
+					// 			"_kind": "sh",
+					// 			"_main": "pwd"
+					// 		},
+					// 	"Z": 
+					// 		{
+					// 			"_kind": "sh",
+					// 			"_main": "pwd",
+					// 			"__finallyTimeout":"0"
+					// 		}
+					// 	}
+					// """
 
 
-        currentContext.status.head must be_==(ContextStatus.STATUS_DONE)
+     //    val parser = new MondogrossoProcessParser(id, input, json)
+     //    val result = parser.parseProcess
 
-        //A,B,C,Zともに終了している
-        println("processSplitが3連鎖分裂するcurrentContext.contextKeyValues	" + currentContext.contextKeyValues)
+     //    val identity = "複雑な分裂"
+     //    val currentContext = new MondogrossoProcessContext(identity, result, contextParent.messenger.getName)
 
-        Seq("A", "B", "C").foreach { orderIdentity =>
-          currentContext.contextKeyValues.apply(orderIdentity).keys must be_==(Set(
-            OrderPrefix._kind.toString,
-            OrderPrefix._main.toString,
-            OrderPrefix._result.toString))
-        }
+     //    //コンテキストからの実行開始
+     //    currentContext.runContext
 
-        Seq("Z").foreach { orderIdentity =>
-          currentContext.contextKeyValues.apply(orderIdentity).keys must be_==(Set(
-            OrderPrefix.__finallyTimeout.toString,
-            OrderPrefix._result.toString,
-            OrderPrefix._kind.toString,
-            OrderPrefix._main.toString))
-        }
-      }
+     //    //Timeout処理の待ち
+     //    timeoutOrDone(identity, currentContext)
 
-      
+     //    currentContext.status.head must be_==(ContextStatus.STATUS_DONE)
 
-      "収束 A,Bが発生、Bに時間のかかる処理、Cが発生、終了かつB待ち、B終了、Z" in {
-        val contextParent = new DummyContextParent(UUID.randomUUID.toString)
-        val id = UUID.randomUUID().toString
-        val input = "A>C<B+(A)B!Z"
-        val json = """
-						{"A": 
-							{
-								"_kind": "sh",
-								"_main": "pwd"
-							},
-						"B": 
-							{
-								"_kind": "jar",
-								"_main": "TestProject",
-								"-i" : "B",
-								"-t" : "100"
-							},
-						"C": 
-							{
-								"_kind": "sh",
-								"_main": "pwd"
-							},
-						"Z": 
-							{
-								"_kind": "sh",
-								"_main": "pwd",
-								"__finallyTimeout":"0"
-							}
-						}
-					"""
+     //    //A,B,C,D,E,Zともに終了している
+     //    println("processSplitが3連鎖分裂するcurrentContext.contextKeyValues	" + currentContext.contextKeyValues)
 
-        val parser = new MondogrossoProcessParser(id, input, json)
-        val result = parser.parseProcess
+     //    Seq("A", "B", "C", "D", "E").foreach { orderIdentity =>
+     //      currentContext.contextKeyValues.apply(orderIdentity).keys must be_==(Set(
+     //        OrderPrefix._kind.toString,
+     //        OrderPrefix._main.toString,
+     //        OrderPrefix._result.toString))
+     //    }
 
-        val identity = "収束 A,Bが発生、Bに時間のかかる処理、Cが発生、終了かつB待ち、B終了、Z"
-        val currentContext = new MondogrossoProcessContext(identity, result, contextParent.messenger.getName)
+     //    Seq("Z").foreach { orderIdentity =>
+     //      currentContext.contextKeyValues.apply(orderIdentity).keys must be_==(Set(
+     //        OrderPrefix.__finallyTimeout.toString,
+     //        OrderPrefix._result.toString,
+     //        OrderPrefix._kind.toString,
+     //        OrderPrefix._main.toString))
+     //    }
+     //  }
 
-        //コンテキストからの実行開始
-        currentContext.runContext
+     //  "収束 A,Bが発生、AからCが発生、B終了に合わせてZへ" in {
+     //    val contextParent = new DummyContextParent(UUID.randomUUID.toString)
+     //    val id = UUID.randomUUID().toString
+     //    val input = "A>C<B+(A)B!Z"
+     //    val json = """
+					// 	{"A": 
+					// 		{
+					// 			"_kind": "sh",
+					// 			"_main": "pwd"
+					// 		},
+					// 	"B": 
+					// 		{
+					// 			"_kind": "sh",
+					// 			"_main": "pwd"
+					// 		},
+					// 	"C": 
+					// 		{
+					// 			"_kind": "sh",
+					// 			"_main": "pwd"
+					// 		},
+					// 	"Z": 
+					// 		{
+					// 			"_kind": "sh",
+					// 			"_main": "pwd",
+					// 			"__finallyTimeout":"0"
+					// 		}
+					// 	}
+					// """
 
-        //Timeout処理の待ち
-        timeoutOrDone(identity, currentContext)
+     //    val parser = new MondogrossoProcessParser(id, input, json)
+     //    val result = parser.parseProcess
 
-        currentContext.status.head must be_==(ContextStatus.STATUS_DONE)
+     //    val identity = "収束 A,Bが発生、AからCが発生、B終了に合わせてZへ"
+     //    val currentContext = new MondogrossoProcessContext(identity, result, contextParent.messenger.getName)
 
-        //A,B,C,Zともに終了している
+     //    //コンテキストからの実行開始
+     //    currentContext.runContext
 
-        Seq("A", "C").foreach { orderIdentity =>
-          currentContext.contextKeyValues.apply(orderIdentity).keys must be_==(Set(
-            OrderPrefix._kind.toString,
-            OrderPrefix._main.toString,
-            OrderPrefix._result.toString))
-        }
+     //    //Timeout処理の待ち
+     //    timeoutOrDone(identity, currentContext)
 
-        Seq("B").foreach { orderIdentity =>
-          currentContext.contextKeyValues.apply(orderIdentity).keys must be_==(Set(
-            OrderPrefix._kind.toString,
-            "-t",
-            "-i",
-            OrderPrefix._main.toString,
-            OrderPrefix._result.toString))
-        }
 
-        Seq("Z").foreach { orderIdentity =>
-          currentContext.contextKeyValues.apply(orderIdentity).keys must be_==(Set(
-            OrderPrefix.__finallyTimeout.toString,
-            OrderPrefix._result.toString,
-            OrderPrefix._kind.toString,
-            OrderPrefix._main.toString))
-        }
-      }
+     //    currentContext.status.head must be_==(ContextStatus.STATUS_DONE)
 
-      "複雑な収束 A,B,D,E,C,Fで、F時にロックが解けているので、Zへ" in {
-        val contextParent = new DummyContextParent(UUID.randomUUID.toString)
-        val id = UUID.randomUUID().toString
-        val input = "A>F<B,C,D,E+(A)B+(A)C+(B)D+(B)E!Z"
-        val json = """
-						{"A": 
-							{
-								"_kind": "sh",
-								"_main": "pwd"
-							},
-						"B": 
-							{
-								"_kind": "sh",
-								"_main": "pwd"
-							},
-						"C": 
-							{
-								"_kind": "sh",
-								"_main": "pwd"
-							},
-						"D": 
-							{
-								"_kind": "sh",
-								"_main": "pwd"
-							},
-						"E": 
-							{
-								"_kind": "sh",
-								"_main": "pwd"
-							},
-						"F": 
-							{
-								"_kind": "sh",
-								"_main": "pwd"
-							},
-						"Z": 
-							{
-								"_kind": "sh",
-								"_main": "pwd",
-								"__finallyTimeout":"0"
-							}
-						}
+     //    //A,B,C,Zともに終了している
+     //    println("processSplitが3連鎖分裂するcurrentContext.contextKeyValues	" + currentContext.contextKeyValues)
 
-					"""
+     //    Seq("A", "B", "C").foreach { orderIdentity =>
+     //      currentContext.contextKeyValues.apply(orderIdentity).keys must be_==(Set(
+     //        OrderPrefix._kind.toString,
+     //        OrderPrefix._main.toString,
+     //        OrderPrefix._result.toString))
+     //    }
 
-        val parser = new MondogrossoProcessParser(id, input, json)
-        val result = parser.parseProcess
+     //    Seq("Z").foreach { orderIdentity =>
+     //      currentContext.contextKeyValues.apply(orderIdentity).keys must be_==(Set(
+     //        OrderPrefix.__finallyTimeout.toString,
+     //        OrderPrefix._result.toString,
+     //        OrderPrefix._kind.toString,
+     //        OrderPrefix._main.toString))
+     //    }
+     //  }
 
-        val identity = "複雑な収束 A,B,D,E,C,Fで、F時にロックが解けているので、Zへ"
-        val currentContext = new MondogrossoProcessContext(identity, result, contextParent.messenger.getName)
+     //  "収束 A,Bが発生、Bに時間のかかる処理、Cが発生、終了かつB待ち、B終了、Z" in {
+     //    val contextParent = new DummyContextParent(UUID.randomUUID.toString)
+     //    val id = UUID.randomUUID().toString
+     //    val input = "A>C<B+(A)B!Z"
+     //    val json = """
+					// 	{"A": 
+					// 		{
+					// 			"_kind": "sh",
+					// 			"_main": "pwd"
+					// 		},
+					// 	"B": 
+					// 		{
+					// 			"_kind": "jar",
+					// 			"_main": "TestProject",
+					// 			"-i" : "B",
+					// 			"-t" : "100"
+					// 		},
+					// 	"C": 
+					// 		{
+					// 			"_kind": "sh",
+					// 			"_main": "pwd"
+					// 		},
+					// 	"Z": 
+					// 		{
+					// 			"_kind": "sh",
+					// 			"_main": "pwd",
+					// 			"__finallyTimeout":"0"
+					// 		}
+					// 	}
+					// """
 
-        //コンテキストからの実行開始
-        currentContext.runContext
+     //    val parser = new MondogrossoProcessParser(id, input, json)
+     //    val result = parser.parseProcess
 
-        //Timeout処理の待ち
-        timeoutOrDone(identity, currentContext)
+     //    val identity = "収束 A,Bが発生、Bに時間のかかる処理、Cが発生、終了かつB待ち、B終了、Z"
+     //    val currentContext = new MondogrossoProcessContext(identity, result, contextParent.messenger.getName)
 
-        currentContext.status.head must be_==(ContextStatus.STATUS_DONE)
+     //    //コンテキストからの実行開始
+     //    currentContext.runContext
 
-        //A,B,C,D,E,F,Zともに終了している
-        Seq("A", "B", "C", "D", "E", "F").foreach { orderIdentity =>
-          currentContext.contextKeyValues.apply(orderIdentity).keys must be_==(Set(
-            OrderPrefix._kind.toString,
-            OrderPrefix._main.toString,
-            OrderPrefix._result.toString))
-        }
+     //    //Timeout処理の待ち
+     //    timeoutOrDone(identity, currentContext)
 
-        Seq("Z").foreach { orderIdentity =>
-          currentContext.contextKeyValues.apply(orderIdentity).keys must be_==(Set(
-            OrderPrefix.__finallyTimeout.toString,
-            OrderPrefix._result.toString,
-            OrderPrefix._kind.toString,
-            OrderPrefix._main.toString))
-        }
-      }
+     //    currentContext.status.head must be_==(ContextStatus.STATUS_DONE)
+
+     //    //A,B,C,Zともに終了している
+
+     //    Seq("A", "C").foreach { orderIdentity =>
+     //      currentContext.contextKeyValues.apply(orderIdentity).keys must be_==(Set(
+     //        OrderPrefix._kind.toString,
+     //        OrderPrefix._main.toString,
+     //        OrderPrefix._result.toString))
+     //    }
+
+     //    Seq("B").foreach { orderIdentity =>
+     //      currentContext.contextKeyValues.apply(orderIdentity).keys must be_==(Set(
+     //        OrderPrefix._kind.toString,
+     //        "-t",
+     //        "-i",
+     //        OrderPrefix._main.toString,
+     //        OrderPrefix._result.toString))
+     //    }
+
+     //    Seq("Z").foreach { orderIdentity =>
+     //      currentContext.contextKeyValues.apply(orderIdentity).keys must be_==(Set(
+     //        OrderPrefix.__finallyTimeout.toString,
+     //        OrderPrefix._result.toString,
+     //        OrderPrefix._kind.toString,
+     //        OrderPrefix._main.toString))
+     //    }
+     //  }
+
+     //  "複雑な収束 A,B,D,E,C,Fで、F時にロックが解けているので、Zへ" in {
+     //    val contextParent = new DummyContextParent(UUID.randomUUID.toString)
+     //    val id = UUID.randomUUID().toString
+     //    val input = "A>F<B,C,D,E+(A)B+(A)C+(B)D+(B)E!Z"
+     //    val json = """
+					// 	{"A": 
+					// 		{
+					// 			"_kind": "sh",
+					// 			"_main": "pwd"
+					// 		},
+					// 	"B": 
+					// 		{
+					// 			"_kind": "sh",
+					// 			"_main": "pwd"
+					// 		},
+					// 	"C": 
+					// 		{
+					// 			"_kind": "sh",
+					// 			"_main": "pwd"
+					// 		},
+					// 	"D": 
+					// 		{
+					// 			"_kind": "sh",
+					// 			"_main": "pwd"
+					// 		},
+					// 	"E": 
+					// 		{
+					// 			"_kind": "sh",
+					// 			"_main": "pwd"
+					// 		},
+					// 	"F": 
+					// 		{
+					// 			"_kind": "sh",
+					// 			"_main": "pwd"
+					// 		},
+					// 	"Z": 
+					// 		{
+					// 			"_kind": "sh",
+					// 			"_main": "pwd",
+					// 			"__finallyTimeout":"0"
+					// 		}
+					// 	}
+
+					// """
+
+     //    val parser = new MondogrossoProcessParser(id, input, json)
+     //    val result = parser.parseProcess
+
+     //    val identity = "複雑な収束 A,B,D,E,C,Fで、F時にロックが解けているので、Zへ"
+     //    val currentContext = new MondogrossoProcessContext(identity, result, contextParent.messenger.getName)
+
+     //    //コンテキストからの実行開始
+     //    currentContext.runContext
+
+     //    //Timeout処理の待ち
+     //    timeoutOrDone(identity, currentContext)
+
+     //    currentContext.status.head must be_==(ContextStatus.STATUS_DONE)
+
+     //    //A,B,C,D,E,F,Zともに終了している
+     //    Seq("A", "B", "C", "D", "E", "F").foreach { orderIdentity =>
+     //      currentContext.contextKeyValues.apply(orderIdentity).keys must be_==(Set(
+     //        OrderPrefix._kind.toString,
+     //        OrderPrefix._main.toString,
+     //        OrderPrefix._result.toString))
+     //    }
+
+     //    Seq("Z").foreach { orderIdentity =>
+     //      currentContext.contextKeyValues.apply(orderIdentity).keys must be_==(Set(
+     //        OrderPrefix.__finallyTimeout.toString,
+     //        OrderPrefix._result.toString,
+     //        OrderPrefix._kind.toString,
+     //        OrderPrefix._main.toString))
+     //    }
+     //  }
 
 
 
@@ -867,7 +862,7 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
   }
 
   //special cases
-  if (true) {
+  if (false) {
     "Context 複雑なOrder" should {
       "5:run A,B,Z 複数のOrder" in {
         val contextParent = new DummyContextParent(UUID.randomUUID.toString)
@@ -1323,7 +1318,7 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
   }
 
   //Context Error
-  if (true) {
+  if (false) {
     "Context エラー処理" should {
 
 
@@ -1436,7 +1431,7 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
     }
   }
 
-  if (true) {
+  if (false) {
     "よく停止しているように見受けるケース　additionalTestCase" should {
       /*
 			このケースが温床みたい。しかも必ずではない。
