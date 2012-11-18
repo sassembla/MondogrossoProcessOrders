@@ -29,7 +29,7 @@ class DummyContextParent (masterName:String) extends MessengerProtocol {
 			}
 			case ContextMessages.MESSAGE_DONE => {
 				println("MESSAGE_DONE")
-				// tagValues.foreach{ println }
+				tagValues.foreach{value =>  println("v_"+ value) }
 			}
 			case ContextMessages.MESSAGE_ERROR => {
 				println("MESSAGE_ERROR")
