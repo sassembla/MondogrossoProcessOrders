@@ -8,8 +8,9 @@ import java.util.TimerTask
 import java.util.concurrent.TimeUnit
 import com.kissaki.TagValue
 import java.util.Date
-import scala.collection.mutable.SynchronizedMap
-import scala.collection.immutable.HashMap
+import scala.collection.mutable.SynchronizedBuffer
+import scala.collection.mutable.ArrayBuffer
+
 
 /**
  * コンテキスト
@@ -38,7 +39,7 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
   val runningProcessList: ListBuffer[String] = ListBuffer()
 
   //実行後Processのリスト
-  val doneProcessList: HashMap[String, String] with SynchronizedMap[String, String]
+  val doneProcessList = new ArrayBuffer[String] with SynchronizedBuffer[String]
 
   /*オーダーリスト*/
 
@@ -91,7 +92,7 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
     new TagValue("contextIdentity", identity),
     new TagValue("contextOrderIndex", doneOrderIdentities.length),
     new TagValue("contextOrderTotal", contextSrc.totalOrderCount),
-    new TagValue("contextProcessIndex", doneProcessList.size),
+    new TagValue("contextProcessIndex", doneProcessList.length),
     new TagValue("contextProcessTotal", contextSrc.totalProcessNum)))
 
   /**
@@ -115,7 +116,7 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
       new TagValue("contextIdentity", identity),
       new TagValue("contextOrderIndex", doneOrderIdentities.length),
       new TagValue("contextOrderTotal", contextSrc.totalOrderCount),
-      new TagValue("contextProcessIndex", doneProcessList.size),
+      new TagValue("contextProcessIndex", doneProcessList.length),
       new TagValue("contextProcessTotal", contextSrc.totalProcessNum)))
 
     println("このcontextのidentity " + identity + "  /スタート時点でリストは	" + runningProcessList)
@@ -463,7 +464,7 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
       new TagValue("contextIdentity", identity),
       new TagValue("contextOrderIndex", doneOrderIdentities.length),
       new TagValue("contextOrderTotal", contextSrc.totalOrderCount),
-      new TagValue("contextProcessIndex", doneProcessList.size),
+      new TagValue("contextProcessIndex", doneProcessList.length),
       new TagValue("contextProcessTotal", contextSrc.totalProcessNum)))
   }
 
@@ -576,7 +577,7 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
             case last => {
               //runningProcessListリストからdoneProcessListへとprocessを移す
               println("この時点で	doneProcessList	" + doneProcessList + "	/に、	" + processIdentity + "	/が足される")
-              doneProcessList += (processIdentity -> processIdentity)
+              doneProcessList += processIdentity
 
               //Workerを停める
               messenger.callWithAsync(processIdentity, WorkerMessages.MESSAGE_OVER.toString, null)
@@ -586,7 +587,7 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
               comments += commentFormat(new Date, "PROCESS:" + processIdentity + "	All Orders done!")
 
               //runningProcessListとdoneProcessListが同値=包含になったらfinallyを実行
-              if (runningProcessList.length == doneProcessList.size) {
+              if (runningProcessList.toSet.subsetOf(doneProcessList.toSet)) {
                 ContextStatus.STATUS_FINALLY +=: status
                 comments += commentFormat(new Date, "FinallyOrder:" + finallyOrderIdentity + "	ready.")
 
@@ -653,7 +654,7 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
             new TagValue("contextIdentity", identity),
             new TagValue("contextOrderIndex", doneOrderIdentities.length),
             new TagValue("contextOrderTotal", contextSrc.totalOrderCount),
-            new TagValue("contextProcessIndex", doneProcessList.size),
+            new TagValue("contextProcessIndex", doneProcessList.length),
             new TagValue("contextProcessTotal", contextSrc.totalProcessNum),
             new TagValue("contextResult", currentContextResult)))
         }
@@ -713,7 +714,7 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
             new TagValue("contextIdentity", identity),
             new TagValue("contextOrderIndex", doneOrderIdentities.length),
             new TagValue("contextOrderTotal", contextSrc.totalOrderCount),
-            new TagValue("contextProcessIndex", doneProcessList.size),
+            new TagValue("contextProcessIndex", doneProcessList.length),
             new TagValue("contextProcessTotal", contextSrc.totalProcessNum),
             new TagValue("contextResultString", contextResultString)))
         }
