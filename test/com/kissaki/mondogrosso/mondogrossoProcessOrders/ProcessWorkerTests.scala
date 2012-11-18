@@ -26,13 +26,16 @@ class ProcessWorkerTests extends Specification {
       println("OrDoneOrAfterWait waiting	" + identity + "	/" + i + " of " + limit)
       val tagValues = dummyParent.messenger.tagValues(new TagValue("i/limit", i + "/" + limit))
       dummyParent.messenger.call(dummyParent.writerId, "addLog", dummyParent.messenger.tagValues(new TagValue("status", "lossTime"), new TagValue("tagValues", tagValues)))
+
+      if (limit == i) {
+        dummyParent.outputLog
+        sys.error("timeoutOrDoneOrAfterWait 回数超過 " + identity)
+        sys.exit(-1)
+      }
+      
       Thread.sleep(100)
     }
-    if (limit == i) {
-      dummyParent.outputLog
-      sys.error("timeoutOrDoneOrAfterWait 回数超過 " + identity)
-      sys.exit(-1)
-    }
+    
 
     //突破したのでログを吐く
     val tagValues = dummyParent.messenger.tagValues(new TagValue("no", "mean"))
