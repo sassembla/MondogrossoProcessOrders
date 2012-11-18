@@ -11,8 +11,6 @@ import java.util.TimerTask
 import java.util.concurrent.TimeUnit
 import  scala.sys.process.stringSeqToProcess
 import scala.sys.process.ProcessLogger
-//
-
 
 case class WorkInformation(orderIdentity : String, localContext : scala.collection.Map[String, String], afterWaitIds : List[String])
 
