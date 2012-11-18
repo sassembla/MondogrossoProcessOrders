@@ -573,7 +573,7 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
             //先ほど完了したのがこのProcessのラスト
             case last => {
               //runningProcessListリストからdoneProcessListへとprocessを移す
-              println("この時点で	doneProcessList	"+runningProcessList+"	/に、	"+processIdentity+"	/が足される")
+              println("この時点で	doneProcessList	"+doneProcessList+"	/に、	"+processIdentity+"	/が足される")
               doneProcessList += processIdentity
 
               //Workerを停める
