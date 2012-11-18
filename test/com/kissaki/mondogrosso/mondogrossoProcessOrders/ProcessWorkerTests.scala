@@ -186,9 +186,6 @@ class ProcessWorkerTests extends Specification {
         val currentFinishedWorkerIdentity = worker.workerIdentity
         val currentFinishedOrderIdentity = latestWork.orderIdentity
 
-        //親に完了受信記録がある
-        dummyParent.messenger.getLog.contains(currentFinishedWorkerIdentity + currentFinishedOrderIdentity) must beTrue
-
         latestWork.localContext.keys must be_==(Set(
           OrderPrefix._kind.toString,
           OrderPrefix._main.toString,
@@ -228,9 +225,6 @@ class ProcessWorkerTests extends Specification {
 
         val erroredWorkerIdentity = worker.workerIdentity
         val erroredOrderIdentity = latestWork.orderIdentity
-
-        //親に完了受信記録がある
-        dummyParent.messenger.getLog.contains(erroredWorkerIdentity + erroredOrderIdentity) must beTrue
 
         latestWork.localContext.keys must be_==(Set(
           OrderPrefix._kind.toString,
