@@ -133,6 +133,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 
 			//processSplitWait,afterWaitを解除する可能性がある、終了ORDERの通知
 			case WorkerMessages.MESSAGE_FINISHEDORDER_NOTIFY => {
+				println("workerIdentity "+ identity + "	/が、MESSAGE_FINISHEDORDER_NOTIFYを受け取った")
 				val allfinishedOrderIdentities = messenger.get("allfinishedOrderIdentities", tagValues).asInstanceOf[List[String]]
 
 				//リストを更新
@@ -142,11 +143,11 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 
 				currentStatus.head match {
 					case WorkerStatus.STATUS_SPLIT_WAIT => {
-						println("STATUS_SPLIT_WAITに来てる")
+						println("STATUS_SPLIT_WAITに来てる	workerIdentityは"+identity)
 						procRestartOrContinueSplitWait(currentFinishedOrdersList.toSet, currentWorkInformationHistory.head.orderIdentity)
 					}
 					case WorkerStatus.STATUS_AFTER_WAIT => {
-						println("STATUS_AFTER_WAITに来てる")
+						println("STATUS_AFTER_WAITに来てる	workerIdentityは"+identity)
 						procRequestOrContinueAfterWait(
 							currentFinishedOrdersList.toSet,
 							currentWorkInformationHistory.head.afterWaitIds.toSet,
@@ -319,6 +320,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 	 */
 	def procRestartOrContinueSplitWait(finished:Set[String], nextOrder:String) = {
 		if (processSplitWaitOrderIdentitiesList.toSet.subsetOf(finished)) {
+			println("workerIdentity "+identity+"	/が、SPLIT_WAIT中、解除開始、リクエストを親に投げる")
 			WorkerStatus.STATUS_SPLIT_READY +=: currentStatus
 				
 			//Masterへの開始リクエストを行う
