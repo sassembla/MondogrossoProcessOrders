@@ -47,7 +47,7 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
   val doingOrderIdentities: ListBuffer[String] = ListBuffer()
 
   //実行完了したOrderのリスト
-  val doneOrderIdentities: ListBuffer[String] = ListBuffer()
+  val doneOrderIdentities = new ArrayBuffer[String] with SynchronizedBuffer[String]
 
   //初期コンテキスト
   val initialContext = contextSrc.initialParam
@@ -530,11 +530,9 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
         // println("currentFinishedWorkerIdentity  " + currentFinishedWorkerIdentity + " /currentFinishedOrderIdentity  " + currentFinishedOrderIdentity + "  /currentFinishedEventualContext " + currentFinishedEventualContext + " /contextKeyValues " + contextKeyValues)
         comments += commentFormat(new Date, "PROCESS:" + currentFinishedWorkerIdentity + "	Order:" + currentFinishedOrderIdentity + " was done!")
 
-        //動作中リストから除外
-        doingOrderIdentities -= currentFinishedOrderIdentity
         //動作済みリストに追記
         doneOrderIdentities += currentFinishedOrderIdentity
-
+        println("doneOrderIdentities	"+doneOrderIdentities)
         /*
 				 * 非同期で、Contextが調整されたことを全Workerに通達する -> Workerからのリクエストを待つ(相手が特定のOrderのWait状態になっていればRequestが来る。) 
 				 * PushKVO。
