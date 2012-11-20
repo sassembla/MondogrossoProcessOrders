@@ -862,7 +862,7 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
   }
 
   //special cases
-  if (false) {
+  if (true) {
     "Context 複雑なOrder" should {
       "5:run A,B,Z 複数のOrder" in {
         val contextParent = new DummyContextParent(UUID.randomUUID.toString)
@@ -1318,7 +1318,7 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
   }
 
   //Context Error
-  if (false) {
+  if (true) {
     "Context エラー処理" should {
 
 
