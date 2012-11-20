@@ -1,6 +1,5 @@
 package com.kissaki.mondogrosso.mondogrossoProcessOrders
 import com.kissaki.MessengerProtocol
-import scala.collection.mutable.ListBuffer
 import com.kissaki.Messenger
 import java.util.UUID
 import java.util.Timer
@@ -26,7 +25,9 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
   //	println(contextIdentity + "	contextIdentity	/	this	" + this)
 
   //状態
-  val status: ListBuffer[ContextStatus.Value] = ListBuffer(ContextStatus.STATUS_NOTREADY)
+  val status = new ArrayBuffer[ContextStatus.Value] with SynchronizedBuffer[ContextStatus.Value]
+  status += ContextStatus.STATUS_NOTREADY
+
   def currentStatus = status.head
 
   //メッセージング送信/受信
@@ -36,7 +37,7 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
   /*プロセスリスト*/
 
   //実行中Processのリスト
-  val runningProcessList: ListBuffer[String] = ListBuffer()
+  val runningProcessList = new ArrayBuffer[String] with SynchronizedBuffer[String]
 
   //実行後Processのリスト
   val doneProcessList = new ArrayBuffer[String] with SynchronizedBuffer[String]
@@ -44,7 +45,7 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
   /*オーダーリスト*/
 
   //実行中のOrderのリスト
-  val doingOrderIdentities: ListBuffer[String] = ListBuffer()
+  val doingOrderIdentities = new ArrayBuffer[String] with SynchronizedBuffer[String]
 
   //実行完了したOrderのリスト
   val doneOrderIdentities = new ArrayBuffer[String] with SynchronizedBuffer[String]
@@ -56,7 +57,7 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
   val contextKeyValues = contextSrc.initialParam
 
   //コメント
-  val comments: ListBuffer[String] = ListBuffer()
+  val comments = new ArrayBuffer[String] with SynchronizedBuffer[String]
 
   /**
    * commentsを末尾から読み、改行をくわえる
@@ -399,7 +400,7 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
               case e: Exception => {
                 contextErrorProc(process.identity, currentOrderIdentity, "sourceOrderIdentity	" + inputs.sourceOrderIdentity + "	/from	" + inputs.from + "	/to	" + inputs.to + ":has ERROR. " + e.toString)
                 println("エラー1 " + process.identity + ":" + currentOrderIdentity + ":" + "sourceOrderIdentity " + inputs.sourceOrderIdentity + "  /from " + inputs.from + " /to " + inputs.to + ":has ERROR. " + e.toString)
-                sys.error("エラー1")
+                sys.error("エラー1 "+e)
                 sys.exit(-1)
               }
             }
@@ -409,7 +410,7 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
             case e: Exception => {
               contextErrorProc(process.identity, currentOrderIdentity, "sourceOrderIdentity	" + inputs.sourceOrderIdentity + "	/from	" + inputs.from + "	/to	" + inputs.to + ":has ERROR. " + e.toString)
               println("エラー2 " + process.identity + ":" + currentOrderIdentity, "sourceOrderIdentity " + inputs.sourceOrderIdentity + "  /from " + inputs.from + " /to " + inputs.to + ":has ERROR. " + e.toString)
-              sys.error("エラー2")
+              sys.error("エラー2 "+e)
               sys.exit(-1)
 
               Map("" -> "")
@@ -421,7 +422,7 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
           case e: Exception => {
             contextErrorProc(process.identity, currentOrderIdentity, "sourceOrderIdentity	" + inputs.sourceOrderIdentity + "	/from	" + inputs.from + "	/to	" + inputs.to + ":has ERROR. " + e.toString)
             println("エラー3 " + process.identity + ":" + currentOrderIdentity, "sourceOrderIdentity " + inputs.sourceOrderIdentity + "  /from " + inputs.from + " /to " + inputs.to + ":has ERROR. " + e.toString)
-            sys.error("エラー3")
+            sys.error("エラー3 "+e)
             sys.exit(-1)
             Map("" -> "")
           }
@@ -443,7 +444,7 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
       case e: Exception => {
         contextErrorProc(process.identity, currentOrderIdentity, "generateRuntimeContext has ERROR. " + e.toString)
         println("エラー4 " + process.identity + ":" + currentOrderIdentity, "generateRuntimeContext has ERROR. " + e.toString)
-        sys.error("エラー4")
+        sys.error("エラー4 "+e)
         sys.exit(-1)
       }
     }
