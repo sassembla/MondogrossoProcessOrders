@@ -228,7 +228,7 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
   }
 
   //timeouts
-  if (false) {
+  if (true) {
     "Context タイムアウトについて" should {
       "1:run A then Z finallyTimeout付きで時間内に完了する" in {
         val contextParent = new DummyContextParent(UUID.randomUUID.toString)
