@@ -473,17 +473,10 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
    * FinallyOrderを開始する
    */
   def runFinally(finallyContext: scala.collection.mutable.Map[String, String]) = {
-    println("finally開始するんだけど、、" + finallyContext)
     comments += commentFormat(new Date, "FinallyOrder:" + finallyOrderIdentity + "	setUp.")
-    messenger.call(finallyProcessIdentity, WorkerMessages.MESSAGE_SETUP.toString, messenger.tagValues(
-      new TagValue("identity", finallyOrderIdentity),
-      new TagValue("processSplitIds", List()),
-      new TagValue("afterWaitIds", List()),
-      new TagValue("context", finallyContext)))
-
-    comments += commentFormat(new Date, "FinallyOrder:" + finallyOrderIdentity + "	start.")
-
-    messenger.call(finallyProcessIdentity, WorkerMessages.MESSAGE_START.toString, messenger.tagValues(
+    comments += commentFormat(new Date, "FinallyOrder:" + finallyOrderIdentity + "  start.")
+    
+    messenger.callWithAsync(finallyProcessIdentity, WorkerMessages.MESSAGE_SETUP_AND_START.toString, messenger.tagValues(
       new TagValue("identity", finallyOrderIdentity),
       new TagValue("processSplitIds", List()),
       new TagValue("afterWaitIds", List()),
@@ -671,7 +664,6 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
       case WorkerMessages.MESSAGE_FINALLY => contextKeyValues.get(finallyOrderIdentity).foreach { finallyContext =>
         println("Finallyの実行が始まった  " + finallyOrderIdentity)
         runFinally(finallyContext)
-        println("finallyContextが実行開始されたはず " + finallyContext)
       }
 
       case WorkerMessages.MESSAGE_SYNCRONOUSLY_STARTED => {
