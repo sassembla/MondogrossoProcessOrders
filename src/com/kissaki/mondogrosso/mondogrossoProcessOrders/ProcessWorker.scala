@@ -122,6 +122,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 			case WorkerMessages.MESSAGE_SETUP_AND_START => {
 				println("連続したOrderを待ってるWorkerか、finallyProcessIdentity が、受け取っているはず、、、"+identity)
 				currentStatus.head match {
+					case WorkerStatus.STATUS_EMPTY => procSetupAndStart(tagValues)
 					case WorkerStatus.STATUS_SPLIT_READY => procSetupAndStart(tagValues)
 					case WorkerStatus.STATUS_REQUESTING => procSetupAndStart(tagValues)
 					case _ => 
