@@ -186,7 +186,7 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
               /*-----------一定時間後実行-----------*/
 
               //Running間を連続していないと成立しない処理(正常終了後のFailSafeになっている
-              messenger.callMyself(ContextExecs.EXEC_TIMEOUT_RUN.toString, null)
+              messenger.callMyselfWithAsync(ContextExecs.EXEC_TIMEOUT_RUN.toString, null)
             }
           }, TimeUnit.MILLISECONDS.toMillis(delayValue));
         } catch {
@@ -480,8 +480,7 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
       new TagValue("identity", finallyOrderIdentity),
       new TagValue("processSplitIds", List()),
       new TagValue("afterWaitIds", List()),
-      new TagValue("context", finallyContext)))
-    
+      new TagValue("context", finallyContext))) 
   }
 
   /**
@@ -581,6 +580,8 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
 
               //runningProcessListとdoneProcessListが同値=包含になったらfinallyを実行
               if (runningProcessList.toSet.subsetOf(doneProcessList.toSet)) {
+                println(processIdentity + " /に対して、finallyを実行  " + doneProcessList)
+
                 ContextStatus.STATUS_FINALLY +=: status
                 comments += commentFormat(new Date, "FinallyOrder:" + finallyOrderIdentity + "	ready.")
 
@@ -663,7 +664,7 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
   def procFinally(exec: WorkerMessages.Value, tagValues: Array[TagValue]) = {
     exec match {
       case WorkerMessages.MESSAGE_FINALLY => contextKeyValues.get(finallyOrderIdentity).foreach { finallyContext =>
-        println("Finallyの実行が始まった  " + finallyOrderIdentity)
+        println(identity + "  /Finallyの実行が始まった  " + finallyOrderIdentity)
         runFinally(finallyContext)
       }
 
