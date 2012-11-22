@@ -560,24 +560,24 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
       "収束 A,Bが発生、AからCが発生、B終了に合わせてZへ" in {
         val contextParent = new DummyContextParent(UUID.randomUUID.toString)
         val id = UUID.randomUUID().toString
-        val input = "A>C<B+(A)B!Z"
+        val input = "収束A>収束C<収束B+(収束A)収束B!収束Z"
         val json = """
-						{"A": 
+						{"収束A": 
 							{
 								"_kind": "sh",
 								"_main": "pwd"
 							},
-						"B": 
+						"収束B": 
 							{
 								"_kind": "sh",
 								"_main": "pwd"
 							},
-						"C": 
+						"収束C": 
 							{
 								"_kind": "sh",
 								"_main": "pwd"
 							},
-						"Z": 
+						"収束Z": 
 							{
 								"_kind": "sh",
 								"_main": "pwd",
@@ -604,14 +604,14 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
         //A,B,C,Zともに終了している
         println("processSplitが3連鎖分裂するcurrentContext.contextKeyValues	" + currentContext.contextKeyValues)
 
-        Seq("A", "B", "C").foreach { orderIdentity =>
+        Seq("収束A", "収束B", "収束C").foreach { orderIdentity =>
           currentContext.contextKeyValues.apply(orderIdentity).keys must be_==(Set(
             OrderPrefix._kind.toString,
             OrderPrefix._main.toString,
             OrderPrefix._result.toString))
         }
 
-        Seq("Z").foreach { orderIdentity =>
+        Seq("収束Z").foreach { orderIdentity =>
           currentContext.contextKeyValues.apply(orderIdentity).keys must be_==(Set(
             OrderPrefix.__finallyTimeout.toString,
             OrderPrefix._result.toString,

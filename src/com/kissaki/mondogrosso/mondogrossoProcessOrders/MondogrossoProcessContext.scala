@@ -229,7 +229,7 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
     //Initialコンテキスト + 既存コンテキスト(既存コンテキストで上塗り)
     val actualRuntimeContext = generatePreRuntimeContext(process, currentOrderIdentity)
 
-    println("実行開始 currentOrderIdentity	" + currentOrderIdentity)
+    println(process + " /実行開始 currentOrderIdentity	" + currentOrderIdentity)
     // println("processSplitIds	" + processSplitIds)
     // println("afterWaitIds	" + afterWaitIds)
     // println("actualRuntimeContext	" + actualRuntimeContext)
