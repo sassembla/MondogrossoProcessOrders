@@ -125,7 +125,10 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 					case WorkerStatus.STATUS_EMPTY => procSetupAndStart(tagValues)
 					case WorkerStatus.STATUS_SPLIT_READY => procSetupAndStart(tagValues)
 					case WorkerStatus.STATUS_REQUESTING => procSetupAndStart(tagValues)
-					case _ => 
+					case _ => {
+						println("finallyとか、へんなところでうけとってしまっている感ある。汎用性消すか。"+identity)
+						tagValues.foreach(tagAndValues => println(identity+"	/tagAndValues	"+tagAndValues))
+					}
 				}
 			}
 
