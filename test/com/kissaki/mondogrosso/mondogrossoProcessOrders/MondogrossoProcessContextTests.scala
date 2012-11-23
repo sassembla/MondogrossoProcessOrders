@@ -906,9 +906,6 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
       }
 
       "6.0:run A,B(A:_result:in),Z 複数のOrderで値を適応、一つの適応値発生を確認する" in {
-
-
-        
         val contextParent = new DummyContextParent(UUID.randomUUID.toString)
         val id = UUID.randomUUID().toString
         val input = "A>B(A:_result:1stPlace)!Z"
@@ -1166,7 +1163,7 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
 
         currentContext.runContext
 
-        //	Timeout処理の待ち
+        //完了待ち
         timeoutOrDone(identity, currentContext)
 
         //実行順が入っているはず 途中の順番は不明
@@ -1175,6 +1172,74 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
         currentContext.status.head must be_==(ContextStatus.STATUS_DONE)
 
         currentContext.doneOrderIdentities.toSet must be_==(Set("B7", "D", "E", "C", "Z"))
+      }
+
+
+      "7.1:時間のかかる処理を並列で行う、タイムアウト付き" in {
+        val contextParent = new DummyContextParent(UUID.randomUUID.toString)
+        val id = UUID.randomUUID().toString
+        val input = "B7.1+(B7.1)C7.1+(B7.1)D7.1+(B7.1)E7.1!Z7.1"
+        val json = """
+            {
+            "B7.1": 
+              {
+                "_kind": "jar",
+                "_main": "TestProject",
+                "-i" : "7.1",
+                "-t" : "1000",
+                "__timeout":"100"
+              },
+            "C7.1": 
+              {
+                "_kind": "jar",
+                "_main": "TestProject",
+                "-i" : "7.1",
+                "-t" : "1000",
+                "__timeout":"100"
+                
+              },
+            "D7.1": 
+              {
+                "_kind": "jar",
+                "_main": "TestProject",
+                "-i" : "7.1",
+                "-t" : "1000",
+                "__timeout":"100"
+                
+              },
+            "E7.1": 
+              {
+                "_kind": "jar",
+                "_main": "TestProject",
+                "-i" : "7.1",
+                "-t" : "1000",
+                "__timeout":"100"
+                
+              },
+            "Z7.1": 
+              {
+                "_kind": "sh",
+                "_main": "pwd",
+                "__finallyTimeout":"1000"
+              }
+            }
+          """
+
+        val parser = new MondogrossoProcessParser(id, input, json)
+        val result = parser.parseProcess
+
+        val identity = "7.1:時間のかかる処理を並列で行う タイムアウト付き"
+        val currentContext = new MondogrossoProcessContext(identity, result, contextParent.messenger.getName)
+
+        currentContext.runContext
+
+        //  Timeout処理の待ち
+        timeoutOrDone(identity, currentContext)
+
+        //実行順が入っているはず 途中の順番は不明
+        println("7.1  doneOrderIdentities " + currentContext.doneOrderIdentities)
+
+        currentContext.status.head must be_==(ContextStatus.STATUS_TIMEOUTED)
       }
 
      
