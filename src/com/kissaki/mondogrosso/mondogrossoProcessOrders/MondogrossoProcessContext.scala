@@ -500,6 +500,11 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
     }
 
     WorkerMessages.get(execSrc) match {
+      case WorkerMessages.MESSAGE_SWITCH_FINALLY => {
+        ContextStatus.STATUS_FINALLY +=: status
+        messenger.callMyselfWithAsync(WorkerMessages.MESSAGE_RUN_FINALLY.toString, null)
+      }
+
       case WorkerMessages.MESSAGE_SYNCRONOUSLY_STARTED => {
         val workerIdentity = messenger.get("workerIdentity", tagValues).asInstanceOf[String]
         val orderIdentity = messenger.get("orderIdentity", tagValues).asInstanceOf[String]
@@ -578,14 +583,11 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
 
               comments += commentFormat(new Date, "PROCESS:" + processIdentity + "	All Orders done!")
 
+
+
               //runningProcessListとdoneProcessListが同値=包含になったらfinallyを実行
               if (runningProcessList.toSet.subsetOf(doneProcessList.toSet)) {
-                println(processIdentity + " /に対して、finallyを実行  " + doneProcessList)
-
-                ContextStatus.STATUS_FINALLY +=: status
-                comments += commentFormat(new Date, "FinallyOrder:" + finallyOrderIdentity + "	ready.")
-
-                messenger.callMyselfWithAsync(WorkerMessages.MESSAGE_FINALLY.toString, null)
+                messenger.callMyselfWithAsync(WorkerMessages.MESSAGE_SWITCH_FINALLY.toString, null)
               }
             }
           }
@@ -663,8 +665,9 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
    */
   def procFinally(exec: WorkerMessages.Value, tagValues: Array[TagValue]) = {
     exec match {
-      case WorkerMessages.MESSAGE_FINALLY => contextKeyValues.get(finallyOrderIdentity).foreach { finallyContext =>
+      case WorkerMessages.MESSAGE_RUN_FINALLY => contextKeyValues.get(finallyOrderIdentity).foreach { finallyContext =>
         println(identity + "  /Finallyの実行が始まった  " + finallyOrderIdentity)
+        comments += commentFormat(new Date, "FinallyOrder:" + finallyOrderIdentity + "	call finally.")
         runFinally(finallyContext)
       }
 
