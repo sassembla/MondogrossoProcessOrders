@@ -473,8 +473,8 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
    * FinallyOrderを開始する
    */
   def runFinally(finallyContext: scala.collection.mutable.Map[String, String]) = {
-    comments += commentFormat(new Date, "FinallyOrder:" + finallyOrderIdentity + "	setUp.")
-    comments += commentFormat(new Date, "FinallyOrder:" + finallyOrderIdentity + "  start.")
+    println(identity + "  /実行開始 finallyOrderIdentity "+finallyOrderIdentity)
+    comments += commentFormat(new Date, "FinallyOrder:" + finallyOrderIdentity + "	setUp and start.")
     
     messenger.callWithAsync(finallyProcessIdentity, WorkerMessages.MESSAGE_SETUP_AND_START.toString, messenger.tagValues(
       new TagValue("identity", finallyOrderIdentity),
@@ -501,6 +501,7 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
 
     WorkerMessages.get(execSrc) match {
       case WorkerMessages.MESSAGE_SWITCH_FINALLY => {
+        println(identity + "  /MESSAGE_SWITCH_FINALLYにきた")
         ContextStatus.STATUS_FINALLY +=: status
         messenger.callMyselfWithAsync(WorkerMessages.MESSAGE_RUN_FINALLY.toString, null)
       }
