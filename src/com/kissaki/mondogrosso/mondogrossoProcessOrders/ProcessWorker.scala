@@ -120,15 +120,12 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 				}
 			}
 			case WorkerMessages.MESSAGE_SETUP_AND_START => {
-				println("連続したOrderを待ってるWorkerか、finallyProcessIdentity が、受け取っているはず、、、"+identity)
+				println(identity + "連続したOrderを待ってるWorkerか、finallyProcessIdentity が、受け取っているはず。stateは、"+currentStatus.head)
 				currentStatus.head match {
 					case WorkerStatus.STATUS_EMPTY => procSetupAndStart(tagValues)
 					case WorkerStatus.STATUS_SPLIT_READY => procSetupAndStart(tagValues)
 					case WorkerStatus.STATUS_REQUESTING => procSetupAndStart(tagValues)
-					case _ => {
-						println("finallyとか、へんなところでうけとってしまっている感ある。汎用性消すか。"+identity)
-						tagValues.foreach(tagAndValues => println(identity+"	/tagAndValues	"+tagAndValues))
-					}
+					case _ 
 				}
 			}
 

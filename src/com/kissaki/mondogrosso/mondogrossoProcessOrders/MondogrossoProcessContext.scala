@@ -666,7 +666,7 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
   def procFinally(exec: WorkerMessages.Value, tagValues: Array[TagValue]) = {
     exec match {
       case WorkerMessages.MESSAGE_RUN_FINALLY => contextKeyValues.get(finallyOrderIdentity).foreach { finallyContext =>
-        println(identity + "  /Finallyの実行が始まった  " + finallyOrderIdentity)
+        println(identity + "  /で、通常のシーケンスとして、Finallyの実行が始まった  " + finallyOrderIdentity)
         comments += commentFormat(new Date, "FinallyOrder:" + finallyOrderIdentity + "	call finally.")
         runFinally(finallyContext)
       }
