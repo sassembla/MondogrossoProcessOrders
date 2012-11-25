@@ -47,7 +47,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 	 * レシーバ
 	 */
 	def receiver(execSrc : String, tagValues : Array[TagValue]) : Unit = {
-
+		println(identity+"	//が、messageを受け取った stateは	"+currentStatus.head )
 		currentStatus.head match {
 
 			/*
@@ -89,6 +89,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 			case WorkerStatus.STATUS_DOING => {				
 				WorkerExecs.get(execSrc) match {
 					case WorkerExecs.EXEC_IGNITION => procIgnite(tagValues)
+					case WorkerExecs.EXEC_DONE => procDone(tagValues)
 					case other => 
 				}
 			}
@@ -174,7 +175,6 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 
 			//タイムアウトの設定
 			case WorkerExecs.EXEC_TIMEOUT_READY => procTimeoutReady(tagValues)
-			case WorkerExecs.EXEC_DONE => procDone(tagValues)
 			
 			case _ =>
 		}
