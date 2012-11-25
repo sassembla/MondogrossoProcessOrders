@@ -423,7 +423,6 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 	 * DOING中の完了
 	 */
 	def procDone(tagValues : Array[TagValue]) = {
-		
 		val result = messenger.get("result", tagValues).asInstanceOf[String]
 		val info = messenger.get("info", tagValues).asInstanceOf[WorkInformation]
 		
@@ -438,6 +437,8 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 
 		//親からのnotifyを待つ
 		WorkerStatus.STATUS_AFTER_WAIT +=: currentStatus
+
+		println(identity + "	/parentに終了を通知することが確定。終了したOrderは	"+info.orderIdentity)
 
 		//親に終了を通知
 		messenger.callParentWithAsync(WorkerMessages.MESSAGE_DONE.toString,
