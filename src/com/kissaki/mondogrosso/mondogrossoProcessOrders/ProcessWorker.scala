@@ -89,7 +89,6 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 			case WorkerStatus.STATUS_DOING => {				
 				WorkerExecs.get(execSrc) match {
 					case WorkerExecs.EXEC_IGNITION => procIgnite(tagValues)
-					case WorkerExecs.EXEC_DONE => procDone(tagValues)
 					case other => 
 				}
 			}
@@ -175,6 +174,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 
 			//タイムアウトの設定
 			case WorkerExecs.EXEC_TIMEOUT_READY => procTimeoutReady(tagValues)
+			case WorkerExecs.EXEC_DONE => procDone(tagValues)
 			
 			case _ =>
 		}
@@ -339,6 +339,7 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 	def procRequestOrContinueAfterWait(finished:Set[String], currentAfterWait:Set[String], finishedOrderIdentity:String) = {
 		if (currentAfterWait.subsetOf(finished)) {//完了しているのでリクエストを出す
 			WorkerStatus.STATUS_REQUESTING +=: currentStatus
+			println(identity + "	/が、AfterWaitを解除して、parentへとrequestを投げる。この時点でのfinishedは	"+finishedOrderIdentity)
 			messenger.callParentWithAsync(WorkerMessages.MESSAGE_REQUEST.toString,
 					messenger.tagValues(
 							new TagValue("workerIdentity", identity),
@@ -572,8 +573,8 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 			val runResult = processSrc ! logger
 			
 			val result = out.toString
-//			println("result	"+result+"	/out	"+out.toString+"	/err	"+err)
-			println("stableCommand 完了!!!の前	"+processSrc + "	/identity	" + identity)
+			println(identity + "	/実行完了 result	"+result+"	/out	"+out.toString+"	/err	"+err)
+			
 			messenger.callMyselfWithAsync(WorkerExecs.EXEC_DONE.toString,
 				messenger.tagValues(
 					new TagValue("result", result),
