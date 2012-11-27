@@ -94,7 +94,7 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
 					"""
 
   //Context information
-  if (false) {
+  if (true) {
     "Context information" should {
       val contextParent = new DummyContextParent(UUID.randomUUID.toString)
 
@@ -486,35 +486,35 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
 
         val contextParent = new DummyContextParent(UUID.randomUUID.toString)
         val id = UUID.randomUUID().toString
-        val input = "A+(A)B+(A)C+(B)D+(B)E!Z"
+        val input = "複雑A+(複雑A)複雑B+(複雑A)複雑C+(複雑B)複雑D+(複雑B)複雑E!複雑Z"
         val json = """
 
-						{"A": 
+						{"複雑A": 
 							{
 								"_kind": "sh",
 								"_main": "pwd"
 							},
-						"B": 
+						"複雑B": 
 							{
 								"_kind": "sh",
 								"_main": "pwd"
 							},
-						"C": 
+						"複雑C": 
 							{
 								"_kind": "sh",
 								"_main": "pwd"
 							},
-						"D": 
+						"複雑D": 
 							{
 								"_kind": "sh",
 								"_main": "pwd"
 							},
-						"E": 
+						"複雑E": 
 							{
 								"_kind": "sh",
 								"_main": "pwd"
 							},
-						"Z": 
+						"複雑Z": 
 							{
 								"_kind": "sh",
 								"_main": "pwd",
@@ -541,14 +541,14 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
         //A,B,C,D,E,Zともに終了している
         println("processSplitが3連鎖分裂するcurrentContext.contextKeyValues	" + currentContext.contextKeyValues)
 
-        Seq("A", "B", "C", "D", "E").foreach { orderIdentity =>
+        Seq("複雑A", "複雑B", "複雑C", "複雑D", "複雑E").foreach { orderIdentity =>
           currentContext.contextKeyValues.apply(orderIdentity).keys must be_==(Set(
             OrderPrefix._kind.toString,
             OrderPrefix._main.toString,
             OrderPrefix._result.toString))
         }
 
-        Seq("Z").foreach { orderIdentity =>
+        Seq("複雑Z").foreach { orderIdentity =>
           currentContext.contextKeyValues.apply(orderIdentity).keys must be_==(Set(
             OrderPrefix.__finallyTimeout.toString,
             OrderPrefix._result.toString,
@@ -1545,95 +1545,95 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
         currentContext.status.head must be_==(ContextStatus.STATUS_DONE)
       }
 
-     //  "解消されないテスト p2 Cの実行に1Sかかり、必ずCのafterWaitがセットされる前にBが終わる" in {
-     //    val contextParent = new DummyContextParent(UUID.randomUUID.toString)
-     //    val id = UUID.randomUUID().toString
-     //    val input = "A>C<B+(A)B!Z"
-     //    val json = """
-					// 	{"A": 
-					// 		{
-					// 			"_kind": "sh",
-					// 			"_main": "pwd"
-					// 		},
-					// 	"B": 
-					// 		{
-					// 			"_kind": "sh",
-					// 			"_main": "pwd"
-					// 		},
-					// 	"C": 
-					// 		{
-					// 			"_kind": "jar",
-					// 			"_main": "TestProject",
-					// 			"-i" : "C",
-					// 			"-t" : "1000"
-					// 		},
-					// 	"Z": 
-					// 		{
-					// 			"_kind": "sh",
-					// 			"_main": "pwd",
-					// 			"__finallyTimeout":"0"
-					// 		}
-					// 	}
-					// """
+      "解消されないテスト p2 Cの実行に1Sかかり、必ずCのafterWaitがセットされる前にBが終わる" in {
+        val contextParent = new DummyContextParent(UUID.randomUUID.toString)
+        val id = UUID.randomUUID().toString
+        val input = "A>C<B+(A)B!Z"
+        val json = """
+						{"A": 
+							{
+								"_kind": "sh",
+								"_main": "pwd"
+							},
+						"B": 
+							{
+								"_kind": "sh",
+								"_main": "pwd"
+							},
+						"C": 
+							{
+								"_kind": "jar",
+								"_main": "TestProject",
+								"-i" : "C",
+								"-t" : "1000"
+							},
+						"Z": 
+							{
+								"_kind": "sh",
+								"_main": "pwd",
+								"__finallyTimeout":"0"
+							}
+						}
+					"""
 
-     //    val parser = new MondogrossoProcessParser(id, input, json)
-     //    val result = parser.parseProcess
+        val parser = new MondogrossoProcessParser(id, input, json)
+        val result = parser.parseProcess
 
-     //    val identity = "解消されないテスト p2 Cの実行に1Sかかり、必ずCのafterWaitがセットされる前にBが終わる"
-     //    val currentContext = new MondogrossoProcessContext(identity, result, contextParent.messenger.getName)
+        val identity = "解消されないテスト p2 Cの実行に1Sかかり、必ずCのafterWaitがセットされる前にBが終わる"
+        val currentContext = new MondogrossoProcessContext(identity, result, contextParent.messenger.getName)
 
-     //    //コンテキストからの実行開始
-     //    currentContext.runContext
+        //コンテキストからの実行開始
+        currentContext.runContext
 
-     //    //Timeout処理の待ち
-     //    timeoutOrDone(identity, currentContext)
+        //Timeout処理の待ち
+        timeoutOrDone(identity, currentContext)
 
-     //    currentContext.status.head must be_==(ContextStatus.STATUS_DONE)
-     //  }
+        currentContext.status.head must be_==(ContextStatus.STATUS_DONE)
+      }
 
-     //  "解消されないテスト p0 確率的に失敗するっぽいデフォルト" in {
-     //    val contextParent = new DummyContextParent(UUID.randomUUID.toString)
-     //    val id = UUID.randomUUID().toString
-     //    val input = "A>C<B+(A)B!Z"
-     //    val json = """
-					// 	{"A": 
-					// 		{
-					// 			"_kind": "sh",
-					// 			"_main": "pwd"
-					// 		},
-					// 	"B": 
-					// 		{
-					// 			"_kind": "sh",
-					// 			"_main": "pwd"
-					// 		},
-					// 	"C": 
-					// 		{
-					// 			"_kind": "sh",
-					// 			"_main": "pwd"
-					// 		},
-					// 	"Z": 
-					// 		{
-					// 			"_kind": "sh",
-					// 			"_main": "pwd",
-					// 			"__finallyTimeout":"0"
-					// 		}
-					// 	}
-					// """
+      "解消されないテスト p0 確率的に失敗するっぽいデフォルト" in {
+        val contextParent = new DummyContextParent(UUID.randomUUID.toString)
+        val id = UUID.randomUUID().toString
+        val input = "A>C<B+(A)B!Z"
+        val json = """
+						{"A": 
+							{
+								"_kind": "sh",
+								"_main": "pwd"
+							},
+						"B": 
+							{
+								"_kind": "sh",
+								"_main": "pwd"
+							},
+						"C": 
+							{
+								"_kind": "sh",
+								"_main": "pwd"
+							},
+						"Z": 
+							{
+								"_kind": "sh",
+								"_main": "pwd",
+								"__finallyTimeout":"0"
+							}
+						}
+					"""
 
-     //    val parser = new MondogrossoProcessParser(id, input, json)
-     //    val result = parser.parseProcess
+        val parser = new MondogrossoProcessParser(id, input, json)
+        val result = parser.parseProcess
 
-     //    val identity = "解消されないテスト p0 確率的に失敗するっぽいデフォルト"
-     //    val currentContext = new MondogrossoProcessContext(identity, result, contextParent.messenger.getName)
+        val identity = "解消されないテスト p0 確率的に失敗するっぽいデフォルト"
+        val currentContext = new MondogrossoProcessContext(identity, result, contextParent.messenger.getName)
 
-     //    //コンテキストからの実行開始
-     //    currentContext.runContext
+        //コンテキストからの実行開始
+        currentContext.runContext
 
-     //    //Timeout処理の待ち
-     //    timeoutOrDone(identity, currentContext)
+        //Timeout処理の待ち
+        timeoutOrDone(identity, currentContext)
 
-     //    currentContext.status.head must be_==(ContextStatus.STATUS_DONE)
-     //  }
+        currentContext.status.head must be_==(ContextStatus.STATUS_DONE)
+      }
     }
   }
 }
