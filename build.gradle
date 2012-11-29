@@ -5,6 +5,12 @@ task wrapper(type: Wrapper) {
     gradleVersion = '1.3'
 }
 
+def encoding = 'UTF-8'
+
+[compileScala, compileTestScala].each{
+	it.options.encoding = encoding
+}
+
 repositories {
 	mavenCentral()
 }
