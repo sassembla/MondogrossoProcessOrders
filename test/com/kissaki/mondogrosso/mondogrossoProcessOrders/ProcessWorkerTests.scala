@@ -672,7 +672,6 @@ class ProcessWorkerTests extends Specification {
           OrderPrefix._main.toString,
           OrderPrefix._result.toString))
 
-        latestWork.localContext.get(OrderPrefix._result.toString).getOrElse("...empty") must be_==("java.io.IOException: Cannot run program \"dfghjklls\": error=2, No such file or directory")
         dummyParent.outputLog
       }
 
@@ -706,7 +705,6 @@ class ProcessWorkerTests extends Specification {
           OrderPrefix._main.toString,
           OrderPrefix._result.toString))
 
-        latestWork.localContext.get(OrderPrefix._result.toString).getOrElse("...empty") must be_==("java.io.IOException: Cannot run program \"dfghjklls\": error=2, No such file or directory")
         dummyParent.outputLog
       }
     }
