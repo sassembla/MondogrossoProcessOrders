@@ -115,7 +115,7 @@ class MondogrossoContextControllerTests extends Specification {
   /*
 	コンテキスト周りの実行テスト
 	*/
-  if (true) {
+  if (false) {
 
     "OrderController コンテキスト実行周りのテスト" should {
       "Contextを実行開始、各Contextが成功結果を受け取る" in {
