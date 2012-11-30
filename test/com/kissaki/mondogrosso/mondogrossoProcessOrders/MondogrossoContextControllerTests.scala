@@ -15,21 +15,9 @@ import org.specs2.matcher.MustMatchers
 import org.specs2.execute.Result
 import org.specs2.time.TimeConversions._
 
-//timeoutTrait　なのだが、ちょっと調整が必要。必ず終了時間が一定になってしまう。 あと、系全体が2回走る。
-trait TimeoutTrait extends AroundExample with MustMatchers with TerminationMatchers with CommandLineArguments {
-
-	lazy val commandLineTimeOut = arguments.commandLine.int("timeout").map(_.millis)
-	def timeout = commandLineTimeOut.getOrElse(2500.millis)
-
-	def around[T <% Result](t : => T) = {
-		lazy val result = t
-		val termination = result must terminate[T](sleep = timeout).orSkip((ko : String) => "TIMEOUT: " + timeout)
-		termination.toResult and result
-	}
-}
 
 @RunWith(classOf[JUnitRunner])
-class MondogrossoContextControllerTests extends Specification /*with TimeoutTrait*/ {
+class MondogrossoContextControllerTests extends Specification {
 
   /**
   タイムアウト入りの完了ステータスを計る関数
@@ -95,7 +83,7 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
   /*
 	 * OrderControllerへの単体Contextの投入	
 	 */
-  if (false) {
+  if (true) {
     "OrderController" should {
 
       /*
@@ -127,7 +115,7 @@ class MondogrossoContextControllerTests extends Specification /*with TimeoutTrai
   /*
 	コンテキスト周りの実行テスト
 	*/
-  if (false) {
+  if (true) {
 
     "OrderController コンテキスト実行周りのテスト" should {
       "Contextを実行開始、各Contextが成功結果を受け取る" in {

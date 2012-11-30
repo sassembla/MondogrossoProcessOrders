@@ -94,81 +94,37 @@ class MondogrossoProcessContextTests extends Specification /*with TimeoutTrait*/
 					"""
 
   //Context information
-  if (false) {
-    "Context information" should {
-      val contextParent = new DummyContextParent(UUID.randomUUID.toString)
+  if (true) {
+    "Context Setting" should {
+      "開始前のセット結果" in {
+        val contextParent = new DummyContextParent(UUID.randomUUID.toString)
 
-      val id = UUID.randomUUID().toString
-      val input = "A>B>C(A:a:c)<E+B>D(A:a2:d1,A:a3:d2)>E!Z"
-      val json = standardJSON
+        val id = UUID.randomUUID().toString
+        val input = "A!Z"
+        val json = """
+  						{"A": 
+  							{
+  								"_kind": "sh",
+  								"_main": "pwd"
+  							},
+  						"Z": 
+  							{
+  								"_kind": "sh",
+  								"_main": "pwd",
+  								"__finallyTimeout":"100"
+  							}
+  						}
+  					"""
 
-      val parser = new MondogrossoProcessParser(id, input, json)
-      val result = parser.parseProcess
+        val parser = new MondogrossoProcessParser(id, input, json)
+        val result = parser.parseProcess
 
-      "Contextを生成した時点で、Context内での値はすべてSequenceとして存在しているはず" in {
-        val identity = "Contextを生成した時点で、Context内での値はすべてSequenceとして存在しているはず"
+        val identity = "開始前のセット結果"
         val currentContext = new MondogrossoProcessContext(identity, result, contextParent.messenger.getName)
 
-        //プロセス数を取得(=で将来作られるWorker数)
-        currentContext.processNum must be_==(2)
-
-        //全体インデックスを取得
-        currentContext.totalOrderNum must be_==(6)
-
-        //現在の進捗インデックスを取得
-        currentContext.doingOrderIdentities.length must be_==(0)
+        //run前、ContextのstatusがREADY
+        currentContext.status.head must be_==(ContextStatus.STATUS_READY)
       }
-
-      "最初から実行	はじめに実行完了したOrderがA" in {
-        val identity = "最初から実行  はじめに実行完了したOrderがA"
-        val currentContext = new MondogrossoProcessContext(identity, result, contextParent.messenger.getName)
-
-        currentContext.runContext
-
-        println("currentContext.currentExecutingOrders(0)	" + currentContext.doneOrderIdentities(0))
-        currentContext.doneOrderIdentities(0) must be_==("A")
-      }
-
-      "途中のindexから実行" in {
-        val identity = "途中のindexから実行"
-        val currentContext = new MondogrossoProcessContext(identity, result, contextParent.messenger.getName)
-        //			currentContext.startFrom(2)
-        //			
-        //			//現在実行中のOrderがAなハズ
-        //			currentContext.currentExecutingOrders must be_==(Map("A"))
-
-        "not yet applied" must be_==("")
-      }
-    }
-
-    "開始前のセット結果" in {
-      val contextParent = new DummyContextParent(UUID.randomUUID.toString)
-
-      val id = UUID.randomUUID().toString
-      val input = "A!Z"
-      val json = """
-						{"A": 
-							{
-								"_kind": "sh",
-								"_main": "pwd"
-							},
-						"Z": 
-							{
-								"_kind": "sh",
-								"_main": "pwd",
-								"__finallyTimeout":"100"
-							}
-						}
-					"""
-
-      val parser = new MondogrossoProcessParser(id, input, json)
-      val result = parser.parseProcess
-
-      val identity = "開始前のセット結果"
-      val currentContext = new MondogrossoProcessContext(identity, result, contextParent.messenger.getName)
-
-      //run前、ContextのstatusがREADY
-      currentContext.status.head must be_==(ContextStatus.STATUS_READY)
     }
 
   }
