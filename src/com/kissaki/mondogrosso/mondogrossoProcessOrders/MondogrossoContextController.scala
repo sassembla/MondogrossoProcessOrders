@@ -126,16 +126,16 @@ class MondogrossoContextController (masterName : String) extends MessengerProtoc
 
     processNameToContextIdentityMap.get(contextIdentity) match {
       case Some(v) => 
-      case None => sys.error("含まれていない "+processNameToContextIdentityMap + " に、contextIdentity "+contextIdentity)
+      case None => {
+        sys.error("含まれていない "+processNameToContextIdentityMap + " に、contextIdentity "+contextIdentity)
+        sys.exit(-1)
+      }
     }
     
-    println("100件が踏みやすいバグ、inside")
     //含まれてないケースがあるみたいね。
-
     //tagValuesの値に、processNameToContextIdentityMapを足す
     val newTagValues = tagValues ++ Array(new TagValue("userDefinedIdentity", processNameToContextIdentityMap.apply(contextIdentity)))
-    
-    newTagValues.foreach(tagVal => println("このへんかなーーうーーむtagVal  "+tagVal))
+    newTagValues.foreach(tagVal => println(contextIdentity  + " /このへんかなーーうーーむ tagVal  "+tagVal))
 
     messenger.callParent(message.toString, newTagValues)
   }

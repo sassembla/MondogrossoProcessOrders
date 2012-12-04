@@ -22,17 +22,16 @@ class MondogrossoContextControllerTests extends Specification {
   /**
   タイムアウト入りの完了ステータスを計る関数
   */
-  def timeoutOrDone (title:String, contextCont : MondogrossoContextController) = {
+  def timeoutOrDone (title:String, contextCont : MondogrossoContextController, limit:Int = 50) = {
     var i = 0
     while (!contextCont.currentStatus.equals(ContextContStatus.STATUS_EMPTY)) {
-      if (10 <= i) {
+      if (limit <= i) {
         sys.error("timeoutOrDone  回数超過 "+contextCont+ "  /title  " + title+"  /このときのstatus  "+contextCont.currentStatus)
         sys.exit(1)
       }
       i+=1
       Thread.sleep(100)
     }
-    
   }
 
   val dummyProcessOrder = new DummyProcessOrder(UUID.randomUUID.toString)
@@ -115,7 +114,7 @@ class MondogrossoContextControllerTests extends Specification {
   /*
 	コンテキスト周りの実行テスト
 	*/
-  if (false) {
+  if (true) {
 
     "OrderController コンテキスト実行周りのテスト" should {
       "Contextを実行開始、各Contextが成功結果を受け取る" in {
@@ -162,6 +161,9 @@ class MondogrossoContextControllerTests extends Specification {
         println("comments	" + contextResult.commentsStack)
       }
 
+      /*
+        コレを開くと駄目になる。何だろう。
+      */
       "Contextを実行開始 Eのロックが解かれないので、達成不可能なオーダー順。　タイムアウトで失敗 結果を受け取る" in {
         val contextCont = new MondogrossoContextController(dummyProcessOrderId)
 
@@ -229,7 +231,7 @@ class MondogrossoContextControllerTests extends Specification {
   /*
 	 * OrderControllerへの複数Contextの同時投入	
 	 */
-  if (false) {
+  if (true) {
     "複数のContextを同時に開始" should {
       "Context C1,C2を同時に開始" in {
         val contextCont = new MondogrossoContextController(dummyProcessOrderId)
@@ -259,7 +261,7 @@ class MondogrossoContextControllerTests extends Specification {
     }
   }
 
-  if (false) {
+  if (true) {
     "ContextのAttach,Run時に対象Contextのユーザー定義名をセットする/ゲットする" should {
       "attach時、指定した名前と同様の名前を取得" in {
         val contextCont = new MondogrossoContextController(dummyProcessOrderId)
@@ -293,7 +295,7 @@ class MondogrossoContextControllerTests extends Specification {
   /*
 	 * Contextの名前空間の重複を考慮する
 	 */
-  if (false) {
+  if (true) {
     "同じ名称のContextを大量に作って実行" should {
       "C1 x ２個" in {
         val contextCont = new MondogrossoContextController(dummyProcessOrderId)
@@ -436,7 +438,7 @@ class MondogrossoContextControllerTests extends Specification {
   /**
    * タイムアウトになったContextがある場合も、ContextControllerはEmptyになる。
    */
-  if (false) {
+  if (true) {
     "タイムアウトになったContextがある場合も、ContextControllerはEmptyになる" should {
       "タイムアウト" in {
         val contextCont = new MondogrossoContextController(dummyProcessOrderId)
@@ -467,7 +469,7 @@ class MondogrossoContextControllerTests extends Specification {
   /*
 	 * OrderControllerへの複数Contextの順次投入
 	 */
-  if (false) {
+  if (true) {
     "複数のContextを順次導入" should {
       "C1投入後、C2を投入" in {
         val contextCont = new MondogrossoContextController(dummyProcessOrderId)
@@ -624,7 +626,7 @@ class MondogrossoContextControllerTests extends Specification {
     }
   }
 
-  if (false) {
+  if (true) {
     "大量のProcessOrderを同時に" should {
       "100件" in {
         val contextCont = new MondogrossoContextController(dummyProcessOrderId)
@@ -658,6 +660,9 @@ class MondogrossoContextControllerTests extends Specification {
     }
   }
 
+  /*
+    Safariの起動とテスト結果の表示
+  */
   if (false) {
     "report" should {
       "report run" in {
