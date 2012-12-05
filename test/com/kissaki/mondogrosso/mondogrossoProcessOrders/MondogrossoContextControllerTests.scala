@@ -19,6 +19,8 @@ import org.specs2.time.TimeConversions._
 @RunWith(classOf[JUnitRunner])
 class MondogrossoContextControllerTests extends Specification {
 
+
+
   /**
   タイムアウト入りの完了ステータスを計る関数
   */
@@ -82,7 +84,7 @@ class MondogrossoContextControllerTests extends Specification {
   /*
 	 * OrderControllerへの単体Contextの投入	
 	 */
-  if (true) {
+  if (false) {
     "OrderController" should {
 
       /*
@@ -114,7 +116,7 @@ class MondogrossoContextControllerTests extends Specification {
   /*
 	コンテキスト周りの実行テスト
 	*/
-  if (true) {
+  if (false) {
 
     "OrderController コンテキスト実行周りのテスト" should {
       "Contextを実行開始、各Contextが成功結果を受け取る" in {
@@ -231,7 +233,7 @@ class MondogrossoContextControllerTests extends Specification {
   /*
 	 * OrderControllerへの複数Contextの同時投入	
 	 */
-  if (true) {
+  if (false) {
     "複数のContextを同時に開始" should {
       "Context C1,C2を同時に開始" in {
         val contextCont = new MondogrossoContextController(dummyProcessOrderId)
@@ -261,7 +263,7 @@ class MondogrossoContextControllerTests extends Specification {
     }
   }
 
-  if (true) {
+  if (false) {
     "ContextのAttach,Run時に対象Contextのユーザー定義名をセットする/ゲットする" should {
       "attach時、指定した名前と同様の名前を取得" in {
         val contextCont = new MondogrossoContextController(dummyProcessOrderId)
@@ -295,7 +297,7 @@ class MondogrossoContextControllerTests extends Specification {
   /*
 	 * Contextの名前空間の重複を考慮する
 	 */
-  if (true) {
+  if (false) {
     "同じ名称のContextを大量に作って実行" should {
       "C1 x ２個" in {
         val contextCont = new MondogrossoContextController(dummyProcessOrderId)
@@ -438,7 +440,7 @@ class MondogrossoContextControllerTests extends Specification {
   /**
    * タイムアウトになったContextがある場合も、ContextControllerはEmptyになる。
    */
-  if (true) {
+  if (false) {
     "タイムアウトになったContextがある場合も、ContextControllerはEmptyになる" should {
       "タイムアウト" in {
         val contextCont = new MondogrossoContextController(dummyProcessOrderId)
@@ -469,7 +471,7 @@ class MondogrossoContextControllerTests extends Specification {
   /*
 	 * OrderControllerへの複数Contextの順次投入
 	 */
-  if (true) {
+  if (false) {
     "複数のContextを順次導入" should {
       "C1投入後、C2を投入" in {
         val contextCont = new MondogrossoContextController(dummyProcessOrderId)
@@ -626,7 +628,7 @@ class MondogrossoContextControllerTests extends Specification {
     }
   }
 
-  if (true) {
+  if (false) {
     "大量のProcessOrderを同時に" should {
       "100件" in {
         val contextCont = new MondogrossoContextController(dummyProcessOrderId)
@@ -726,5 +728,6 @@ class MondogrossoContextControllerTests extends Specification {
       }
     }
   }
+
 
 }
