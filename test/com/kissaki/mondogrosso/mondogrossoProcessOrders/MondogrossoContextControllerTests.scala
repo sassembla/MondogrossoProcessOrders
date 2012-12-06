@@ -84,7 +84,7 @@ class MondogrossoContextControllerTests extends Specification {
   /*
 	 * OrderControllerへの単体Contextの投入	
 	 */
-  if (false) {
+  if (true) {
     "OrderController" should {
 
       /*
@@ -116,7 +116,7 @@ class MondogrossoContextControllerTests extends Specification {
   /*
 	コンテキスト周りの実行テスト
 	*/
-  if (false) {
+  if (true) {
 
     "OrderController コンテキスト実行周りのテスト" should {
       "Contextを実行開始、各Contextが成功結果を受け取る" in {
@@ -233,7 +233,7 @@ class MondogrossoContextControllerTests extends Specification {
   /*
 	 * OrderControllerへの複数Contextの同時投入	
 	 */
-  if (false) {
+  if (true) {
     "複数のContextを同時に開始" should {
       "Context C1,C2を同時に開始" in {
         val contextCont = new MondogrossoContextController(dummyProcessOrderId)
@@ -263,7 +263,7 @@ class MondogrossoContextControllerTests extends Specification {
     }
   }
 
-  if (false) {
+  if (true) {
     "ContextのAttach,Run時に対象Contextのユーザー定義名をセットする/ゲットする" should {
       "attach時、指定した名前と同様の名前を取得" in {
         val contextCont = new MondogrossoContextController(dummyProcessOrderId)
@@ -297,7 +297,7 @@ class MondogrossoContextControllerTests extends Specification {
   /*
 	 * Contextの名前空間の重複を考慮する
 	 */
-  if (false) {
+  if (true) {
     "同じ名称のContextを大量に作って実行" should {
       "C1 x ２個" in {
         val contextCont = new MondogrossoContextController(dummyProcessOrderId)
