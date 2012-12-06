@@ -119,53 +119,50 @@ class MondogrossoContextControllerTests extends Specification {
   if (true) {
 
     "OrderController コンテキスト実行周りのテスト" should {
-      "Contextを実行開始、各Contextが成功結果を受け取る" in {
-        val contextCont = new MondogrossoContextController(dummyProcessOrderId)
+      // "Contextを実行開始、各Contextが成功結果を受け取る" in {
+      //   val contextCont = new MondogrossoContextController(dummyProcessOrderId)
 
-        val id = UUID.randomUUID().toString
-        val input = "A>B>C(A:a:c)<E+(B)D(A:a2:d1,A:a3:d2)>E!Z"
+      //   val id = UUID.randomUUID().toString
+      //   val input = "A>B>C(A:a:c)<E+(B)D(A:a2:d1,A:a3:d2)>E!Z"
 
-        val parser = new MondogrossoProcessParser(id, input, standardJSON)
-        val parseResult = parser.parseProcess
+      //   val parser = new MondogrossoProcessParser(id, input, standardJSON)
+      //   val parseResult = parser.parseProcess
 
-        val identity = UUID.randomUUID().toString
-        val s = contextCont.attachProcessOrders(identity, parseResult)
+      //   val identity = UUID.randomUUID().toString
+      //   val s = contextCont.attachProcessOrders(identity, parseResult)
 
-        //contextを生成
-        val currentContext = contextCont.activeContexts(0)
+      //   //contextを生成
+      //   val currentContext = contextCont.activeContexts(0)
 
-        //現在実行中のOrder、内容がまだ無い
-        contextCont.activeContexts(0).doingOrderIdentities.length must be_==(0)
+      //   //現在実行中のOrder、内容がまだ無い
+      //   contextCont.activeContexts(0).doingOrderIdentities.length must be_==(0)
 
-        //起動
-        contextCont.runAllContext
+      //   //起動
+      //   contextCont.runAllContext
 
-        while (
-          !currentContext.currentStatus.equals(ContextStatus.STATUS_DONE) &&
-          !currentContext.currentStatus.equals(ContextStatus.STATUS_TIMEOUTED)
-          ) {
-          Thread.sleep(100)
-          println("Contextを実行開始、各Contextが成功結果を受け取る	" + currentContext.status)
-        }
+      //   while (
+      //     !currentContext.currentStatus.equals(ContextStatus.STATUS_DONE) &&
+      //     !currentContext.currentStatus.equals(ContextStatus.STATUS_TIMEOUTED)
+      //     ) {
+      //     Thread.sleep(100)
+      //     println("Contextを実行開始、各Contextが成功結果を受け取る	" + currentContext.status)
+      //   }
 
-        currentContext.currentStatus must be_==(ContextStatus.STATUS_DONE)
+      //   currentContext.currentStatus must be_==(ContextStatus.STATUS_DONE)
 
-        println("Contextを実行開始、各Contextが成功結果を受け取る	" + contextCont.activeContexts(0).contextKeyValues)
-        contextCont.activeContexts(0).contextKeyValues.keys must be_==(Set("A", "B", "C", "E", "D", "Z"))
+      //   println("Contextを実行開始、各Contextが成功結果を受け取る	" + contextCont.activeContexts(0).contextKeyValues)
+      //   contextCont.activeContexts(0).contextKeyValues.keys must be_==(Set("A", "B", "C", "E", "D", "Z"))
 
-        //結果を受け取る
-        val contextResult = contextCont.activeContexts(0).currentContextResult
+      //   //結果を受け取る
+      //   val contextResult = contextCont.activeContexts(0).currentContextResult
 
-        //結果は成功
-        contextResult.status must be_==(ContextStatus.STATUS_DONE)
+      //   //結果は成功
+      //   contextResult.status must be_==(ContextStatus.STATUS_DONE)
 
-        //コメントを一覧で取得
-        println("comments	" + contextResult.commentsStack)
-      }
+      //   //コメントを一覧で取得
+      //   println("comments	" + contextResult.commentsStack)
+      // }
 
-      /*
-        コレを開くと駄目になる。何だろう。
-      */
       "Contextを実行開始 Eのロックが解かれないので、達成不可能なオーダー順。　タイムアウトで失敗 結果を受け取る" in {
         val contextCont = new MondogrossoContextController(dummyProcessOrderId)
 
