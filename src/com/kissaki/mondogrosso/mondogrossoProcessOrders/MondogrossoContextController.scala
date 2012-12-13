@@ -48,62 +48,38 @@ class MondogrossoContextController (masterName : String) extends MessengerProtoc
     currentStatus match {
       case ContextContStatus.STATUS_EMPTY => println("no context runningに来た、exec  "+exec)
       case ContextContStatus.STATUS_RUNNING => {
+        val contextIdentity = messenger.get("contextIdentity", tagValues).asInstanceOf[String]
+
         ContextMessages.get(exec) match {
           case ContextMessages.MESSAGE_READY => {
-          	val s = new StringBuffer
-            tagValues.foreach(contents => s.append(contents))
-            println("MESSAGE_READYを受け取った  "+s)
-            
+          	tagValues.foreach(contents => println(contextIdentity + " /contextIdentity  MESSAGE_READYを受け取った    "+contents))
             report(ProcessOrdersMasterMessages.MESSAGE_READY, tagValues)
             
           }
           case ContextMessages.MESSAGE_START => {
-            val s = new StringBuffer
-            tagValues.foreach(contents => s.append(contents))
-            val identity = messenger.get("contextIdentity", tagValues).asInstanceOf[String]
-            println("ContextControllerがMESSAGE_STARTを受け取った、これはcontextのidentity  "+identity)
-            
+            tagValues.foreach(contents => println(contextIdentity + " /contextIdentity  MESSAGE_STARTを受け取った  " + contents))
             report(ProcessOrdersMasterMessages.MESSAGE_START, tagValues)
           }
 
           case ContextMessages.MESSAGE_PROCEEDED => {
-          	val s = new StringBuffer
-            tagValues.foreach(contents => s.append(contents))
-            val identity = messenger.get("contextIdentity", tagValues).asInstanceOf[String]
-            println("ContextControllerがMESSAGE_READYを受け取った、これはcontextのidentity  "+identity)
-            
+          	tagValues.foreach(contents => println(contextIdentity + "  /contextController  MESSAGE_READYを受け取った  "+contents))
             report(ProcessOrdersMasterMessages.MESSAGE_PROCEEDED, tagValues)
           }
 
           case ContextMessages.MESSAGE_TIMEOUT => {
-          	val s = new StringBuffer
-            tagValues.foreach(contents => s.append(contents))
-            val identity = messenger.get("contextIdentity", tagValues).asInstanceOf[String]
-            println("ContextControllerがMESSAGE_TIMEOUTを受け取った、これはcontextのidentity  "+identity)
-            
-          	val contextIdentity = messenger.get("contextIdentity", tagValues).asInstanceOf[String]
-    		    report(ProcessOrdersMasterMessages.MESSAGE_TIMEOUTED, tagValues)
+          	tagValues.foreach(contents => println(contextIdentity + "  /contextController  MESSAGE_TIMEOUTを受け取った  "+contents))
+            report(ProcessOrdersMasterMessages.MESSAGE_TIMEOUTED, tagValues)
             contextOvered(contextIdentity)
           }
 
           case ContextMessages.MESSAGE_ERROR => {
-          	val s = new StringBuffer
-            tagValues.foreach(contents => s.append(contents))
-            val identity = messenger.get("contextIdentity", tagValues).asInstanceOf[String]
-            println("ContextControllerがMESSAGE_ERRORを受け取った、これはcontextのidentity  "+identity)
-            
-          	val contextIdentity = messenger.get("contextIdentity", tagValues).asInstanceOf[String]
+            tagValues.foreach(contents => println(contextIdentity + "  /contextController  MESSAGE_ERRORを受け取った  "+contents))
             report(ProcessOrdersMasterMessages.MESSAGE_ERROR, tagValues)
             contextOvered(contextIdentity)
           }
 
           case ContextMessages.MESSAGE_DONE => {
-          	val s = new StringBuffer
-            tagValues.foreach(contents => s.append(contents))
-            val identity = messenger.get("contextIdentity", tagValues).asInstanceOf[String]
-            println("ContextControllerがMESSAGE_DONEを受け取った  "+identity)
-            
-            val contextIdentity = messenger.get("contextIdentity", tagValues).asInstanceOf[String]
+            tagValues.foreach(contents => println(contextIdentity + "  /contextController  MESSAGE_DONEを受け取った  "+contents))
             report(ProcessOrdersMasterMessages.MESSAGE_DONE, tagValues)
             contextOvered(contextIdentity)
           }
