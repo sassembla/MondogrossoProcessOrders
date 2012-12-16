@@ -468,7 +468,7 @@ class MondogrossoContextControllerTests extends Specification {
   /*
 	 * OrderControllerへの複数Contextの順次投入
 	 */
-  if (true) {
+  if (false) {
     "複数のContextを順次導入" should {
       "C1投入後、C2を投入" in {
         val contextCont = new MondogrossoContextController(dummyProcessOrderId)
