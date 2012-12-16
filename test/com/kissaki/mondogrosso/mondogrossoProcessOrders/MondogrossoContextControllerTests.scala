@@ -437,7 +437,7 @@ class MondogrossoContextControllerTests extends Specification {
   /**
    * タイムアウトになったContextがある場合も、ContextControllerはEmptyになる。
    */
-  if (false) {
+  if (true) {
     "タイムアウトになったContextがある場合も、ContextControllerはEmptyになる" should {
       "タイムアウト" in {
         val contextCont = new MondogrossoContextController(dummyProcessOrderId)
@@ -468,7 +468,7 @@ class MondogrossoContextControllerTests extends Specification {
   /*
 	 * OrderControllerへの複数Contextの順次投入
 	 */
-  if (false) {
+  if (true) {
     "複数のContextを順次導入" should {
       "C1投入後、C2を投入" in {
         val contextCont = new MondogrossoContextController(dummyProcessOrderId)
