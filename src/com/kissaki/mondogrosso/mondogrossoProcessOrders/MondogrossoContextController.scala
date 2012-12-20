@@ -18,6 +18,8 @@ import java.util.concurrent.TimeUnit
  * 各コンテキストの終了を見る
  */
 class MondogrossoContextController (masterName : String) extends MessengerProtocol {
+  println("MondogrossoContextController 開始してる  "+masterName)
+
   val controllerUuid = UUID.randomUUID().toString
   
   val messenger = new Messenger(this, controllerUuid)
@@ -39,7 +41,7 @@ class MondogrossoContextController (masterName : String) extends MessengerProtoc
   
   //投入されたOrderの名称とcontextIdentityをヒモづけるマップ
   val processNameToContextIdentityMap: scala.collection.mutable.Map[String, String] = scala.collection.mutable.Map()
-
+  println("MondogrossoContextController 完了してる  "+masterName)
   
   /**
    * レシーバ
@@ -70,18 +72,21 @@ class MondogrossoContextController (masterName : String) extends MessengerProtoc
           	tagValues.foreach(contents => println(contextIdentity + "  /contextController  MESSAGE_TIMEOUTを受け取った  "+contents))
             report(ProcessOrdersMasterMessages.MESSAGE_TIMEOUTED, tagValues)
             contextOvered(contextIdentity)
+            println("その１")
           }
 
           case ContextMessages.MESSAGE_ERROR => {
             tagValues.foreach(contents => println(contextIdentity + "  /contextController  MESSAGE_ERRORを受け取った  "+contents))
             report(ProcessOrdersMasterMessages.MESSAGE_ERROR, tagValues)
             contextOvered(contextIdentity)
+            println("その２")
           }
 
           case ContextMessages.MESSAGE_DONE => {
             tagValues.foreach(contents => println(contextIdentity + "  /contextController  MESSAGE_DONEを受け取った  "+contents))
             report(ProcessOrdersMasterMessages.MESSAGE_DONE, tagValues)
             contextOvered(contextIdentity)
+            println("その３")
           }
 
           case other =>
@@ -94,15 +99,22 @@ class MondogrossoContextController (masterName : String) extends MessengerProtoc
   /**
   interfaceへとレポートを吐き出す
   */
-  def report (message:ProcessOrdersMasterMessages.Value, tagValues: Array[TagValue]) = {    
+  def report (message:ProcessOrdersMasterMessages.Value, tagValues: Array[TagValue]) = {
+    println(masterName + "が親のController、reportまで来てる  "+message)
+
+
     val contextIdentity = messenger.get("contextIdentity", tagValues).asInstanceOf[String]
 
-    // println("currentMap = "+processNameToContextIdentityMap)
-    // println("applied  "+processNameToContextIdentityMap.apply(contextIdentity))
+    println(masterName + "が親のController " + contextIdentity + " っていうcontextのidentityが、reportまで来てる  "+message)
+
+
+    println("currentMap = "+processNameToContextIdentityMap)
+    println("applied  "+processNameToContextIdentityMap.apply(contextIdentity))
 
     processNameToContextIdentityMap.get(contextIdentity) match {
-      case Some(v) => 
+      case Some(v) => println("report通過")
       case None => {
+        println("含まれていない、、、" +processNameToContextIdentityMap + " に、contextIdentity "+contextIdentity)
         sys.error("含まれていない "+processNameToContextIdentityMap + " に、contextIdentity "+contextIdentity)
         sys.exit(-1)
       }
@@ -110,7 +122,9 @@ class MondogrossoContextController (masterName : String) extends MessengerProtoc
     
     //tagValuesの値に、processNameToContextIdentityMapを足す
     val newTagValues = tagValues ++ Array(new TagValue("userDefinedIdentity", processNameToContextIdentityMap.apply(contextIdentity)))
+    println("親を呼ぶ")
     messenger.callParent(message.toString, newTagValues)
+    println("親を呼び終わった")
   }
 
 
@@ -119,25 +133,28 @@ class MondogrossoContextController (masterName : String) extends MessengerProtoc
    */
   def contextOvered(overedContextIdentity: String) = {
     val currentContext = activeContexts.filter(_.identity.equals(overedContextIdentity))
-    println("contextOvered  currentContext "+currentContext + " /overedContextIdentity  " +overedContextIdentity )
+    println("このコンテキストの完了  contextOvered  currentContext "+currentContext + " /overedContextIdentity  " +overedContextIdentity )
     currentContext.isEmpty match {
       case false => {
         activeContexts -= currentContext.head
         doneContexts += currentContext.head
-
+        println("アクティブなコンテキストの残りを確認 "+activeContexts)
         activeContexts.isEmpty match {
           case true => {
+            println("trueを通過　あら、もう空っぽ。")
             ContextContStatus.STATUS_EMPTY +=: statusHistory
+            println("送り出す")
             messenger.callParent(ProcessOrdersMasterMessages.MESSAGE_CONTEXT_OVER.toString, null)
+            println("送り出した")
           }
           case false => {
+            println("falseを通過、まだいろいろある")
             //続く
           }
         }
       }
       case true => {
         println("空っぽっていうのはおかしい	、このidentityがactiveContextsに含まれてない	" + overedContextIdentity)
-        
         sys.error("空っぽっていうのはおかしい  、このidentityがactiveContextsに含まれてない " + overedContextIdentity)
         sys.exit(-1)
 
@@ -150,19 +167,21 @@ class MondogrossoContextController (masterName : String) extends MessengerProtoc
    * 新しいProcessOrdersをアタッチする
    */
   def attachProcessOrders(identity: String, contextSrc: ContextSource) = {
+    println("追加開始")
     //使用者側が与えたIdentityとは別に、システムがIdentityを振る。
     val processIdentity = UUID.randomUUID.toString
 
+    println("コンテキストを新たにつくる")
     val context = new MondogrossoProcessContext(processIdentity, contextSrc, controllerUuid)
 
+    println("ここまで来れてない？")
     //生成したprocessIdentity と 命名されたidentityをペアにする
     processNameToContextIdentityMap += processIdentity -> identity
 
     //コンテキスト自体をアクティブなコンテキストの集合へ加算
     activeContexts += context
 
-    
-    // println("processIdentity/identity  "+processIdentity +"  as "+identity)
+    println("activeなContextを追加完了  processIdentity/identity  "+processIdentity +"  as "+identity)
 
     //attachしたContextのidentityから、ユーザー命名のidentityを取り出す
     getContextUserDefinedIdentityListFromContextIdentities(ListBuffer(processIdentity))

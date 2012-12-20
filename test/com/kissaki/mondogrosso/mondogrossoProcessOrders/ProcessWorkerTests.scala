@@ -126,7 +126,7 @@ class ProcessWorkerTests extends Specification {
   }
 
   //Worker
-  if (true) {
+  if (false) {
     "Worker" should {
       "Workerを実行後、完了したのでDone状態" in {
 
@@ -158,7 +158,7 @@ class ProcessWorkerTests extends Specification {
   }
 
   //Worker Delay
-  if (true) {
+  if (false) {
     "Worker　非同期" should {
 
       "Workerを非同期で実行" in {
@@ -269,7 +269,7 @@ class ProcessWorkerTests extends Specification {
   }
 
   //Worker Timeout
-  if (true) {
+  if (false) {
     "Worker タイムアウト" should {
 
       "Workerを同期で実行、タイムアウト" in {
@@ -503,7 +503,7 @@ class ProcessWorkerTests extends Specification {
   }
 
   //Worker Error
-  if (true) {
+  if (false) {
     "Worker エラー" should {
 
       "__timeoutの値がセットされていない、実行前エラー" in {
@@ -711,7 +711,7 @@ class ProcessWorkerTests extends Specification {
   }
 
   //Worker OrderRun
-  if (true) {
+  if (false) {
     "Worker Order実行" should {
 
       "Workerでshellを実行" in {
@@ -936,7 +936,7 @@ class ProcessWorkerTests extends Specification {
   }
 
   //Worker processSplit Wait
-  if (true) {
+  if (false) {
     "Worker Order実行　processSplit付き" should {
 
       "processSplit	Workerにwaitが存在するOrderを渡し、待たせる" in {
@@ -1030,7 +1030,7 @@ class ProcessWorkerTests extends Specification {
   }
 
   //Order後のwait afterWaitについて
-  if (true) {
+  if (false) {
     "AfterWait" should {
 
       "waitに入ってからFinishedが来る" in {

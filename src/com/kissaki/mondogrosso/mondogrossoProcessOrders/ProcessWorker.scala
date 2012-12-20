@@ -437,12 +437,16 @@ class ProcessWorker(identity : String, masterName : String) extends MessengerPro
 
 		println(identity + "	/parentに終了を通知することが確定。終了したOrderは	"+info.orderIdentity)
 
+
+		println("親に終了を送る、挙動部分")
 		//親に終了を通知
 		messenger.callParentWithAsync(WorkerMessages.MESSAGE_DONE.toString,
 			messenger.tagValues(
 				new TagValue("identity", identity),
 				new TagValue("orderIdentity", info.orderIdentity),
 				new TagValue("eventualContext", eventualContext)))
+
+		println(identity + "非同期で送った事に対して、問題が出ている感ある。")
 	}
 
 	/**

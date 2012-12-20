@@ -503,6 +503,7 @@ class MessengerActor(myself : MessengerProtocol, inputtedName : String) extends 
 				react {
 					//call / async
 					case Call(exec, message) => {
+						println("called")
 						master.log += Log.LOG_TYPE_CALLED_AS_CHILD.toString
 
 						myself.receiver(exec, message)
@@ -511,6 +512,7 @@ class MessengerActor(myself : MessengerProtocol, inputtedName : String) extends 
 						exit
 					}
 					case CallWithAsync(exec, message) => {
+						println("CallWithAsync")
 						master.log += Log.LOG_TYPE_CALLED_AS_CHILD_ASYNC.toString
 	
 						myself.receiver(exec, message)
@@ -521,6 +523,7 @@ class MessengerActor(myself : MessengerProtocol, inputtedName : String) extends 
 
 					//callMyself / async
 					case CallMyself(exec, message) => {
+						println("CallMyself")
 						master.log += Log.LOG_TYPE_CALLED_MYSELF.toString
 
 						myself.receiver(exec, message)
@@ -529,6 +532,7 @@ class MessengerActor(myself : MessengerProtocol, inputtedName : String) extends 
 						exit
 					}
 					case CallMyselfWithAsync(exec, message) => {
+						println("CallMyselfWithAsync")
 						master.log += Log.LOG_TYPE_CALLED_MYSELF_ASYNC.toString
 
 						myself.receiver(exec, message)
@@ -539,6 +543,7 @@ class MessengerActor(myself : MessengerProtocol, inputtedName : String) extends 
 
 					//callParent / async
 					case CallParent(exec, message) => {
+						println("CallParent")
 						master.log += Log.LOG_TYPE_CALLED_AS_PARENT.toString
 
 						myself.receiver(exec, message)
@@ -546,6 +551,7 @@ class MessengerActor(myself : MessengerProtocol, inputtedName : String) extends 
 						reply(Done("parent called"))
 					}
 					case CallParentWithAsync(exec, message) => {
+						println("CallParentWithAsync")
 						master.log += Log.LOG_TYPE_CALLED_AS_PARENT_ASYNC.toString
 	
 						myself.receiver(exec, message)
@@ -555,6 +561,7 @@ class MessengerActor(myself : MessengerProtocol, inputtedName : String) extends 
 					}
 
 					case RemoveFromChild(id) => {
+						println("RemoveFromChild")
 						master.log += Log.LOG_TYPE_REMOVE_PARENT.toString
 						parent -= id
 						reply(Done("parent-removed"))

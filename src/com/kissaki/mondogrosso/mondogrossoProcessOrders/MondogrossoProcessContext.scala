@@ -704,7 +704,7 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
           comments += commentFormat(new Date, "finished!")
 
           val contextResultString = contextResultToString(currentContextResult)
-
+          println("Context送り、おくりましたよっと、、この辺が同期だからか。")
           //masterに完了を通知
           messenger.callParent(ContextMessages.MESSAGE_DONE.toString, messenger.tagValues(
             new TagValue("contextIdentity", identity),
@@ -713,7 +713,9 @@ class MondogrossoProcessContext(contextIdentity: String, contextSrc: ContextSour
             new TagValue("contextProcessIndex", doneProcessList.length),
             new TagValue("contextProcessTotal", contextSrc.totalProcessNum),
             new TagValue("contextResultString", contextResultString)))
+          println("Context、送り終わった")
         }
+        
       }
 
       case _ => println("nothing todo in STATUS_FINALLY	-exec	" + exec)

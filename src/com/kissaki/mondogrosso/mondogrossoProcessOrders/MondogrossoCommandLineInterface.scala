@@ -57,6 +57,7 @@ class MondogrossoCommandLineInterface(identity:String, targetFilePath:String) ex
       }
 
       case ProcessOrdersMasterMessages.MESSAGE_CONTEXT_OVER => {
+        println("MESSAGE_CONTEXT_OVER が届いた")
         messenger.call(writerId, "wtiteOut", messenger.tagValues(new TagValue("fileName", logOutputFile.value.get)))
         
         status = 1
